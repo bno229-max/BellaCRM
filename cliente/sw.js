@@ -1,9 +1,9 @@
 const CACHE_NAME = 'hairos-cliente-v1';
 const APP_SHELL = [
-  '/cliente',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/cliente/',
+  '/cliente/manifest.json',
+  '/cliente/icons/icon-192.png',
+  '/cliente/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -36,7 +36,7 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() =>
-        caches.match(event.request).then((cached) => cached || caches.match('/cliente'))
+        caches.match(event.request).then((cached) => cached || caches.match('/cliente/'))
       )
   );
 });
