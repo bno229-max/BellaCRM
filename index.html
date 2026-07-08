@@ -118,6 +118,27 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .icon-btn:hover{background:var(--surface-2)}
 .icon-btn .badge-dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--brand);border:2px solid var(--surface)}
 
+.notif-panel{
+  position:absolute;top:calc(100% + 10px);right:0;width:340px;max-width:88vw;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);z-index:120;
+  opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .15s,transform .15s;overflow:hidden;
+}
+.notif-panel.open{opacity:1;transform:none;pointer-events:auto}
+.notif-panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13.5px}
+.notif-mark-all{font-size:11.5px;font-weight:600;color:var(--brand)}
+.notif-list-wrap{max-height:360px;overflow-y:auto}
+.notif-item{display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:var(--surface-2)}
+.notif-item.unread{background:var(--brand-soft)}
+.notif-item .ni-dot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex-shrink:0;margin-top:6px}
+.notif-item.read .ni-dot{background:transparent}
+.notif-item .ni-text{flex:1;font-size:13px;line-height:1.4}
+.notif-item .ni-meta{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;color:var(--text-3)}
+.notif-item .ni-status{font-weight:700}
+.notif-item.unread .ni-status{color:var(--brand)}
+.notif-empty{padding:32px 16px;text-align:center;color:var(--text-3);font-size:13px}
+
 /* ============ BUTTONS / CHIPS ============ */
 .btn{
   display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:var(--r-sm);
@@ -214,6 +235,8 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .ag-col-head{padding:12px 14px;border-bottom:1px solid var(--border);border-left:1px solid var(--border);display:flex;align-items:center;gap:9px;position:sticky;top:0;background:var(--surface);z-index:5}
 .ag-col-head .p-n{font-weight:700;font-size:13px}
 .ag-col-head .p-s{font-size:11px;color:var(--text-3)}
+.ag-col-head .p-prov{font-size:10.5px;font-weight:600;color:var(--warn);margin-top:2px;white-space:nowrap}
+.ag-col-head .p-prov b{font-weight:800}
 .ag-col-head .p-count{margin-left:auto;font-size:11px;font-weight:700;color:var(--text-3);background:var(--surface-2);padding:2px 8px;border-radius:99px}
 .ag-time-col{border-bottom:1px solid var(--border)}
 .ag-body-time{position:relative}
@@ -609,10 +632,19 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     </button>
     <h1 id="topTitle">Dashboard</h1>
     <div class="spacer"></div>
-    <button class="icon-btn" onclick="toast('3 notificações não lidas')" aria-label="Notificações">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10.3 21a2 2 0 0 0 3.4 0"/></svg>
-      <span class="badge-dot"></span>
-    </button>
+    <div style="position:relative">
+      <button class="icon-btn" id="notifBellBtn" onclick="toggleNotifPanel()" aria-label="Notificações">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10.3 21a2 2 0 0 0 3.4 0"/></svg>
+        <span class="badge-dot" style="display:none"></span>
+      </button>
+      <div id="notifPanel" class="notif-panel">
+        <div class="notif-panel-head">
+          <span>Notificações</span>
+          <button class="notif-mark-all" onclick="markAllNotifsRead()">Marcar todas como lidas</button>
+        </div>
+        <div id="notifList"></div>
+      </div>
+    </div>
     <button class="btn btn-primary" onclick="openModal()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       Novo agendamento
@@ -1182,7 +1214,16 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 const $=s=>document.querySelector(s);
 const BRL=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+function toast(msg){
+  const t=$('#toast');
+  if(!t)return;
+  t.textContent=msg;
+  clearTimeout(t._h);
+  t.classList.remove('show');
+  void t.offsetWidth;
+  t.classList.add('show');
+  t._h=setTimeout(()=>t.classList.remove('show'),2600);
+}
 function initials(n){return n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase()}
 function ticketMedio(c){return c.visitas?c.total/c.visitas:0}
 
@@ -1568,8 +1609,10 @@ function renderDayView(){
   g.style.gridTemplateColumns='56px repeat('+PROS.length+', minmax(190px,1fr))';
   let html=`<div class="ag-col-head" style="border-left:none"></div>`;
   PROS.forEach(p=>{
-    const count=dayAppts.filter(a=>a.pro===p.id).length;
-    html+=`<div class="ag-col-head"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:${p.cor}1f;color:${p.cor}">${initials(p.nome)}</div><div><div class="p-n">${p.nome}</div><div class="p-s">${p.esp}</div></div><span class="p-count num">${count}</span></div>`;
+    const proAppts=dayAppts.filter(a=>a.pro===p.id);
+    const count=proAppts.length;
+    const provisoria=proAppts.filter(a=>a.status!=='cancelado'&&a.status!=='concluido').reduce((s,a)=>s+(a.valor||0),0);
+    html+=`<div class="ag-col-head"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:${p.cor}1f;color:${p.cor}">${initials(p.nome)}</div><div style="flex:1;min-width:0"><div class="p-n">${p.nome}</div><div class="p-s">${p.esp}</div><div class="p-prov" title="Soma dos agendamentos ainda não encerrados hoje">Receita prov.: <b class="num">${BRL(provisoria)}</b></div></div><span class="p-count num">${count}</span></div>`;
   });
   html+=`<div class="ag-body-time" style="height:${DAY_HOURS*HOUR_PX}px">`;
   for(let h=0;h<DAY_HOURS;h++)html+=`<div class="ag-hour num">${DAY_START+h}:00</div>`;
@@ -1757,6 +1800,10 @@ function clientTags(c){
   if(!tags.length)tags.push('<span class="tag tag-ok">Ativo</span>');
   return tags.join(' ');
 }
+function clientAvatarInner(c){
+  if(c.foto)return `<img src="${c.foto}" alt="${c.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+  return initials(c.nome);
+}
 function renderClients(){
   const q=($('#clientSearch').value||'').toLowerCase();
   let list=CLIENTS.filter(c=>c.nome.toLowerCase().includes(q)||c.tel.includes(q));
@@ -1765,7 +1812,7 @@ function renderClients(){
   if(clientFilter==='inativos')list=list.filter(c=>c.ult>40);
   if(clientFilter==='aniver')list=list.filter(c=>isAniversariante(c));
   $('#clientsTable tbody').innerHTML=list.map(c=>`<tr onclick="openClient(${c.id})">
-    <td><div class="t-client"><div class="avatar" style="width:32px;height:32px;font-size:11px">${initials(c.nome)}</div><div>${c.nome}<div class="t-sub">${c.tel}</div></div></div></td>
+    <td><div class="t-client"><div class="avatar" style="width:32px;height:32px;font-size:11px;overflow:hidden">${clientAvatarInner(c)}</div><div>${c.nome}<div class="t-sub">${c.tel}</div></div></div></td>
     <td>${clientTags(c)}</td>
     <td class="num">${c.ult===0?'hoje':'há '+c.ult+' dias'}</td>
     <td class="num">${c.visitas}</td>
@@ -1807,7 +1854,7 @@ function openClient(id){
   const c=CLIENTS.find(x=>x.id===id);
   const extra=[c.email,c.nasc?new Date(c.nasc+'T00:00:00').toLocaleDateString('pt-BR'):null,c.sexo].filter(Boolean).join(' · ');
   $('#drawerHead').innerHTML=`<div class="d-profile">
-      <div class="avatar">${initials(c.nome)}</div>
+      <div class="avatar" style="overflow:hidden">${clientAvatarInner(c)}</div>
       <div><h3>${c.nome}</h3><div class="d-contact">${c.tel}${c.visitas?' · cliente há '+Math.round(c.visitas*c.intervalo/30)+' meses':' · cliente novo'}</div>
       ${extra?`<div class="d-contact">${extra}</div>`:''}
       <div style="margin-top:7px">${clientTags(c)}</div></div></div>
@@ -2625,6 +2672,115 @@ function initBrandColor(){
   if(bt)bt.addEventListener('change',()=>{applyBrandColor(bt.value.trim());toast('Cor da marca atualizada')});
 }
 
+/* ================= SINCRONIZAÇÃO COM O APP DO CLIENTE ================= */
+// Usa localStorage compartilhado (mesma origem) para receber atualizações feitas pelo cliente pelo app.
+const CLIENT_SYNC_KEYS={clientProfile:'hairos-client-sync',apptEvents:'hairos-appt-events',notifications:'hairos-notifications'};
+let lastApptEventTs=0,lastNotifCount=0;
+function applyClientSyncData(){
+  let data=null;
+  try{data=JSON.parse(localStorage.getItem(CLIENT_SYNC_KEYS.clientProfile)||'null')}catch(e){}
+  if(!data)return;
+  let c=CLIENTS.find(x=>x.id===data.id);
+  if(!c){
+    c={id:data.id,nome:data.nome,tel:data.tel,ult:0,visitas:0,total:0,vip:false,aniver:false,fav:'—',pro:'—',dia:'—',intervalo:0,produtos:false};
+    CLIENTS.unshift(c);
+  }
+  c.nome=data.nome||c.nome;c.tel=data.tel||c.tel;
+  c.email=data.email||c.email;c.nasc=data.nasc||c.nasc;c.sexo=data.sexo||c.sexo;
+  if(data.foto)c.foto=data.foto;
+  renderClients();
+}
+function processApptEvents(){
+  let events=[];
+  try{events=JSON.parse(localStorage.getItem(CLIENT_SYNC_KEYS.apptEvents)||'[]')}catch(e){}
+  let changed=false;
+  events.forEach(evt=>{
+    if(evt.ts<=lastApptEventTs)return;
+    if(evt.type==='create'){
+      if(!appts.find(a=>a.id===evt.apptId)){
+        appts.push({id:evt.apptId,pro:evt.pro,cliente:evt.cliente,servico:evt.servico,start:evt.start,dur:evt.dur,status:evt.status||'pendente',date:evt.date,valor:evt.valor});
+        changed=true;
+      }
+    }else if(evt.type==='reschedule'){
+      const a=appts.find(x=>x.id===evt.apptId);
+      if(a&&(!evt.cliente||a.cliente===evt.cliente)){a.date=evt.date;a.start=evt.start;a.status=evt.status||'pendente';a.needsAttention=false;changed=true;}
+    }else if(evt.type==='cancel'){
+      const a=appts.find(x=>x.id===evt.apptId);
+      if(a&&(!evt.cliente||a.cliente===evt.cliente)){a.status='cancelado';changed=true;}
+    }
+  });
+  if(events.length)lastApptEventTs=Math.max(lastApptEventTs,...events.map(e=>e.ts));
+  if(changed){
+    if(!$('#view-agenda').hidden)renderAgenda();
+    dashboardRefresh();
+  }
+}
+function refreshNotifBadge(){
+  let notifs=[];
+  try{notifs=JSON.parse(localStorage.getItem(CLIENT_SYNC_KEYS.notifications)||'[]')}catch(e){}
+  window._clientNotifs=notifs;
+  const unread=notifs.filter(n=>!n.read);
+  const badge=document.querySelector('#notifBellBtn .badge-dot');
+  if(badge)badge.style.display=unread.length?'block':'none';
+  renderNotifList();
+}
+function formatNotifTime(ts){
+  const d=new Date(ts);
+  const today=new Date();
+  const isToday=d.toDateString()===today.toDateString();
+  const timeStr=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const dateStr=isToday?'Hoje':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  return dateStr+' às '+timeStr;
+}
+function renderNotifList(){
+  const el=$('#notifList');
+  if(!el)return;
+  const notifs=(window._clientNotifs||[]).slice().reverse();
+  if(!notifs.length){el.innerHTML='<div class="notif-empty">Nenhuma notificação do app do cliente ainda.</div>';return}
+  el.innerHTML='<div class="notif-list-wrap">'+notifs.map(n=>`<div class="notif-item ${n.read?'read':'unread'}" onclick='markNotifRead(${JSON.stringify(String(n.id))})'>
+    <div class="ni-dot"></div>
+    <div class="ni-text">${n.text}
+      <div class="ni-meta"><span>${formatNotifTime(n.ts)}</span><span>·</span><span class="ni-status">${n.read?'Lida':'Nova'}</span></div>
+    </div>
+  </div>`).join('')+'</div>';
+}
+function markNotifRead(id){
+  const notifs=window._clientNotifs||[];
+  const n=notifs.find(x=>String(x.id)===id);
+  if(n&&!n.read){
+    n.read=true;
+    try{localStorage.setItem(CLIENT_SYNC_KEYS.notifications,JSON.stringify(notifs))}catch(e){}
+    refreshNotifBadge();
+  }
+}
+function markAllNotifsRead(){
+  const notifs=window._clientNotifs||[];
+  notifs.forEach(n=>n.read=true);
+  try{localStorage.setItem(CLIENT_SYNC_KEYS.notifications,JSON.stringify(notifs))}catch(e){}
+  refreshNotifBadge();
+}
+function toggleNotifPanel(){
+  const panel=$('#notifPanel');
+  if(!panel)return;
+  const willOpen=!panel.classList.contains('open');
+  panel.classList.toggle('open',willOpen);
+  if(willOpen)renderNotifList();
+}
+document.addEventListener('click',e=>{
+  const panel=$('#notifPanel');
+  if(!panel||!panel.classList.contains('open'))return;
+  if(!panel.contains(e.target)&&e.target.id!=='notifBellBtn'&&!e.target.closest('#notifBellBtn')){
+    panel.classList.remove('open');
+  }
+});
+function syncTick(){applyClientSyncData();processApptEvents();refreshNotifBadge()}
+window.addEventListener('storage',e=>{
+  if(e.key===CLIENT_SYNC_KEYS.clientProfile)applyClientSyncData();
+  if(e.key===CLIENT_SYNC_KEYS.apptEvents)processApptEvents();
+  if(e.key===CLIENT_SYNC_KEYS.notifications)refreshNotifBadge();
+});
+setInterval(syncTick,4000);
+
 /* ================= LOGOTIPO ================= */
 function applyLogo(dataUrl,persist){
   const html=`<img src="${dataUrl}" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
@@ -2725,9 +2881,11 @@ const h=now.getHours();
 $('#greeting').textContent=(h<12?'Bom dia':h<18?'Boa tarde':'Boa noite')+', Fabiano';
 $('#todayLabel').textContent='Studio Jardins · '+now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 initBusinessHours();
+applyClientSyncData();processApptEvents();
 renderKpis();renderHeatmap();renderRanking();renderAgenda();renderClients();renderWaitlist();renderStaff();
 renderTiers();renderFidRanking();renderFidRules();syncRewardsFromServices(true);renderCashback();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();initBrandColor();initLogo();initReminderConfig();checkReminders();
 buildCharts();
+refreshNotifBadge();
 </script>
 </body>
 </html>
