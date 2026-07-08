@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Studio Jardins — App do Cliente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --bg:#FAFAF7; --surface:#FFFFFF; --surface-2:#F4F3EF; --border:#E8E6DF; --border-strong:#DCDAD2;
+  --text:#17151B; --text-2:#5C5864; --text-3:#8E8A96;
+  --brand:#C2366F; --brand-soft:rgba(194,54,111,.09); --brand-strong:#A82A5E; --on-brand:#FFFFFF;
+  --pos:#178A63; --pos-soft:rgba(23,138,99,.10);
+  --neg:#CC3B3B; --neg-soft:rgba(204,59,59,.10);
+  --warn:#A96A0B; --warn-soft:rgba(169,106,11,.12);
+  --info:#2E5FBF; --info-soft:rgba(46,95,191,.10);
+  --gold:#B8860B; --gold-soft:rgba(184,134,11,.12);
+  --shadow-sm:0 1px 2px rgba(23,21,27,.05);
+  --shadow-md:0 4px 16px rgba(23,21,27,.08);
+  --shadow-lg:0 20px 50px rgba(23,21,27,.18);
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --r-xl:28px;
+  --font-body:'Inter',system-ui,-apple-system,sans-serif;
+  --font-display:'Plus Jakarta Sans','Inter',system-ui,sans-serif;
+  --nav-h:64px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+[data-theme="dark"]{
+  --bg:#0E0D11; --surface:#17161C; --surface-2:#1E1D24; --border:#28272F; --border-strong:#34333C;
+  --text:#F2F1F4; --text-2:#A5A2AE; --text-3:#726F7C;
+  --brand:#F0679E; --brand-soft:rgba(240,103,158,.14); --brand-strong:#F582AF; --on-brand:#1B0A12;
+  --pos:#3DCE96; --pos-soft:rgba(61,206,150,.12);
+  --neg:#F26D6D; --neg-soft:rgba(242,109,109,.12);
+  --warn:#E5A43B; --warn-soft:rgba(229,164,59,.14);
+  --info:#7AA3F2; --info-soft:rgba(122,163,242,.12);
+  --gold:#E0B84A; --gold-soft:rgba(224,184,74,.15);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 20px rgba(0,0,0,.45);
+  --shadow-lg:0 20px 50px rgba(0,0,0,.55);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--font-body); background:#EDEBE4; color:var(--text);
+  font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  display:flex; justify-content:center; min-height:100vh;
+}
+[data-theme="dark"] body{background:#08070a}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;-webkit-tap-highlight-color:transparent}
+input,select,textarea{font-family:inherit;font-size:16px;color:inherit}
+::selection{background:var(--brand-soft)}
+.num{font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none}
+
+/* ============ PHONE SHELL ============ */
+.shell{
+  width:100%; max-width:430px; min-height:100vh; background:var(--bg); position:relative;
+  display:flex; flex-direction:column; overflow:hidden; transition:background .25s;
+  box-shadow:0 0 60px rgba(0,0,0,.15);
+}
+@media(min-width:431px){
+  body{padding:28px 0}
+  .shell{min-height:calc(100vh - 56px); border-radius:40px; box-shadow:0 30px 80px rgba(0,0,0,.28);}
+}
+
+.screen{flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:calc(var(--nav-h) + var(--safe-b) + 20px); -webkit-overflow-scrolling:touch}
+.screen::-webkit-scrollbar{display:none}
+.screen{scrollbar-width:none}
+.screen-pad{padding:18px 20px 8px}
+
+/* ============ BOTTOM NAV ============ */
+.bottom-nav{
+  position:absolute; left:0; right:0; bottom:0; height:calc(var(--nav-h) + var(--safe-b));
+  background:var(--surface); border-top:1px solid var(--border);
+  display:flex; align-items:stretch; padding-bottom:var(--safe-b); z-index:50;
+  backdrop-filter:blur(20px); background:color-mix(in srgb, var(--surface) 92%, transparent);
+}
+.nav-btn{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  color:var(--text-3); font-size:11px; font-weight:600; transition:color .15s; position:relative;
+}
+.nav-btn.active{color:var(--brand)}
+.nav-btn svg{transition:transform .15s}
+.nav-btn.active svg{transform:translateY(-1px)}
+.nav-fab{
+  position:relative; top:-16px; width:52px; height:52px; border-radius:50%; background:var(--brand);
+  color:var(--on-brand); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(194,54,111,.4);
+  flex-shrink:0; align-self:center; margin:0 4px;
+}
+[data-theme="dark"] .nav-fab{box-shadow:0 8px 20px rgba(240,103,158,.3)}
+
+/* ============ TOP BAR ============ */
+.topbar{
+  display:flex; align-items:center; gap:12px; padding:calc(14px + var(--safe-t)) 20px 14px;
+  position:sticky; top:0; z-index:10; background:var(--bg);
+}
+.topbar.solid{background:var(--surface); border-bottom:1px solid var(--border)}
+.topbar h1{font-family:var(--font-display); font-size:19px; font-weight:800; letter-spacing:-.01em; flex:1}
+.back-btn{width:36px; height:36px; border-radius:12px; display:grid; place-items:center; background:var(--surface-2); flex-shrink:0}
+.icon-btn-sm{width:38px; height:38px; border-radius:12px; display:grid; place-items:center; background:var(--surface-2); flex-shrink:0; position:relative}
+.icon-btn-sm .dot{position:absolute; top:8px; right:9px; width:7px; height:7px; border-radius:50%; background:var(--brand); border:2px solid var(--surface-2)}
+
+/* ============ TYPOGRAPHY HELPERS ============ */
+.h-display{font-family:var(--font-display); font-weight:800; letter-spacing:-.02em}
+.eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-3)}
+.text-2{color:var(--text-2)}
+.text-3{color:var(--text-3)}
+
+/* ============ CARDS ============ */
+.card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-sm); transition:background .25s,border-color .25s}
+.card-pad{padding:18px}
+
+/* ============ BUTTONS ============ */
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 20px; border-radius:16px; font-size:15.5px; font-weight:700; transition:filter .15s,transform .1s; min-height:50px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--brand); color:var(--on-brand)}
+.btn-primary:active{filter:brightness(.94)}
+.btn-primary:disabled{opacity:.4; pointer-events:none}
+.btn-ghost{background:var(--surface-2); color:var(--text)}
+.btn-outline{background:transparent; border:1.5px solid var(--border-strong); color:var(--text)}
+.btn-block{width:100%}
+.btn-sm{padding:10px 16px; font-size:13.5px; min-height:auto; border-radius:12px}
+.btn-danger-ghost{background:var(--neg-soft); color:var(--neg)}
+
+/* ============ CHIPS ============ */
+.chip-row{display:flex; gap:8px; flex-wrap:wrap}
+.chip{padding:10px 16px; border-radius:99px; font-size:14px; font-weight:600; color:var(--text-2); border:1.5px solid var(--border); background:var(--surface); transition:all .15s; min-height:42px; display:inline-flex; align-items:center}
+.chip.active{background:var(--text); color:var(--bg); border-color:var(--text); font-weight:700}
+.chip-brand.active{background:var(--brand); color:var(--on-brand); border-color:var(--brand)}
+.tag{display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:700}
+.tag-vip{background:var(--gold-soft); color:var(--gold)}
+.tag-ok{background:var(--pos-soft); color:var(--pos)}
+.tag-warn{background:var(--warn-soft); color:var(--warn)}
+.tag-info{background:var(--info-soft); color:var(--info)}
+.tag-brand{background:var(--brand-soft); color:var(--brand)}
+
+/* ============ AVATAR ============ */
+.avatar{border-radius:50%; background:var(--brand-soft); color:var(--brand); display:grid; place-items:center; font-weight:800; flex-shrink:0; overflow:hidden}
+.stars{display:inline-flex; gap:1px}
+.stars .star{color:var(--gold); font-size:13px}
+.stars .star.empty{color:var(--border-strong)}
+
+/* ============ TOGGLE ============ */
+.toggle{width:46px; height:26px; border-radius:99px; background:var(--border-strong); position:relative; cursor:pointer; transition:background .15s; flex-shrink:0}
+.toggle.on{background:var(--brand)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{transform:translateX(20px)}
+
+/* ============ MISC ============ */
+.divider{height:1px; background:var(--border); margin:16px 0}
+.hscroll{display:flex; gap:12px; overflow-x:auto; padding:2px 20px 10px; margin:0 -20px; -webkit-overflow-scrolling:touch}
+.hscroll::-webkit-scrollbar{display:none}
+.fade-in{animation:fadeUp .35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.9);opacity:0}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
+.pop-in{animation:pop .4s cubic-bezier(.34,1.56,.64,1) both}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+
+/* ============ TOAST ============ */
+.toast{position:absolute; top:calc(var(--safe-t) + 14px); left:50%; transform:translate(-50%,-90px); background:var(--text); color:var(--bg); padding:13px 20px; border-radius:14px; font-size:13.5px; font-weight:600; z-index:300; transition:transform .3s cubic-bezier(.4,0,.2,1); box-shadow:var(--shadow-lg); max-width:86%; text-align:center; line-height:1.4; pointer-events:none}
+.toast.show{transform:translate(-50%,0)}
+
+/* ============ SHEET (bottom modal) ============ */
+.sheet-scrim{position:absolute; inset:0; background:rgba(10,9,12,.5); z-index:200; opacity:0; pointer-events:none; transition:opacity .25s}
+.sheet-scrim.open{opacity:1; pointer-events:auto}
+.sheet{
+  position:absolute; left:0; right:0; bottom:0; max-height:88%; background:var(--surface);
+  border-radius:28px 28px 0 0; z-index:210; transform:translateY(100%); transition:transform .3s cubic-bezier(.32,.72,0,1);
+  display:flex; flex-direction:column; box-shadow:0 -10px 40px rgba(0,0,0,.2);
+}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px; height:4px; border-radius:99px; background:var(--border-strong); margin:12px auto 4px}
+.sheet-head{padding:8px 22px 14px; border-bottom:1px solid var(--border)}
+.sheet-head h3{font-family:var(--font-display); font-size:18px; font-weight:800}
+.sheet-body{padding:18px 22px; overflow-y:auto; padding-bottom:calc(22px + var(--safe-b))}
+.sheet-foot{padding:14px 22px calc(14px + var(--safe-b)); border-top:1px solid var(--border)}
+
+/* ============ FIELD ============ */
+.field{margin-bottom:16px}
+.field label{display:block; font-size:13.5px; font-weight:700; color:var(--text-2); margin-bottom:7px}
+.field input,.field select,.field textarea{width:100%; padding:13px 14px; border:1.5px solid var(--border); border-radius:14px; background:var(--surface-2); outline:none; font-size:16px; transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand); background:var(--surface)}
+</style>
+</head>
+<style>
+/* ============ HOME ============ */
+.hero-greet{display:flex;align-items:center;justify-content:space-between;padding:calc(16px + var(--safe-t)) 20px 4px}
+.hero-greet .greet-text h2{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.02em}
+.hero-greet .greet-text p{font-size:13.5px;color:var(--text-3);margin-top:2px}
+.next-appt-card{
+  margin:14px 20px 0;padding:20px;border-radius:var(--r-xl);position:relative;overflow:hidden;
+  background:linear-gradient(135deg,var(--brand) 0%,var(--brand-strong) 100%);color:#fff;box-shadow:0 12px 30px rgba(194,54,111,.28);
+}
+[data-theme="dark"] .next-appt-card{box-shadow:0 12px 30px rgba(0,0,0,.4)}
+.next-appt-card .na-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.next-appt-card .na-date{font-family:var(--font-display);font-size:24px;font-weight:800;margin-top:4px;letter-spacing:-.01em}
+.next-appt-card .na-detail{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25)}
+.next-appt-card .na-avatar{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-weight:800;font-size:14px}
+.next-appt-card .na-svc{font-weight:700;font-size:14.5px}
+.next-appt-card .na-pro{font-size:12.5px;opacity:.85}
+.next-appt-card .na-actions{display:flex;gap:8px;margin-top:14px}
+.next-appt-card .na-btn{flex:1;padding:11px;border-radius:12px;font-size:13.5px;font-weight:700;text-align:center;background:rgba(255,255,255,.18)}
+.next-appt-card .na-btn.solid{background:#fff;color:var(--brand-strong)}
+@keyframes nextApptPulse{0%,100%{box-shadow:0 12px 30px rgba(194,54,111,.28),0 0 0 0 rgba(255,255,255,.5)}50%{box-shadow:0 12px 30px rgba(194,54,111,.4),0 0 0 10px rgba(255,255,255,0)}}
+.next-appt-card.pulsing{animation:nextApptPulse 1.6s ease-in-out infinite}
+.next-appt-card.expired{background:linear-gradient(135deg,var(--text-3) 0%,var(--text-2) 100%)}
+.empty-appt-card{margin:14px 20px 0;padding:24px 20px;border-radius:var(--r-xl);background:var(--surface);border:1.5px dashed var(--border-strong);text-align:center}
+.empty-appt-card .ea-ico{font-size:32px;margin-bottom:8px}
+.empty-appt-card h3{font-family:var(--font-display);font-weight:800;font-size:16px;margin-bottom:3px}
+.empty-appt-card p{font-size:13px;color:var(--text-3);margin-bottom:14px}
+
+.quick-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:18px 20px 4px}
+.qs-card{padding:16px;border-radius:var(--r-lg);position:relative;overflow:hidden}
+.qs-card .qs-ico{font-size:20px}
+.qs-card .qs-val{font-family:var(--font-display);font-weight:800;font-size:21px;margin-top:8px;letter-spacing:-.01em}
+.qs-card .qs-lbl{font-size:12px;color:var(--text-3);margin-top:1px}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 10px}
+.section-head h3{font-family:var(--font-display);font-weight:800;font-size:16.5px}
+.section-head .see-all{font-size:13px;font-weight:700;color:var(--brand)}
+
+.promo-card{
+  min-width:270px;max-width:270px;border-radius:var(--r-lg);padding:18px;flex-shrink:0;position:relative;overflow:hidden;
+  color:var(--text);
+}
+.promo-card .pc-emoji{font-size:26px;margin-bottom:10px}
+.promo-card .pc-title{font-family:var(--font-display);font-weight:800;font-size:15.5px;margin-bottom:4px}
+.promo-card .pc-desc{font-size:12.5px;color:var(--text-2);line-height:1.45}
+
+.staff-mini{min-width:92px;max-width:92px;flex-shrink:0;text-align:center}
+.staff-mini .avatar{width:64px;height:64px;font-size:20px;margin:0 auto 8px;border-radius:20px}
+.staff-mini .sm-name{font-weight:700;font-size:13px}
+.staff-mini .sm-rating{font-size:11px;color:var(--text-3);margin-top:2px;display:flex;align-items:center;justify-content:center;gap:3px}
+
+.review-prompt{margin:6px 20px 0;padding:16px;border-radius:var(--r-lg);background:var(--warn-soft);display:flex;align-items:center;gap:12px}
+.review-prompt .rp-ico{font-size:24px;flex-shrink:0}
+.review-prompt .rp-text{flex:1;font-size:13px;font-weight:600}
+.review-prompt .rp-text span{display:block;font-size:11.5px;font-weight:400;color:var(--text-2);margin-top:1px}
+
+/* ============ AGENDAR (wizard) ============ */
+.wizard-steps{display:flex;gap:6px;padding:0 20px 16px}
+.wizard-steps .ws-bar{flex:1;height:4px;border-radius:99px;background:var(--border)}
+.wizard-steps .ws-bar.done{background:var(--brand)}
+.svc-card{
+  display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--r-lg);border:1.5px solid var(--border);
+  background:var(--surface);margin-bottom:10px;transition:border-color .15s,background .15s;
+}
+.svc-card.selected{border-color:var(--brand);background:var(--brand-soft)}
+.svc-card .svc-check{width:24px;height:24px;border-radius:8px;border:1.5px solid var(--border-strong);flex-shrink:0;display:grid;place-items:center;transition:all .15s}
+.svc-card.selected .svc-check{background:var(--brand);border-color:var(--brand);color:#fff}
+.svc-card .svc-info{flex:1}
+.svc-card .svc-name{font-weight:700;font-size:15px}
+.svc-card .svc-meta{font-size:12.5px;color:var(--text-3);margin-top:2px}
+.svc-card .svc-price{font-family:var(--font-display);font-weight:800;font-size:15px}
+
+.pro-card{
+  display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--r-lg);border:1.5px solid var(--border);
+  background:var(--surface);margin-bottom:10px;transition:border-color .15s,background .15s;
+}
+.pro-card.selected{border-color:var(--brand);background:var(--brand-soft)}
+.pro-card .avatar{width:52px;height:52px;font-size:17px;border-radius:16px}
+.pro-card .pro-info{flex:1}
+.pro-card .pro-name{font-weight:700;font-size:15px}
+.pro-card .pro-esp{font-size:12.5px;color:var(--text-3)}
+.pro-card .pro-meta{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:11.5px;color:var(--text-3)}
+.pro-card .pro-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;display:grid;place-items:center}
+.pro-card.selected .pro-check{background:var(--brand);border-color:var(--brand);color:#fff}
+
+.day-strip{display:flex;gap:10px;overflow-x:auto;padding:2px 20px 6px;margin:0 -20px;-webkit-overflow-scrolling:touch}
+.day-strip::-webkit-scrollbar{display:none}
+.day-chip{min-width:58px;padding:12px 8px;border-radius:16px;border:1.5px solid var(--border);text-align:center;flex-shrink:0;background:var(--surface)}
+.day-chip.active{background:var(--brand);border-color:var(--brand);color:#fff}
+.day-chip.disabled{opacity:.35;pointer-events:none}
+.day-chip .dc-dow{font-size:10.5px;font-weight:700;text-transform:uppercase;opacity:.75}
+.day-chip .dc-num{font-family:var(--font-display);font-weight:800;font-size:17px;margin-top:2px}
+
+.time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:4px 20px 16px}
+.time-slot{padding:13px 4px;border-radius:14px;border:1.5px solid var(--border);text-align:center;font-weight:700;font-size:14px;background:var(--surface)}
+.time-slot.active{background:var(--brand);border-color:var(--brand);color:#fff}
+.time-slot.disabled{opacity:.3;pointer-events:none;text-decoration:line-through}
+
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);font-size:14.5px}
+.summary-row:last-child{border-bottom:none}
+.summary-row .sr-label{color:var(--text-3)}
+.summary-row .sr-value{font-weight:700;text-align:right}
+.pay-option{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;border:1.5px solid var(--border);margin-bottom:10px}
+.pay-option.selected{border-color:var(--brand);background:var(--brand-soft)}
+.pay-option .po-ico{width:36px;height:36px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;font-size:16px;flex-shrink:0}
+.pay-option .po-radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;margin-left:auto}
+.pay-option.selected .po-radio{border-color:var(--brand);background:var(--brand);box-shadow:inset 0 0 0 4px var(--surface)}
+
+.sticky-cta{position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 60%,transparent);padding:16px 20px calc(16px + var(--safe-b));margin-top:8px}
+
+.success-wrap{padding:60px 24px 20px;text-align:center}
+.success-check{width:84px;height:84px;border-radius:50%;background:var(--pos-soft);color:var(--pos);display:grid;place-items:center;margin:0 auto 20px}
+.success-wrap h2{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:8px}
+.success-wrap p{color:var(--text-3);font-size:14px;margin-bottom:24px}
+
+/* ============ HORÁRIOS ============ */
+.segmented{display:flex;background:var(--surface-2);border-radius:14px;padding:4px;margin:0 20px 16px}
+.segmented button{flex:1;padding:10px;border-radius:11px;font-size:13.5px;font-weight:700;color:var(--text-3)}
+.segmented button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+.appt-card{margin:0 20px 12px;padding:16px;border-radius:var(--r-lg);border:1.5px solid var(--border);background:var(--surface)}
+.appt-card.attention{border-color:var(--neg);background:var(--neg-soft);animation:pulseCard 1.4s ease-in-out infinite}
+@keyframes pulseCard{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 0 0 6px rgba(220,38,38,0)}}
+.appt-card .ac-top{display:flex;align-items:center;gap:12px}
+.appt-card .ac-date-box{width:48px;height:48px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.appt-card .ac-date-box .dd{font-family:var(--font-display);font-weight:800;font-size:16px;line-height:1}
+.appt-card .ac-date-box .mm{font-size:9.5px;font-weight:700;text-transform:uppercase}
+.appt-card .ac-info{flex:1;min-width:0}
+.appt-card .ac-svc{font-weight:700;font-size:14.5px}
+.appt-card .ac-meta{font-size:12.5px;color:var(--text-3);margin-top:1px}
+.appt-card .ac-confirm{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.appt-card .ac-confirm-q{font-size:13.5px;font-weight:700;margin-bottom:10px}
+.appt-card .ac-confirm-btns{display:flex;gap:8px}
+.appt-card .ac-actions{display:flex;gap:8px;margin-top:12px}
+
+/* ============ FIDELIDADE ============ */
+.tier-hero{margin:16px 20px 0;padding:22px;border-radius:var(--r-xl);position:relative;overflow:hidden;color:#fff}
+.tier-hero .th-badge{font-size:34px}
+.tier-hero .th-name{font-family:var(--font-display);font-weight:800;font-size:20px;margin-top:6px}
+.tier-hero .th-pts{font-size:13px;opacity:.9;margin-top:2px}
+.tier-hero .th-progress{margin-top:16px}
+.tier-hero .th-bar-track{height:8px;border-radius:99px;background:rgba(255,255,255,.25)}
+.tier-hero .th-bar-fill{height:100%;border-radius:99px;background:#fff}
+.tier-hero .th-progress-lbl{font-size:11.5px;margin-top:6px;opacity:.9}
+.wallet-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 20px 4px}
+.wallet-card{padding:16px;border-radius:var(--r-lg)}
+.wallet-card .wc-lbl{font-size:12px;color:var(--text-3)}
+.wallet-card .wc-val{font-family:var(--font-display);font-weight:800;font-size:19px;margin-top:6px}
+.reward-card{display:flex;align-items:center;gap:14px;margin:0 20px 10px;padding:14px;border-radius:var(--r-lg);border:1.5px solid var(--border);background:var(--surface)}
+.reward-card .rc-ico{width:44px;height:44px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-size:19px;flex-shrink:0}
+.reward-card .rc-info{flex:1}
+.reward-card .rc-name{font-weight:700;font-size:14px}
+.reward-card .rc-cost{font-size:12px;color:var(--text-3);margin-top:1px}
+
+/* ============ PERFIL ============ */
+.profile-hero{display:flex;flex-direction:column;align-items:center;padding:24px 20px 20px;text-align:center}
+.profile-hero .avatar{width:84px;height:84px;font-size:28px;border-radius:26px;margin-bottom:12px}
+.profile-hero h2{font-family:var(--font-display);font-weight:800;font-size:19px}
+.profile-hero p{font-size:13px;color:var(--text-3);margin-top:2px}
+.menu-list{margin:0 20px}
+.menu-item{display:flex;align-items:center;gap:14px;padding:15px 16px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px}
+.menu-item .mi-ico{width:38px;height:38px;border-radius:11px;background:var(--surface-2);display:grid;place-items:center;flex-shrink:0}
+.menu-item .mi-label{flex:1;font-weight:600;font-size:14.5px}
+.menu-item .mi-chevron{color:var(--text-3)}
+
+::-webkit-scrollbar{width:0;height:0}
+</style>
+<body>
+<div class="shell">
+
+  <div class="screen" id="screen">
+    <!-- content injected by JS per view -->
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="inicio" onclick="setView('inicio')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+      Início
+    </button>
+    <button class="nav-btn" data-view="horarios" onclick="setView('horarios')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 9h18"/></svg>
+      Horários
+    </button>
+    <button class="nav-fab" onclick="startBooking()" aria-label="Agendar">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button class="nav-btn" data-view="fidelidade" onclick="setView('fidelidade')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.8L6.6 19.7l1-6L3.2 9.4l6.1-.9z"/></svg>
+      Fidelidade
+    </button>
+    <button class="nav-btn" data-view="perfil" onclick="setView('perfil')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.2-4 4.4-6 8-6s6.8 2 8 6"/></svg>
+      Perfil
+    </button>
+  </nav>
+
+  <!-- ============ SHEET: AVALIAÇÃO ============ -->
+  <div class="sheet-scrim" id="reviewScrim" onclick="closeReviewSheet()"></div>
+  <div class="sheet" id="reviewSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>Avaliar atendimento</h3></div>
+    <div class="sheet-body" id="reviewBody"></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" onclick="submitReview()">Enviar avaliação</button></div>
+  </div>
+
+  <!-- ============ SHEET: RESGATE ============ -->
+  <div class="sheet-scrim" id="redeemScrim" onclick="closeRedeemSheet()"></div>
+  <div class="sheet" id="redeemSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3 id="redeemTitle">Resgatar recompensa</h3></div>
+    <div class="sheet-body" id="redeemBody"></div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" id="redeemConfirmBtn" onclick="confirmRedeem()">Confirmar resgate</button></div>
+  </div>
+
+  <!-- ============ SHEET: MEUS DADOS ============ -->
+  <div class="sheet-scrim" id="profileScrim" onclick="closeProfileSheet()"></div>
+  <div class="sheet" id="profileSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>Meus dados</h3></div>
+    <div class="sheet-body">
+      <div style="display:flex;justify-content:center;margin-bottom:6px">
+        <div class="avatar" style="width:76px;height:76px;font-size:24px;background:var(--brand-soft);color:var(--brand);overflow:hidden;position:relative;cursor:pointer" id="pfAvatarPreview" onclick="document.getElementById('profilePhotoFile2').click()">
+        </div>
+      </div>
+      <div style="text-align:center;margin-bottom:18px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('profilePhotoFile2').click()">Trocar foto</button>
+        <input type="file" id="profilePhotoFile2" accept="image/*" style="display:none" onchange="handleProfilePhoto(event)">
+      </div>
+      <div class="field"><label>Nome completo *</label><input id="pfNome" placeholder="Seu nome completo"></div>
+      <div class="field"><label>Telefone / WhatsApp *</label><input id="pfTel" placeholder="(11) 90000-0000"></div>
+      <div class="field"><label>Email</label><input id="pfEmail" type="email" placeholder="nome@email.com"></div>
+      <div class="field"><label>Data de nascimento</label><input id="pfNasc" type="date"></div>
+      <div class="field"><label>Sexo</label><select id="pfSexo"><option value="">Não informar</option><option>Feminino</option><option>Masculino</option><option>Outro</option></select></div>
+      <p id="pfError" style="display:none;color:var(--neg);font-size:13px;margin-top:-8px">Preencha nome e telefone para continuar.</p>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" onclick="saveProfile()">Salvar alterações</button></div>
+  </div>
+
+  <!-- ============ SHEET: ENDEREÇO DO SALÃO ============ -->
+  <div class="sheet-scrim" id="addressScrim" onclick="closeAddressSheet()"></div>
+  <div class="sheet" id="addressSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>Endereço do salão</h3></div>
+    <div class="sheet-body">
+      <div class="card card-pad" style="display:flex;gap:14px;align-items:flex-start;margin-bottom:18px">
+        <div style="width:44px;height:44px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex-shrink:0;font-size:20px">📍</div>
+        <div><div style="font-weight:800;font-size:15.5px;margin-bottom:2px" id="addressSalonNome"></div><div class="text-2" style="font-size:13.5px;line-height:1.5" id="addressSalonEndereco"></div></div>
+      </div>
+      <p class="text-3" style="font-size:13px;margin-bottom:18px">Toque no botão abaixo para abrir a rota até o salão direto no Google Maps.</p>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-primary btn-block" onclick="openMapsRoute()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Traçar rota no Google Maps
+    </button></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+/* ================= HELPERS ================= */
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const BRL=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function toast(msg){
+  const t=$('#toast');
+  if(!t)return;
+  t.textContent=msg;
+  clearTimeout(t._h);
+  t.classList.remove('show');
+  void t.offsetWidth; // força reflow para reiniciar a animação mesmo se já estava visível
+  t.classList.add('show');
+  t._h=setTimeout(()=>t.classList.remove('show'),2400);
+}
+function initials(n){return n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase()}
+function fmtDate(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
+function parseDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+const MONTH_SHORT=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const WEEKDAY_SHORT=['dom','seg','ter','qua','qui','sex','sáb'];
+const WEEKDAY_LABELS=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+
+/* ================= THEME ================= */
+function applyTheme(mode){
+  document.documentElement.dataset.theme=mode;
+  try{localStorage.setItem('hairos-client-theme',mode)}catch(e){}
+  renderThemeToggleUI();
+}
+function toggleTheme(){applyTheme(document.documentElement.dataset.theme==='light'?'dark':'light')}
+function renderThemeToggleUI(){
+  const el=$('#themeToggleRow');
+  if(el)el.classList.toggle('on',document.documentElement.dataset.theme==='dark');
+}
+try{const saved=localStorage.getItem('hairos-client-theme');if(saved)applyTheme(saved)}catch(e){}
+
+/* ================= SINCRONIZAÇÃO COM O PAINEL DO SALÃO ================= */
+// Usa localStorage compartilhado (mesma origem) para refletir mudanças feitas pelo admin em tempo real.
+const SYNC_KEYS={brand:'hairos-brand',clientProfile:'hairos-client-sync',apptEvents:'hairos-appt-events',notifications:'hairos-notifications'};
+function applyClientBrandColor(hex){
+  if(!/^#[0-9A-Fa-f]{6}$/.test(hex))return;
+  document.documentElement.style.setProperty('--brand',hex);
+  document.documentElement.style.setProperty('--brand-strong',hex);
+  document.documentElement.style.setProperty('--brand-soft',`color-mix(in srgb, ${hex} 12%, transparent)`);
+}
+function initBrandSync(){
+  try{const saved=localStorage.getItem(SYNC_KEYS.brand);if(saved)applyClientBrandColor(saved)}catch(e){}
+}
+window.addEventListener('storage',e=>{
+  if(e.key===SYNC_KEYS.brand&&e.newValue)applyClientBrandColor(e.newValue);
+});
+initBrandSync();
+function pushApptEvent(evt){
+  let arr=[];
+  try{arr=JSON.parse(localStorage.getItem(SYNC_KEYS.apptEvents)||'[]')}catch(e){}
+  arr.push({...evt,ts:Date.now()});
+  if(arr.length>200)arr=arr.slice(-200);
+  try{localStorage.setItem(SYNC_KEYS.apptEvents,JSON.stringify(arr))}catch(e){}
+}
+function pushNotification(text){
+  let arr=[];
+  try{arr=JSON.parse(localStorage.getItem(SYNC_KEYS.notifications)||'[]')}catch(e){}
+  arr.push({id:Date.now()+Math.random(),text,ts:Date.now(),read:false});
+  if(arr.length>50)arr=arr.slice(-50);
+  try{localStorage.setItem(SYNC_KEYS.notifications,JSON.stringify(arr))}catch(e){}
+}
+function pushClientSync(){
+  try{localStorage.setItem(SYNC_KEYS.clientProfile,JSON.stringify({
+    id:CLIENT.id,nome:CLIENT.nome,tel:CLIENT.tel,email:CLIENT.email||'',nasc:CLIENT.nasc||'',sexo:CLIENT.sexo||'',foto:CLIENT.foto||null,ts:Date.now()
+  }))}catch(e){}
+}
+function apptRealDateTime(a){
+  const d=parseDate(a.date);
+  const [h,m]=a.hora.split(':').map(Number);
+  d.setHours(h,m,0,0);
+  return d;
+}
+function computeApptStart(dateStr,hora){
+  const cfg=businessHoursForDate(parseDate(dateStr));
+  const openHour=cfg&&cfg.open?parseInt(cfg.open.split(':')[0]):8;
+  const [h,m]=hora.split(':').map(Number);
+  return (h-openHour)*60+m;
+}
+
+/* ================= MOCK DATA (espelha o painel administrativo) ================= */
+const SALON={nome:'Studio Jardins',endereco:'R. Augusta, 2140 · Jardins · São Paulo, SP'};
+
+const CLIENT={
+  id:1,nome:'Ana Beatriz Souza',tel:'(11) 98877-1023',email:'ana.beatriz@email.com',nasc:'',sexo:'Feminino',avatarCor:'#C2366F',foto:null,
+  pontos:6910,tier:'Black',proximoTier:'Diamond',proximoTierPontos:10000,
+  cashback:187.40,visitas:24,desde:'Janeiro de 2024',
+};
+
+const TIERS=[
+  {nome:'Bronze',min:0,ico:'🥉',cor1:'#B08D57',cor2:'#8C6B3F'},
+  {nome:'Prata',min:500,ico:'🥈',cor1:'#9CA3AF',cor2:'#6B7280'},
+  {nome:'Ouro',min:1500,ico:'🥇',cor1:'#E0B84A',cor2:'#B8860B'},
+  {nome:'Black',min:4000,ico:'🖤',cor1:'#3A3841',cor2:'#17151B'},
+  {nome:'Diamond',min:10000,ico:'💎',cor1:'#C2366F',cor2:'#7A2049'},
+];
+
+const PROS=[
+  {id:'marina',nome:'Marina Costa',esp:'Colorista',cor:'#C2366F',rating:4.9,atend30:87,exp:'6 anos'},
+  {id:'thiago',nome:'Thiago Lima',esp:'Cabeleireiro',cor:'#2E5FBF',rating:4.7,atend30:64,exp:'9 anos'},
+  {id:'julia',nome:'Júlia Rocha',esp:'Manicure',cor:'#178A63',rating:4.8,atend30:102,exp:'3 anos'},
+  {id:'rafa',nome:'Rafa Mendes',esp:'Barbeiro',cor:'#A96A0B',rating:4.6,atend30:78,exp:'5 anos'},
+];
+
+const SERVICES=[
+ {n:'Corte feminino',v:90,d:60},{n:'Corte masculino',v:55,d:30},{n:'Coloração',v:180,d:120},{n:'Mechas / Luzes',v:260,d:150},
+ {n:'Escova',v:70,d:45},{n:'Hidratação',v:95,d:45},{n:'Manicure',v:45,d:45},{n:'Pedicure',v:50,d:45},
+ {n:'Barba',v:40,d:20},{n:'Progressiva',v:320,d:180},{n:'Sobrancelha',v:35,d:15},
+];
+
+const BUSINESS_HOURS=[
+  {open:'09:00',close:'20:00',active:true},{open:'09:00',close:'20:00',active:true},
+  {open:'09:00',close:'20:00',active:true},{open:'09:00',close:'20:00',active:true},
+  {open:'09:00',close:'21:00',active:true},{open:'09:00',close:'18:00',active:true},
+  {open:'',close:'',active:false},
+];
+function businessHoursForDate(date){const dow=date.getDay();return BUSINESS_HOURS[dow===0?6:dow-1]}
+
+const TODAY_STR=fmtDate(new Date());
+function daysFromToday(n){const d=new Date();d.setDate(d.getDate()+n);return fmtDate(d)}
+
+let APPTS=[
+  {id:1,servico:'Coloração',pro:'marina',date:daysFromToday(2),hora:'15:00',valor:180,status:'pendente',needsAttention:false},
+  {id:2,servico:'Manicure',pro:'julia',date:daysFromToday(9),hora:'10:30',valor:45,status:'confirmado',needsAttention:false},
+  {id:3,servico:'Corte feminino + Escova',pro:'marina',date:daysFromToday(-6),hora:'14:00',valor:160,status:'concluido',rated:false,cashback:8.0},
+  {id:4,servico:'Hidratação',pro:'marina',date:daysFromToday(-21),hora:'16:00',valor:95,status:'concluido',rated:true,cashback:4.75},
+  {id:5,servico:'Manicure + Pedicure',pro:'julia',date:daysFromToday(-35),hora:'11:00',valor:95,status:'concluido',rated:true,cashback:4.75},
+];
+
+let REWARDS=[
+  {nome:'Corte feminino grátis',custo:360,icon:'✂️'},
+  {nome:'Hidratação grátis',custo:380,icon:'💆'},
+  {nome:'Coloração grátis',custo:720,icon:'🎨'},
+  {nome:'Manicure grátis',custo:180,icon:'💅'},
+  {nome:'Sobrancelha grátis',custo:140,icon:'✨'},
+];
+
+let CASHBACK_EXTRACT=[
+  {t:'Cashback creditado',d:'Corte feminino + Escova',v:8.0,data:daysFromToday(-6)},
+  {t:'Cashback creditado',d:'Hidratação',v:4.75,data:daysFromToday(-21)},
+  {t:'Cashback resgatado',d:'Usado em Manicure',v:-15.0,data:daysFromToday(-30)},
+  {t:'Cashback creditado',d:'Manicure + Pedicure',v:4.75,data:daysFromToday(-35)},
+];
+
+const PROMOS=[
+  {emoji:'🔥',bg:'var(--neg-soft)',title:'Volte a Brilhar',desc:'Ganhe um giftback de hidratação grátis ao agendar esta semana.'},
+  {emoji:'🎂',bg:'var(--brand-soft)',title:'Mês de Aniversário',desc:'30% de desconto no seu serviço favorito na semana do seu aniversário.'},
+  {emoji:'⚡',bg:'var(--warn-soft)',title:'Flash Friday',desc:'Sexta das 14h às 16h: cashback em dobro em todos os serviços.'},
+];
+
+function getTier(nome){return TIERS.find(t=>t.nome===nome)}
+function getNextTier(nome){const i=TIERS.findIndex(t=>t.nome===nome);return TIERS[i+1]||null}
+function proById(id){return PROS.find(p=>p.id===id)}
+function svcByName(n){return SERVICES.find(s=>s.n===n)}
+
+/* ================= ROUTER ================= */
+let currentView='inicio';
+function setView(v){
+  currentView=v;
+  $$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  renderScreen();
+  $('#screen').scrollTop=0;
+}
+function renderScreen(){
+  const el=$('#screen');
+  if(currentView==='inicio')el.innerHTML=renderInicio();
+  else if(currentView==='horarios')el.innerHTML=renderHorarios();
+  else if(currentView==='fidelidade')el.innerHTML=renderFidelidade();
+  else if(currentView==='perfil')el.innerHTML=renderPerfil();
+  else if(currentView==='agendar')el.innerHTML=renderBooking();
+  afterRender();
+}
+function afterRender(){
+  renderThemeToggleUI();
+  if(currentView==='horarios')wireHorariosTabs();
+}
+
+/* ================= INÍCIO ================= */
+function renderInicio(){
+  const upcoming=APPTS.filter(a=>a.status!=='concluido'&&a.status!=='cancelado').sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const pendingReview=APPTS.find(a=>a.status==='concluido'&&!a.rated);
+  const hour=new Date().getHours();
+  const greet=hour<12?'Bom dia':hour<18?'Boa tarde':'Boa noite';
+  const firstName=CLIENT.nome.split(' ')[0];
+
+  let html=`<div class="hero-greet fade-in">
+    <div class="greet-text"><h2>${greet}, ${firstName} 👋</h2><p>${SALON.nome} · ${CLIENT.tier} ${getTier(CLIENT.tier).ico}</p></div>
+    <button class="icon-btn-sm" onclick="toast('3 notificações novas')" aria-label="Notificações">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10.3 21a2 2 0 0 0 3.4 0"/></svg>
+      <span class="dot"></span>
+    </button>
+  </div>`;
+
+  if(upcoming){
+    const pro=proById(upcoming.pro);
+    const d=parseDate(upcoming.date);
+    const dateLabel=d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+    const apptDt=apptRealDateTime(upcoming);
+    const minutesUntil=(apptDt-new Date())/60000;
+    const isPulsing=minutesUntil<=30&&minutesUntil>0;
+    const isExpired=minutesUntil<=0;
+    html+=`<div class="next-appt-card fade-in ${isPulsing?'pulsing':''} ${isExpired?'expired':''}">
+      <div class="na-eyebrow">${isExpired?'⏰ Horário passou':isPulsing?'⏰ Está quase na hora!':'Próximo agendamento'}</div>
+      <div class="na-date">${dateLabel} · ${upcoming.hora}</div>
+      <div class="na-detail">
+        <div class="na-avatar">${initials(pro.nome)}</div>
+        <div><div class="na-svc">${upcoming.servico}</div><div class="na-pro">com ${pro.nome} · ${BRL(upcoming.valor)}</div></div>
+      </div>
+      ${isExpired?`
+      <div style="margin-top:12px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25);font-size:12.5px;opacity:.95">Esse horário já passou. Quer marcar um novo?</div>
+      <div class="na-actions"><button class="na-btn solid" style="flex:1" onclick="startReschedule(${upcoming.id})">Reagendar agora</button></div>
+      `:`
+      <div class="na-actions">
+        <button class="na-btn" onclick="startReschedule(${upcoming.id})">Reagendar</button>
+        <button class="na-btn solid" onclick="setView('horarios')">Ver detalhes</button>
+      </div>
+      `}
+    </div>`;
+  }else{
+    html+=`<div class="empty-appt-card fade-in">
+      <div class="ea-ico">📅</div>
+      <h3>Nenhum agendamento marcado</h3>
+      <p>Que tal cuidar de você esta semana?</p>
+      <button class="btn btn-primary" onclick="startBooking()">Agendar horário</button>
+    </div>`;
+  }
+
+  if(pendingReview){
+    const pro=proById(pendingReview.pro);
+    html+=`<div class="review-prompt fade-in" onclick="openReviewSheet(${pendingReview.id})" style="cursor:pointer">
+      <div class="rp-ico">⭐</div>
+      <div class="rp-text">Avalie seu último atendimento<span>${pendingReview.servico} com ${pro.nome}</span></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+    </div>`;
+  }
+
+  html+=`<div class="quick-stats fade-in">
+    <div class="qs-card card" style="background:var(--gold-soft)" onclick="setView('fidelidade')">
+      <div class="qs-ico">${getTier(CLIENT.tier).ico}</div>
+      <div class="qs-val num">${CLIENT.pontos.toLocaleString('pt-BR')}</div>
+      <div class="qs-lbl">pontos de fidelidade</div>
+    </div>
+    <div class="qs-card card" style="background:var(--pos-soft)" onclick="setView('fidelidade')">
+      <div class="qs-ico">💰</div>
+      <div class="qs-val num">${BRL(CLIENT.cashback)}</div>
+      <div class="qs-lbl">cashback disponível</div>
+    </div>
+  </div>`;
+
+  html+=`<div class="section-head fade-in"><h3>Ofertas para você</h3></div>
+  <div class="hscroll fade-in">${PROMOS.map(p=>`<div class="promo-card card" style="background:${p.bg}">
+    <div class="pc-emoji">${p.emoji}</div><div class="pc-title">${p.title}</div><div class="pc-desc">${p.desc}</div>
+  </div>`).join('')}</div>`;
+
+  html+=`<div class="section-head fade-in"><h3>Nossa equipe</h3><span class="see-all" onclick="startBooking()">Agendar</span></div>
+  <div class="hscroll fade-in">${PROS.map(p=>`<div class="staff-mini" onclick="startBooking('${p.id}')">
+    <div class="avatar" style="background:${p.cor}1f;color:${p.cor}">${initials(p.nome)}</div>
+    <div class="sm-name">${p.nome.split(' ')[0]}</div>
+    <div class="sm-rating">★ ${p.rating.toFixed(1)}</div>
+  </div>`).join('')}</div>
+  <div style="height:8px"></div>`;
+
+  return html;
+}
+
+/* ================= HORÁRIOS ================= */
+let horariosTab='proximos';
+function renderHorarios(){
+  const upcoming=APPTS.filter(a=>a.status!=='concluido'&&a.status!=='cancelado').sort((a,b)=>a.date.localeCompare(b.date));
+  const past=APPTS.filter(a=>a.status==='concluido'||a.status==='cancelado').sort((a,b)=>b.date.localeCompare(a.date));
+  const list=horariosTab==='proximos'?upcoming:past;
+
+  let html=`<div class="topbar fade-in"><h1>Meus horários</h1></div>
+  <div class="segmented">
+    <button class="${horariosTab==='proximos'?'active':''}" data-tab="proximos">Próximos</button>
+    <button class="${horariosTab==='historico'?'active':''}" data-tab="historico">Histórico</button>
+  </div>`;
+
+  if(!list.length){
+    html+=`<div class="empty-appt-card fade-in" style="margin:20px">
+      <div class="ea-ico">${horariosTab==='proximos'?'📅':'🗂️'}</div>
+      <h3>${horariosTab==='proximos'?'Nada agendado ainda':'Sem histórico'}</h3>
+      <p>${horariosTab==='proximos'?'Marque seu próximo horário quando quiser.':'Seus atendimentos concluídos aparecerão aqui.'}</p>
+      ${horariosTab==='proximos'?'<button class="btn btn-primary" onclick="startBooking()">Agendar horário</button>':''}
+    </div>`;
+    return html;
+  }
+
+  html+=list.map(a=>{
+    const pro=proById(a.pro);
+    const d=parseDate(a.date);
+    const statusMap={pendente:{t:'Aguardando confirmação',c:'var(--warn)'},confirmado:{t:'Confirmado',c:'var(--pos)'},concluido:{t:'Concluído',c:'var(--text-3)'},cancelado:{t:'Cancelado',c:'var(--neg)'}};
+    const st=statusMap[a.status];
+    let extra='';
+    if(a.needsAttention&&horariosTab==='proximos'){
+      extra=`<div class="ac-confirm">
+        <div class="ac-confirm-q">⚠️ Confirma presença no seu horário?</div>
+        <div class="ac-confirm-btns">
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="confirmPresence(${a.id})">Sim, vou comparecer</button>
+          <button class="btn btn-outline btn-sm" style="flex:1" onclick="cancelAppt(${a.id})">Não vou poder</button>
+        </div>
+      </div>`;
+    }else if(horariosTab==='proximos'){
+      extra=`<div class="ac-actions">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="startReschedule(${a.id})">Reagendar</button>
+        <button class="btn btn-danger-ghost btn-sm" style="flex:1" onclick="cancelAppt(${a.id})">Cancelar</button>
+      </div>`;
+    }else if(a.status==='concluido'&&!a.rated){
+      extra=`<div class="ac-actions"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openReviewSheet(${a.id})">⭐ Avaliar atendimento</button></div>`;
+    }else if(a.status==='concluido'&&a.rated){
+      extra=`<div class="ac-actions"><span class="tag tag-ok">✓ Avaliado · obrigado!</span></div>`;
+    }
+    return `<div class="appt-card fade-in ${a.needsAttention?'attention':''}">
+      <div class="ac-top">
+        <div class="ac-date-box"><div class="dd num">${d.getDate()}</div><div class="mm">${MONTH_SHORT[d.getMonth()]}</div></div>
+        <div class="ac-info">
+          <div class="ac-svc">${a.servico}</div>
+          <div class="ac-meta">${a.hora} · com ${pro.nome} · <span style="color:${st.c};font-weight:700">${st.t}</span></div>
+        </div>
+        <div style="text-align:right;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif">${BRL(a.valor)}</div>
+      </div>
+      ${extra}
+    </div>`;
+  }).join('');
+
+  return html;
+}
+function wireHorariosTabs(){
+  $$('.segmented button').forEach(b=>b.addEventListener('click',()=>{horariosTab=b.dataset.tab;renderScreen()}));
+}
+function confirmPresence(id){
+  const a=APPTS.find(x=>x.id===id);if(!a)return;
+  a.needsAttention=false;a.status='confirmado';
+  renderScreen();
+  toast('Presença confirmada! Te esperamos ✨');
+}
+function cancelAppt(id){
+  const a=APPTS.find(x=>x.id===id);if(!a)return;
+  a.status='cancelado';
+  pushApptEvent({apptId:id,type:'cancel',cliente:CLIENT.nome});
+  pushNotification(`❌ ${CLIENT.nome.split(' ')[0]} cancelou ${a.servico} do dia ${parseDate(a.date).toLocaleDateString('pt-BR')}`);
+  renderScreen();
+  toast('Agendamento cancelado. Sentiremos sua falta!');
+}
+
+/* ================= FIDELIDADE ================= */
+let cashExtractOpen=false;
+function toggleCashExtract(){cashExtractOpen=!cashExtractOpen;renderScreen()}
+function renderFidelidade(){
+  const tier=getTier(CLIENT.tier);
+  const next=getNextTier(CLIENT.tier);
+  const progress=next?Math.min(100,Math.round((CLIENT.pontos-tier.min)/(next.min-tier.min)*100)):100;
+  const faltam=next?next.min-CLIENT.pontos:0;
+
+  let html=`<div class="topbar fade-in"><h1>Fidelidade</h1></div>
+  <div class="tier-hero fade-in" style="background:linear-gradient(135deg,${tier.cor1},${tier.cor2})">
+    <div class="th-badge">${tier.ico}</div>
+    <div class="th-name">Nível ${tier.nome}</div>
+    <div class="th-pts">${CLIENT.pontos.toLocaleString('pt-BR')} pontos acumulados</div>
+    ${next?`<div class="th-progress">
+      <div class="th-bar-track"><div class="th-bar-fill" style="width:${progress}%"></div></div>
+      <div class="th-progress-lbl">Faltam ${faltam.toLocaleString('pt-BR')} pontos para o nível ${next.nome} ${next.ico}</div>
+    </div>`:`<div class="th-progress-lbl" style="margin-top:14px">Você atingiu o nível máximo! 🎉</div>`}
+  </div>
+
+  <div class="wallet-row fade-in">
+    <div class="wallet-card card" style="background:var(--pos-soft)">
+      <div class="wc-lbl">Cashback disponível</div>
+      <div class="wc-val num">${BRL(CLIENT.cashback)}</div>
+    </div>
+    <div class="wallet-card card" style="background:var(--info-soft)">
+      <div class="wc-lbl">Total de visitas</div>
+      <div class="wc-val num">${CLIENT.visitas}</div>
+    </div>
+  </div>
+
+  <div class="section-head fade-in"><h3>Recompensas disponíveis</h3></div>`;
+
+  html+=REWARDS.map(r=>{
+    const can=CLIENT.pontos>=r.custo;
+    return `<div class="reward-card fade-in" style="${can?'':'opacity:.55'}">
+      <div class="rc-ico">${r.icon}</div>
+      <div class="rc-info"><div class="rc-name">${r.nome}</div><div class="rc-cost">${r.custo.toLocaleString('pt-BR')} pontos</div></div>
+      <button class="btn ${can?'btn-primary':'btn-ghost'} btn-sm" ${can?`onclick="openRedeemSheet('${r.nome.replace(/'/g,"\\'")}')"`:'disabled'}>Resgatar</button>
+    </div>`;
+  }).join('');
+
+  html+=`<div class="section-head fade-in" style="cursor:pointer" onclick="toggleCashExtract()">
+    <h3>Extrato de cashback</h3>
+    <svg id="cashExtractChevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);transition:transform .2s;transform:rotate(${cashExtractOpen?'180':'0'}deg)"><path d="m6 9 6 6 6-6"/></svg>
+  </div>`;
+  if(cashExtractOpen){
+    html+=CASHBACK_EXTRACT.map(e=>{
+      const d=parseDate(e.data);
+      return `<div class="reward-card fade-in">
+        <div class="rc-ico" style="background:${e.v>0?'var(--pos-soft)':'var(--neg-soft)'};color:${e.v>0?'var(--pos)':'var(--neg)'}">${e.v>0?'↑':'↓'}</div>
+        <div class="rc-info"><div class="rc-name">${e.t}</div><div class="rc-cost">${e.d} · ${d.toLocaleDateString('pt-BR')}</div></div>
+        <div style="font-weight:800;color:${e.v>0?'var(--pos)':'var(--neg)'}">${e.v>0?'+':''}${BRL(e.v)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  html+='<div style="height:8px"></div>';
+  return html;
+}
+function closeAllSheets(){
+  ['#reviewScrim','#reviewSheet','#redeemScrim','#redeemSheet','#profileScrim','#profileSheet','#addressScrim','#addressSheet'].forEach(sel=>{
+    const el=$(sel);if(el)el.classList.remove('open');
+  });
+}
+function openAddressSheet(){
+  closeAllSheets();
+  $('#addressSalonNome').textContent=SALON.nome;
+  $('#addressSalonEndereco').textContent=SALON.endereco;
+  $('#addressScrim').classList.add('open');
+  $('#addressSheet').classList.add('open');
+}
+function closeAddressSheet(){$('#addressScrim').classList.remove('open');$('#addressSheet').classList.remove('open')}
+function openMapsRoute(){
+  const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(SALON.endereco);
+  window.open(url,'_blank');
+}
+function openRedeemSheet(nome){
+  closeAllSheets();
+  const r=REWARDS.find(x=>x.nome===nome);
+  if(!r)return;
+  $('#redeemTitle').textContent=r.nome;
+  $('#redeemBody').innerHTML=`<div style="text-align:center;padding:8px 0 4px">
+    <div style="font-size:44px;margin-bottom:10px">${r.icon}</div>
+    <p class="text-2" style="font-size:14.5px;margin-bottom:18px">Você vai trocar <b style="color:var(--text)">${r.custo.toLocaleString('pt-BR')} pontos</b> por este benefício. Ele fica disponível para usar no seu próximo agendamento.</p>
+    <div class="summary-row"><span class="sr-label">Seu saldo atual</span><span class="sr-value num">${CLIENT.pontos.toLocaleString('pt-BR')} pts</span></div>
+    <div class="summary-row"><span class="sr-label">Custo da recompensa</span><span class="sr-value num">- ${r.custo.toLocaleString('pt-BR')} pts</span></div>
+    <div class="summary-row"><span class="sr-label">Saldo após o resgate</span><span class="sr-value num">${(CLIENT.pontos-r.custo).toLocaleString('pt-BR')} pts</span></div>
+  </div>`;
+  $('#redeemConfirmBtn').dataset.reward=nome;
+  $('#redeemScrim').classList.add('open');
+  $('#redeemSheet').classList.add('open');
+}
+function closeRedeemSheet(){$('#redeemScrim').classList.remove('open');$('#redeemSheet').classList.remove('open')}
+function confirmRedeem(){
+  const nome=$('#redeemConfirmBtn').dataset.reward;
+  const r=REWARDS.find(x=>x.nome===nome);
+  if(!r)return;
+  CLIENT.pontos-=r.custo;
+  closeRedeemSheet();
+  renderScreen();
+  toast('🎉 Recompensa resgatada: '+r.nome);
+}
+
+/* ================= PERFIL ================= */
+function avatarInnerClient(){
+  if(CLIENT.foto)return `<img src="${CLIENT.foto}" alt="${CLIENT.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+  return initials(CLIENT.nome);
+}
+function renderPerfil(){
+  return `<div class="profile-hero fade-in">
+    <div class="avatar" style="background:${CLIENT.avatarCor}1f;color:${CLIENT.avatarCor};overflow:hidden;position:relative;cursor:pointer" onclick="document.getElementById('profilePhotoFile').click()">
+      ${avatarInnerClient()}
+      <div style="position:absolute;bottom:0;right:0;width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;border:2.5px solid var(--surface)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+    </div>
+    <input type="file" id="profilePhotoFile" accept="image/*" style="display:none" onchange="handleProfilePhoto(event)">
+    <h2>${CLIENT.nome}</h2>
+    <p>${CLIENT.tel} · cliente desde ${CLIENT.desde}</p>
+    <span class="tag tag-vip" style="margin-top:10px">${getTier(CLIENT.tier).ico} Nível ${CLIENT.tier}</span>
+  </div>
+  <div class="menu-list fade-in">
+    <div class="menu-item" onclick="openProfileSheet()">
+      <div class="mi-ico">👤</div><div class="mi-label">Meus dados</div>
+      <svg class="mi-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+    </div>
+    <div class="menu-item">
+      <div class="mi-ico">🔔</div><div class="mi-label">Notificações push</div>
+      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="menu-item">
+      <div class="mi-ico">${document.documentElement.dataset.theme==='dark'?'🌙':'☀️'}</div><div class="mi-label">Modo escuro</div>
+      <div class="toggle" id="themeToggleRow" onclick="toggleTheme()"></div>
+    </div>
+    <div class="menu-item" onclick="openAddressSheet()">
+      <div class="mi-ico">📍</div><div class="mi-label">Endereço do salão</div>
+      <svg class="mi-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+    </div>
+    <div class="menu-item" style="color:var(--neg)" onclick="toast('Você saiu da sua conta')">
+      <div class="mi-ico" style="background:var(--neg-soft);color:var(--neg)">🚪</div><div class="mi-label" style="color:var(--neg)">Sair da conta</div>
+    </div>
+  </div>
+  <div style="height:8px"></div>`;
+}
+
+/* ================= AVALIAÇÃO (REVIEW SHEET) ================= */
+let reviewApptId=null, reviewProStars=0, reviewSvcStars=0;
+function openReviewSheet(id){
+  closeAllSheets();
+  reviewApptId=id; reviewProStars=5; reviewSvcStars=5;
+  const a=APPTS.find(x=>x.id===id);
+  const pro=proById(a.pro);
+  renderReviewBody(pro);
+  $('#reviewScrim').classList.add('open');
+  $('#reviewSheet').classList.add('open');
+}
+function renderReviewBody(pro){
+  $('#reviewBody').innerHTML=`
+    <div style="text-align:center;margin-bottom:18px">
+      <div class="avatar" style="width:56px;height:56px;font-size:18px;margin:0 auto 8px;background:${pro.cor}1f;color:${pro.cor}">${initials(pro.nome)}</div>
+      <div style="font-weight:700;font-size:15px">${pro.nome}</div>
+      <div class="text-3" style="font-size:12.5px">${pro.esp}</div>
+    </div>
+    <label style="display:block;font-weight:700;font-size:13.5px;margin-bottom:8px">Como foi o atendimento do profissional?</label>
+    <div id="starsProRow" style="display:flex;gap:6px;justify-content:center;margin-bottom:20px"></div>
+    <label style="display:block;font-weight:700;font-size:13.5px;margin-bottom:8px">Como foi o serviço realizado?</label>
+    <div id="starsSvcRow" style="display:flex;gap:6px;justify-content:center;margin-bottom:20px"></div>
+    <div class="field"><label>Comentário (opcional)</label><textarea id="reviewComment" rows="3" placeholder="Conte como foi sua experiência…"></textarea></div>
+  `;
+  buildStarRow('starsProRow','pro');
+  buildStarRow('starsSvcRow','svc');
+}
+function buildStarRow(elId,which){
+  const el=$('#'+elId);
+  const val=which==='pro'?reviewProStars:reviewSvcStars;
+  el.innerHTML=Array.from({length:5},(_,i)=>`<button type="button" onclick="setReviewStar('${which}',${i+1})" style="font-size:32px;line-height:1;color:${i<val?'var(--gold)':'var(--border-strong)'}">★</button>`).join('');
+}
+function setReviewStar(which,n){
+  if(which==='pro')reviewProStars=n;else reviewSvcStars=n;
+  buildStarRow(which==='pro'?'starsProRow':'starsSvcRow',which);
+}
+function closeReviewSheet(){$('#reviewScrim').classList.remove('open');$('#reviewSheet').classList.remove('open')}
+function submitReview(){
+  const a=APPTS.find(x=>x.id===reviewApptId);
+  if(a)a.rated=true;
+  closeReviewSheet();
+  renderScreen();
+  toast('Obrigado pela avaliação! ⭐ Isso ajuda '+(a?proById(a.pro).nome.split(' ')[0]:'a equipe')+' a melhorar cada vez mais');
+}
+
+/* ================= AGENDAR (WIZARD) ================= */
+let booking={step:1,services:[],pro:null,date:null,time:null,payment:'pix',obs:'',rescheduleId:null};
+function startBooking(proId){
+  booking={step:1,services:[],pro:proId||null,date:null,time:null,payment:'pix',obs:'',rescheduleId:null};
+  if(proId)booking.step=1;
+  setView('agendar');
+}
+function startReschedule(id){
+  const a=APPTS.find(x=>x.id===id);if(!a)return;
+  booking={step:3,services:a.servico.split(' + '),pro:a.pro,date:null,time:null,payment:'pix',obs:'',rescheduleId:id};
+  setView('agendar');
+}
+function confirmReschedule(){
+  const a=APPTS.find(x=>x.id===booking.rescheduleId);if(!a)return;
+  a.date=booking.date;a.hora=booking.time;a.status='pendente';a.needsAttention=false;
+  pushApptEvent({apptId:a.id,type:'reschedule',date:a.date,start:computeApptStart(a.date,a.hora),status:'pendente',cliente:CLIENT.nome});
+  pushNotification(`🔄 ${CLIENT.nome.split(' ')[0]} reagendou ${a.servico} para ${parseDate(a.date).toLocaleDateString('pt-BR')} às ${a.hora}`);
+  booking.step=5;
+  renderScreen();
+}
+function bookingBack(){
+  if(booking.rescheduleId){setView('horarios');return}
+  if(booking.step===1){setView('inicio');return}
+  booking.step--;
+  renderScreen();
+}
+function bookingNext(){
+  booking.step++;
+  renderScreen();
+}
+function toggleBookingService(name){
+  const i=booking.services.indexOf(name);
+  if(i>=0)booking.services.splice(i,1);else booking.services.push(name);
+  renderScreen();
+}
+function selectBookingPro(id){booking.pro=id;renderScreen()}
+function selectBookingDate(dateStr){booking.date=dateStr;booking.time=null;renderScreen()}
+function selectBookingTime(t){booking.time=t;renderScreen()}
+
+function renderBooking(){
+  const totalValor=booking.services.reduce((s,n)=>s+(svcByName(n)?.v||0),0);
+  const totalDur=booking.services.reduce((s,n)=>s+(svcByName(n)?.d||60),0);
+  const stepTitles=['Serviços','Profissional',booking.rescheduleId?'Novo horário':'Data e horário','Confirmação',''];
+  let html=`<div class="topbar fade-in">
+    <button class="back-btn" onclick="bookingBack()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+    </button>
+    <h1>${booking.step<=4?stepTitles[booking.step-1]:(booking.rescheduleId?'Reagendado':'Confirmado')}</h1>
+  </div>`;
+  if(booking.step<=4&&!booking.rescheduleId){
+    html+=`<div class="wizard-steps">${[1,2,3,4].map(i=>`<div class="ws-bar ${i<=booking.step?'done':''}"></div>`).join('')}</div>`;
+  }
+
+  if(booking.step===1){
+    html+=`<div class="screen-pad fade-in"><p class="text-2" style="font-size:13.5px;margin-bottom:14px">Selecione um ou mais serviços</p></div>`;
+    html+=`<div class="screen-pad">`+SERVICES.map(s=>{
+      const sel=booking.services.includes(s.n);
+      return `<div class="svc-card ${sel?'selected':''}" onclick="toggleBookingService('${s.n.replace(/'/g,"\\'")}')">
+        <div class="svc-check">${sel?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>':''}</div>
+        <div class="svc-info"><div class="svc-name">${s.n}</div><div class="svc-meta">${s.d} min</div></div>
+        <div class="svc-price num">${BRL(s.v)}</div>
+      </div>`;
+    }).join('')+`</div>`;
+    html+=bookingCta(booking.services.length>0,`Continuar${booking.services.length?' · '+BRL(totalValor):''}`,'bookingNext()');
+  }
+
+  else if(booking.step===2){
+    html+=`<div class="screen-pad fade-in">`;
+    html+=`<div class="pro-card ${booking.pro==='qualquer'?'selected':''}" onclick="selectBookingPro('qualquer')">
+      <div class="avatar" style="width:52px;height:52px;font-size:20px;border-radius:16px;background:var(--surface-2);color:var(--text-3)">✨</div>
+      <div class="pro-info"><div class="pro-name">Qualquer profissional</div><div class="pro-esp">Primeiro horário disponível</div></div>
+      <div class="pro-check">${booking.pro==='qualquer'?'✓':''}</div>
+    </div>`;
+    html+=PROS.map(p=>{
+      const sel=booking.pro===p.id;
+      return `<div class="pro-card ${sel?'selected':''}" onclick="selectBookingPro('${p.id}')">
+        <div class="avatar" style="background:${p.cor}1f;color:${p.cor}">${initials(p.nome)}</div>
+        <div class="pro-info"><div class="pro-name">${p.nome}</div><div class="pro-esp">${p.esp} · ${p.exp}</div>
+          <div class="pro-meta"><span class="stars">${starsHtmlSmall(p.rating)}</span> ${p.rating.toFixed(1)} · ${p.atend30} atend. em 30d</div>
+        </div>
+        <div class="pro-check">${sel?'✓':''}</div>
+      </div>`;
+    }).join('');
+    html+='</div>';
+    html+=bookingCta(!!booking.pro,'Continuar','bookingNext()');
+  }
+
+  else if(booking.step===3){
+    html+=renderDateTimeStep();
+    if(booking.rescheduleId){
+      html+=bookingCta(!!(booking.date&&booking.time),'Confirmar novo horário','confirmReschedule()');
+    }else{
+      html+=bookingCta(!!(booking.date&&booking.time),'Continuar','bookingNext()');
+    }
+  }
+
+  else if(booking.step===4){
+    const pro=booking.pro==='qualquer'?{nome:'Qualquer profissional disponível',esp:'',cor:'#8E8A96'}:proById(booking.pro);
+    const d=parseDate(booking.date);
+    html+=`<div class="screen-pad fade-in">
+      <div class="card card-pad" style="margin-bottom:16px">
+        <div class="summary-row"><span class="sr-label">Serviços</span><span class="sr-value">${booking.services.join(', ')}</span></div>
+        <div class="summary-row"><span class="sr-label">Profissional</span><span class="sr-value">${pro.nome}</span></div>
+        <div class="summary-row"><span class="sr-label">Data</span><span class="sr-value">${d.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})}</span></div>
+        <div class="summary-row"><span class="sr-label">Horário</span><span class="sr-value">${booking.time}</span></div>
+        <div class="summary-row"><span class="sr-label">Duração estimada</span><span class="sr-value">${totalDur} min</span></div>
+        <div class="summary-row"><span class="sr-label" style="font-weight:700;color:var(--text)">Total</span><span class="sr-value" style="font-size:17px;color:var(--brand)">${BRL(totalValor)}</span></div>
+      </div>
+      <div class="field" style="margin-top:4px"><label>Observações (opcional)</label><textarea id="bookingObs" rows="2" placeholder="Alergias, preferências…" oninput="booking.obs=this.value"></textarea></div>
+    </div>`;
+    html+=bookingCta(true,'Confirmar agendamento','confirmBooking()');
+  }
+
+  else if(booking.step===5){
+    const msg=booking.rescheduleId
+      ? 'Seu horário foi alterado com sucesso. O salão já foi avisado e vamos te lembrar antes do novo horário.'
+      : 'Você vai receber um lembrete pelo app antes do seu horário. Nos vemos em breve! 💇';
+    html=`<div class="success-wrap pop-in">
+      <div class="success-check"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h2>${booking.rescheduleId?'Horário atualizado!':'Agendamento confirmado!'}</h2>
+      <p>${msg}</p>
+      <button class="btn btn-primary btn-block" onclick="setView('horarios')">Ver meus horários</button>
+      <div style="height:10px"></div>
+      <button class="btn btn-ghost btn-block" onclick="setView('inicio')">Voltar ao início</button>
+    </div>`;
+  }
+
+  return html;
+}
+function starsHtmlSmall(rating){
+  const full=Math.round(rating);let s='';
+  for(let i=1;i<=5;i++)s+=`<span style="color:${i<=full?'var(--gold)':'var(--border-strong)'}">★</span>`;
+  return s;
+}
+function bookingCta(enabled,label,onclick){
+  return `<div class="sticky-cta"><button class="btn btn-primary btn-block" ${enabled?'':'disabled'} onclick="${onclick}">${label}</button></div>`;
+}
+function renderDateTimeStep(){
+  const days=Array.from({length:14},(_,i)=>daysFromToday(i));
+  let html=`<div class="screen-pad fade-in"><p class="text-2" style="font-size:13.5px;margin-bottom:10px">Escolha o dia</p></div>`;
+  html+=`<div class="day-strip">`+days.map(ds=>{
+    const d=parseDate(ds);
+    const cfg=businessHoursForDate(d);
+    const closed=!cfg||!cfg.active;
+    const active=booking.date===ds;
+    return `<div class="day-chip ${active?'active':''} ${closed?'disabled':''}" onclick="${closed?'':`selectBookingDate('${ds}')`}">
+      <div class="dc-dow">${WEEKDAY_SHORT[d.getDay()]}</div><div class="dc-num num">${d.getDate()}</div>
+    </div>`;
+  }).join('')+`</div>`;
+
+  if(booking.date){
+    const d=parseDate(booking.date);
+    const cfg=businessHoursForDate(d);
+    if(!cfg||!cfg.active){
+      html+=`<div class="screen-pad"><p class="text-3" style="font-size:13.5px;text-align:center;padding:20px 0">O salão não abre neste dia. Escolha outra data.</p></div>`;
+    }else{
+      const [oh]=cfg.open.split(':').map(Number);
+      const [ch]=cfg.close.split(':').map(Number);
+      const now=new Date();
+      const isToday=booking.date===TODAY_STR;
+      const slots=[];
+      for(let h=oh;h<ch;h++){for(const m of [0,30]){slots.push(String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'))}}
+      html+=`<div class="screen-pad" style="padding-top:14px"><p class="text-2" style="font-size:13.5px;margin-bottom:10px">Escolha o horário</p></div>`;
+      html+=`<div class="time-grid">`+slots.map(t=>{
+        const [th,tm]=t.split(':').map(Number);
+        const isPast=isToday&&(th*60+tm)<(now.getHours()*60+now.getMinutes());
+        const active=booking.time===t;
+        return `<button type="button" class="time-slot ${active?'active':''} ${isPast?'disabled':''}" ${isPast?'disabled':`onclick="selectBookingTime('${t}')"`}>${t}</button>`;
+      }).join('')+`</div>`;
+    }
+  }
+  return html;
+}
+function confirmBooking(){
+  const dur=booking.services.reduce((s,n)=>s+(svcByName(n)?.d||60),0);
+  const valor=booking.services.reduce((s,n)=>s+(svcByName(n)?.v||0),0);
+  const newAppt={
+    id:Date.now(),
+    servico:booking.services.join(' + '),
+    pro:booking.pro==='qualquer'?PROS[Math.floor(Math.random()*PROS.length)].id:booking.pro,
+    date:booking.date,hora:booking.time,
+    valor,status:'pendente',needsAttention:false,
+  };
+  APPTS.push(newAppt);
+  pushApptEvent({apptId:newAppt.id,type:'create',pro:newAppt.pro,cliente:CLIENT.nome,servico:newAppt.servico,date:newAppt.date,start:computeApptStart(newAppt.date,newAppt.hora),dur,valor,status:'pendente'});
+  pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${newAppt.servico} para ${parseDate(newAppt.date).toLocaleDateString('pt-BR')} às ${newAppt.hora}`);
+  booking.step=5;
+  renderScreen();
+}
+
+/* ================= MEUS DADOS (PERFIL) ================= */
+let stagedProfilePhoto=null;
+function handleProfilePhoto(e){
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  if(!file.type.startsWith('image/')){toast('Selecione um arquivo de imagem');return}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    stagedProfilePhoto=ev.target.result;
+    const img=`<img src="${stagedProfilePhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+    const pv=$('#pfAvatarPreview');if(pv)pv.innerHTML=img;
+    CLIENT.foto=stagedProfilePhoto;
+    pushClientSync();
+    if(currentView==='perfil')renderScreen();
+    toast('Foto atualizada');
+  };
+  reader.readAsDataURL(file);
+}
+function openProfileSheet(){
+  closeAllSheets();
+  $('#pfNome').value=CLIENT.nome;
+  $('#pfTel').value=CLIENT.tel;
+  $('#pfEmail').value=CLIENT.email||'';
+  $('#pfNasc').value=CLIENT.nasc||'';
+  $('#pfSexo').value=CLIENT.sexo||'';
+  $('#pfAvatarPreview').innerHTML=avatarInnerClient();
+  $('#pfError').style.display='none';
+  $('#profileScrim').classList.add('open');
+  $('#profileSheet').classList.add('open');
+}
+function closeProfileSheet(){$('#profileScrim').classList.remove('open');$('#profileSheet').classList.remove('open')}
+function saveProfile(){
+  const nome=$('#pfNome').value.trim();
+  const tel=$('#pfTel').value.trim();
+  if(!nome||!tel){$('#pfError').style.display='block';return}
+  CLIENT.nome=nome;CLIENT.tel=tel;
+  CLIENT.email=$('#pfEmail').value.trim();
+  CLIENT.nasc=$('#pfNasc').value;
+  CLIENT.sexo=$('#pfSexo').value;
+  pushClientSync();
+  closeProfileSheet();
+  renderScreen();
+  toast('Dados atualizados com sucesso');
+}
+
+/* ================= INIT ================= */
+setView('inicio');
+setInterval(()=>{if(currentView==='inicio')renderScreen()},30000);
+</script>
+</body>
+</html>
