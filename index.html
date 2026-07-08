@@ -609,11 +609,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     </button>
     <h1 id="topTitle">Dashboard</h1>
     <div class="spacer"></div>
-    <div class="search">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input placeholder="Buscar cliente, serviço, agendamento…">
-      <kbd>⌘K</kbd>
-    </div>
     <button class="icon-btn" onclick="toast('3 notificações não lidas')" aria-label="Notificações">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10.3 21a2 2 0 0 0 3.4 0"/></svg>
       <span class="badge-dot"></span>
@@ -655,13 +650,13 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <div class="card panel">
           <div class="panel-head">
             <div><h3>Receita</h3><div class="sub">Últimos 30 dias · comparado ao período anterior</div></div>
-            <span class="tag tag-ok" id="revTag">+18,4% vs mês anterior</span>
+            <span class="tag tag-ok" id="revTag">Dados reais de hoje</span>
           </div>
           <div class="chart-box"><canvas id="chartRevenue"></canvas></div>
         </div>
         <div class="card panel">
           <div class="panel-head">
-            <div><h3>Receita por profissional</h3><div class="sub">Mês atual</div></div>
+            <div><h3>Receita por profissional</h3><div class="sub">Com base nos agendamentos de hoje</div></div>
           </div>
           <div class="chart-box"><canvas id="chartPros"></canvas></div>
         </div>
@@ -670,31 +665,25 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       <div class="grid-2b fade-in">
         <div class="card panel">
           <div class="panel-head">
-            <div><h3>Horários de pico</h3><div class="sub">Ocupação média por dia e hora · últimas 4 semanas</div></div>
+            <div><h3>Horários de pico</h3><div class="sub">Ocupação por hora · baseado nos agendamentos de hoje</div></div>
           </div>
           <div class="heatmap" id="heatmap"></div>
           <div class="hm-legend">Menos <span class="hm-swatch" style="background:var(--surface-2)"></span><span class="hm-swatch" style="background:var(--brand);opacity:.3"></span><span class="hm-swatch" style="background:var(--brand);opacity:.6"></span><span class="hm-swatch" style="background:var(--brand)"></span> Mais</div>
         </div>
         <div class="card panel">
           <div class="panel-head">
-            <div><h3>Serviços mais vendidos</h3><div class="sub">Mês atual · por receita</div></div>
+            <div><h3>Serviços mais vendidos</h3><div class="sub">Com base nos agendamentos de hoje</div></div>
           </div>
           <div class="chart-box sm"><canvas id="chartServices"></canvas></div>
         </div>
       </div>
 
-      <div class="grid-2 fade-in">
-        <div class="card panel">
-          <div class="panel-head">
-            <div><h3>Ranking de clientes</h3><div class="sub">Maior valor gasto · últimos 90 dias</div></div>
-            <button class="btn btn-ghost" onclick="setView('clientes')" style="padding:6px 10px;font-size:12px">Ver todos</button>
-          </div>
-          <table class="table" id="rankTable"><thead><tr><th></th><th>Cliente</th><th>Visitas</th><th>Ticket médio</th><th style="text-align:right">Total gasto</th></tr></thead><tbody></tbody></table>
+      <div class="card panel fade-in">
+        <div class="panel-head">
+          <div><h3>Ranking de clientes</h3><div class="sub">Maior valor gasto · dados reais da Agenda e CRM</div></div>
+          <button class="btn btn-ghost" onclick="setView('clientes')" style="padding:6px 10px;font-size:12px">Ver todos</button>
         </div>
-        <div class="card panel">
-          <div class="panel-head"><div><h3>Atenção hoje</h3><div class="sub">Ações sugeridas pelo sistema</div></div></div>
-          <div id="alertList"></div>
-        </div>
+        <table class="table" id="rankTable"><thead><tr><th></th><th>Cliente</th><th>Visitas</th><th>Ticket médio</th><th style="text-align:right">Total gasto</th></tr></thead><tbody></tbody></table>
       </div>
     </section>
 
@@ -847,11 +836,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
           <tbody></tbody></table>
         </div>
       </div>
-
-      <div class="card panel fade-in">
-        <div class="panel-head"><div><h3>Extrato geral de cashback</h3><div class="sub">Últimas movimentações · todas as carteiras</div></div></div>
-        <div id="cashExtrato"></div>
-      </div>
     </section>
 
     <!-- ============ VIEW: MARKETING ============ -->
@@ -892,7 +876,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Produtos cadastrados</div><div class="sc-icon" style="background:var(--info-soft);color:var(--info)">📦</div></div><div class="sc-val num" id="statProdutosCount">0</div><div class="sc-lbl" id="statCategoriasCount">0 categorias</div></div>
         <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Valor em estoque</div><div class="sc-icon" style="background:var(--pos-soft);color:var(--pos)">$</div></div><div class="sc-val num" id="statValorEstoque">R$ 0</div><div class="sc-lbl">A custo de reposição</div></div>
         <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Estoque baixo</div><div class="sc-icon" style="background:var(--neg-soft);color:var(--neg)">⚠</div></div><div class="sc-val num" id="statEstoqueBaixo" style="color:var(--neg)">0</div><div class="sc-lbl">Abaixo do mínimo configurado</div></div>
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Próx. ao vencimento</div><div class="sc-icon" style="background:var(--warn-soft);color:var(--warn)">⏰</div></div><div class="sc-val num" id="statProxVencimento" style="color:var(--warn)">0</div><div class="sc-lbl">Vencem nos próximos 30 dias</div></div>
+        <div class="card stat-card" id="statCardVencimento" onclick="setStockFilter('venc')" style="cursor:pointer"><div class="sc-row"><div class="sc-lbl" style="margin:0">Próx. ao vencimento</div><div class="sc-icon" style="background:var(--warn-soft);color:var(--warn)">⏰</div></div><div class="sc-val num" id="statProxVencimento" style="color:var(--warn)">0</div><div class="sc-lbl">Vencem em até 30 dias · clique para ver</div></div>
       </div>
 
       <div class="card panel fade-in">
@@ -900,8 +884,9 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <div class="chip-row" id="stockFilterChips">
           <button class="chip active" data-f="todos" onclick="setStockFilter('todos')">Todos</button>
           <button class="chip" data-f="baixo" onclick="setStockFilter('baixo')">Estoque baixo</button>
+          <button class="chip" data-f="venc" onclick="setStockFilter('venc')">Próx. vencimento</button>
         </div></div>
-        <table class="table" id="stockTable"><thead><tr><th>Produto</th><th>Estoque</th><th>Nível</th><th>Custo</th><th></th></tr></thead><tbody></tbody></table>
+        <table class="table" id="stockTable"><thead><tr><th>Produto</th><th>Estoque</th><th>Nível</th><th>Custo</th><th>Data de validade</th><th></th></tr></thead><tbody></tbody></table>
       </div>
     </section>
 
@@ -1046,7 +1031,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
   <div class="drawer-head" id="staffDrawerHead"></div>
   <div class="drawer-body" id="staffDrawerBody"></div>
   <div class="drawer-foot">
-    <button class="btn btn-ghost" onclick="toast('Edição de funcionário: integrada ao backend na fase 2')">Editar dados</button>
+    <button class="btn btn-ghost" onclick="editStaffFromDrawer()">Editar dados</button>
     <button class="btn btn-primary" onclick="closeStaffDrawer();setView('agenda')">Ver agenda</button>
   </div>
 </aside>
@@ -1054,7 +1039,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <!-- ============ MODAL: NOVO FUNCIONÁRIO ============ -->
 <div class="modal-scrim" id="modalStaffScrim" onclick="if(event.target===this)closeStaffModal()">
   <div class="modal" role="dialog" aria-label="Novo funcionário">
-    <h3>Novo funcionário</h3>
+    <h3 id="staffModalTitle">Novo funcionário</h3>
     <p class="m-sub">Campo com * é obrigatório. Avaliação e atendimentos são calculados automaticamente.</p>
     <div class="field"><label>Nome completo *</label><input id="stNome" placeholder="Ex: Larissa Prado"></div>
     <div class="field-row">
@@ -1076,7 +1061,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <p id="stError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:-6px;margin-bottom:12px">Informe o nome do funcionário.</p>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeStaffModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveStaff()">Cadastrar funcionário</button>
+      <button class="btn btn-primary" id="staffModalSaveBtn" onclick="saveStaff()">Cadastrar funcionário</button>
     </div>
   </div>
 </div>
@@ -1111,6 +1096,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       <div class="field"><label>Nível mínimo</label><input id="pdNivel" type="number" min="0" placeholder="0"></div>
     </div>
     <div class="field"><label>Custo (R$) *</label><input id="pdCusto" type="number" min="0" step="0.01" placeholder="0,00"></div>
+    <div class="field"><label>Data de validade <span style="font-weight:400;color:var(--text-3)">· opcional</span></label><input id="pdValidade" type="date"></div>
     <p id="pdError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:-6px;margin-bottom:12px">Preencha produto, estoque e custo.</p>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeProductModal()">Cancelar</button>
@@ -1311,7 +1297,12 @@ function setView(v){
   $('#topTitle').textContent=TITLES[v];
   $('#sidebar').classList.remove('open');
   if(v==='agenda'&&typeof renderAgenda==='function')renderAgenda();
-  if(v==='dashboard'&&typeof renderKpis==='function')renderKpis();
+  if(v==='dashboard'&&typeof renderKpis==='function'){
+    renderKpis();
+    if(typeof rebuildCharts==='function')rebuildCharts();
+    if(typeof renderHeatmap==='function')renderHeatmap();
+    if(typeof renderRanking==='function')renderRanking();
+  }
 }
 
 /* ================= DASHBOARD ================= */
@@ -1394,16 +1385,28 @@ function renderKpis(){
 }
 
 function renderHeatmap(){
-  const dias=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-  const hours=[8,9,10,11,12,13,14,15,16,17,18,19,20];
-  const base=[[2,3,4,4,3,2,4,5,6,6,5,3,1],[2,3,4,5,3,2,4,5,6,7,6,4,2],[3,4,5,5,4,3,5,6,7,7,6,4,2],[3,4,5,6,4,3,5,6,7,8,7,5,2],[4,5,6,7,5,4,6,8,9,9,8,6,3],[6,8,9,9,7,6,8,9,9,8,6,4,2],[1,2,2,3,2,1,2,2,2,1,1,0,0]];
+  const diasFull=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const diasShort=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const order=[1,2,3,4,5,6,0]; // Segunda…Domingo
+  const hours=[8,9,10,11,12,13,14,15,16,17,18,19,20,21,22];
+  const todayDow=new Date().getDay();
+  const todayAppts=appts.filter(a=>a.date===TODAY_STR&&a.status!=='cancelado');
+  const counts={};
+  todayAppts.forEach(a=>{
+    const hour=Math.floor(apptClockMinutes(a)/60);
+    counts[hour]=(counts[hour]||0)+1;
+  });
+  const maxCap=Math.max(1,PROS.length);
   let html='<div></div>'+hours.map(h=>`<div class="hm-hour">${h}h</div>`).join('');
-  dias.forEach((d,i)=>{
-    html+=`<div class="hm-label">${d}</div>`;
-    base[i].forEach((v,j)=>{
-      const op=v===0?0:0.12+ (v/9)*0.88;
-      const bg=v===0?'var(--surface-2)':`color-mix(in srgb, var(--brand) ${Math.round(op*100)}%, var(--surface-2))`;
-      html+=`<div class="hm-cell" style="background:${bg}" data-tip="${d} ${hours[j]}h · ${Math.round(v/9*100)}% ocupação"></div>`;
+  order.forEach((dow,i)=>{
+    const isToday=dow===todayDow;
+    html+=`<div class="hm-label">${diasShort[i]}${isToday?' •':''}</div>`;
+    hours.forEach(h=>{
+      const v=isToday?(counts[h]||0):0;
+      const intensity=Math.min(1,v/maxCap);
+      const bg=v===0?'var(--surface-2)':`color-mix(in srgb, var(--brand) ${Math.round((0.25+intensity*0.75)*100)}%, var(--surface-2))`;
+      const tip=isToday?`Hoje ${h}h · ${v} agendamento${v===1?'':'s'}`:`${diasFull[dow]} · sem dados ainda`;
+      html+=`<div class="hm-cell" style="background:${bg}" data-tip="${tip}"></div>`;
     });
   });
   $('#heatmap').innerHTML=html;
@@ -1418,19 +1421,6 @@ function renderRanking(){
     <td class="num">${BRL(ticketMedio(c))}</td>
     <td class="num" style="text-align:right;font-weight:700">${BRL(c.total)}</td></tr>`).join('');
 }
-
-function renderAlerts(){
-  const alerts=[
-    {ico:'⚠',bg:'var(--neg-soft)',fg:'var(--neg)',t:'6 clientes em risco de abandono',s:'Mais de 40 dias sem retornar · sugerir giftback',a:'Ver lista',fn:"setClientFilter('risco');setView('clientes')"},
-    {ico:'🎂',bg:'var(--brand-soft)',fg:'var(--brand)',t:'3 aniversariantes esta semana',s:'Campanha de aniversário pronta para envio',a:'Ver',fn:"setClientFilter('aniver');setView('clientes')"},
-    {ico:'📦',bg:'var(--warn-soft)',fg:'var(--warn)',t:'Estoque baixo em 4 produtos',s:'Pó descolorante, OX 30, esmalte nude, cera modeladora',a:'Repor',fn:"toast('Módulo Estoque: próxima etapa do protótipo')"},
-    {ico:'⏰',bg:'var(--info-soft)',fg:'var(--info)',t:'2 horários ociosos amanhã à tarde',s:'Sugerido: promoção relâmpago via push para clientes próximos',a:'Criar',fn:"toast('Módulo Marketing: próxima etapa do protótipo')"},
-  ];
-  $('#alertList').innerHTML=alerts.map(a=>`<div class="alert-item">
-    <div class="alert-ico" style="background:${a.bg};color:${a.fg};font-size:15px">${a.ico}</div>
-    <div><div class="a-t">${a.t}</div><div class="a-s">${a.s}</div></div>
-    <button class="btn btn-ghost" onclick="${a.fn}">${a.a}</button></div>`).join('');
-}
 </script>
 <script>
 /* ================= CHARTS ================= */
@@ -1443,36 +1433,47 @@ function buildCharts(){
   Chart.defaults.font.size=11;
   Chart.defaults.color=text3;
 
-  // Receita — área
+  // Receita — acumulada ao longo do dia, calculada dos atendimentos realmente concluídos
   const ctx1=$('#chartRevenue').getContext('2d');
-  const days=Array.from({length:30},(_,i)=>i+1);
-  const rev=[1450,1720,1610,980,2100,2680,2890,1520,1840,1760,1120,2260,2740,3050,1690,1980,1870,1240,2380,2860,3120,1780,2050,1940,1310,2490,2980,3260,2840,3390];
-  const prev=rev.map(v=>v*0.84);
+  const concluded=appts.filter(a=>a.date===TODAY_STR&&a.status==='concluido').sort((a,b)=>apptClockMinutes(a)-apptClockMinutes(b));
+  let running=0;
+  const revLabels=[],revData=[];
+  concluded.forEach(a=>{running+=(a.valor||0);revLabels.push(apptTimeLabel(a));revData.push(+running.toFixed(2))});
+  if(!revLabels.length){revLabels.push('Sem atendimentos concluídos ainda');revData.push(0)}
   const grad=ctx1.createLinearGradient(0,0,0,260);
   grad.addColorStop(0,brand+'33');grad.addColorStop(1,brand+'00');
-  charts.push(new Chart(ctx1,{type:'line',data:{labels:days,datasets:[
-    {label:'Este mês',data:rev,borderColor:brand,backgroundColor:grad,fill:true,tension:.4,borderWidth:2.5,pointRadius:0,pointHoverRadius:4,pointBackgroundColor:brand},
-    {label:'Mês anterior',data:prev,borderColor:text3,borderDash:[4,4],borderWidth:1.5,pointRadius:0,tension:.4}
+  charts.push(new Chart(ctx1,{type:'line',data:{labels:revLabels,datasets:[
+    {label:'Receita acumulada hoje',data:revData,borderColor:brand,backgroundColor:grad,fill:true,tension:.35,borderWidth:2.5,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:brand}
   ]},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{display:true,position:'top',align:'end',labels:{boxWidth:8,boxHeight:8,usePointStyle:true,pointStyle:'circle'}},
-      tooltip:{callbacks:{label:c=>c.dataset.label+': '+BRL(c.parsed.y)}}},
-    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10}},y:{grid:{color:border},border:{display:false},ticks:{callback:v=>'R$'+(v/1000).toLocaleString('pt-BR')+'k'}}}}}));
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.parsed.y)}}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:border},border:{display:false},ticks:{callback:v=>'R$'+(v/1000).toLocaleString('pt-BR')+'k'}}}}}));
 
-  // Receita por profissional — rosca
+  // Receita por profissional — soma real dos agendamentos de hoje
+  const proRevenue=PROS.map(p=>({p,total:appts.filter(a=>a.date===TODAY_STR&&a.pro===p.id&&a.status!=='cancelado').reduce((s,a)=>s+(a.valor||0),0)}));
+  const proHasData=proRevenue.some(x=>x.total>0);
   charts.push(new Chart($('#chartPros'),{type:'doughnut',data:{
-    labels:PROS.map(p=>p.nome.split(' ')[0]),
-    datasets:[{data:[26400,19800,15200,13250],backgroundColor:PROS.map(p=>p.cor),borderWidth:3,borderColor:cssVar('--surface'),hoverOffset:6}]},
+    labels:proHasData?proRevenue.map(x=>x.p.nome.split(' ')[0]):['Sem agendamentos hoje'],
+    datasets:[{data:proHasData?proRevenue.map(x=>x.total):[1],backgroundColor:proHasData?proRevenue.map(x=>x.p.cor):[cssVar('--border')],borderWidth:3,borderColor:cssVar('--surface'),hoverOffset:6}]},
     options:{maintainAspectRatio:false,cutout:'68%',
       plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,usePointStyle:true,pointStyle:'circle',padding:14}},
-      tooltip:{callbacks:{label:c=>' '+BRL(c.parsed)}}}}}));
+      tooltip:{callbacks:{label:c=>proHasData?' '+BRL(c.parsed):' Sem dados'}}}}}));
 
-  // Serviços — barras horizontais
+  // Serviços mais vendidos — somados a partir dos agendamentos reais de hoje
+  const svcTotals={};
+  appts.filter(a=>a.date===TODAY_STR&&a.status!=='cancelado').forEach(a=>{
+    const names=a.servico.split(' + ');
+    names.forEach(name=>{
+      const svc=SERVICES.find(s=>s.n===name);
+      svcTotals[name]=(svcTotals[name]||0)+(svc?svc.v:(a.valor||0)/names.length);
+    });
+  });
+  const svcSorted=Object.entries(svcTotals).sort((a,b)=>b[1]-a[1]).slice(0,6);
   charts.push(new Chart($('#chartServices'),{type:'bar',data:{
-    labels:['Coloração','Mechas / Luzes','Corte feminino','Progressiva','Manicure','Corte masculino'],
-    datasets:[{data:[18200,14600,11900,9400,7800,6300],backgroundColor:brand,borderRadius:6,barThickness:16}]},
+    labels:svcSorted.length?svcSorted.map(x=>x[0]):['Sem dados ainda'],
+    datasets:[{data:svcSorted.length?svcSorted.map(x=>+x[1].toFixed(2)):[0],backgroundColor:brand,borderRadius:6,barThickness:16}]},
     options:{indexAxis:'y',maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+BRL(c.parsed.x)}}},
-      scales:{x:{grid:{color:border},border:{display:false},ticks:{callback:v=>'R$'+(v/1000)+'k'}},y:{grid:{display:false}}}}}));
+      scales:{x:{grid:{color:border},border:{display:false},ticks:{callback:v=>'R$'+(v/1000).toFixed(1)+'k'}},y:{grid:{display:false}}}}}));
   window._chartsReady=true;
 }
 
@@ -1971,11 +1972,18 @@ function saveAppt(){
 }
 
 /* ================= AÇÕES DO AGENDAMENTO ================= */
+function dashboardRefresh(){
+  if($('#view-dashboard').hidden)return;
+  renderKpis();
+  if(typeof rebuildCharts==='function')rebuildCharts();
+  if(typeof renderHeatmap==='function')renderHeatmap();
+  if(typeof renderRanking==='function')renderRanking();
+}
 function confirmAppt(id){
   const a=appts.find(x=>x.id===id);if(!a)return;
   a.status='confirmado';
   renderAgenda();
-  if(!$('#view-dashboard').hidden)renderKpis();
+  dashboardRefresh();
   toast('Agendamento confirmado · indicador atualizado no Dashboard');
 }
 let sessionRevenueAdded=0; // somado a cada "Encerrar atendimento" na Agenda, alimenta o Faturamento do Dashboard
@@ -1985,7 +1993,7 @@ function cancelAppt(id){
   a.status='cancelado';
   sessionChurnAdded+=(a.valor||0);
   renderAgenda();
-  if(!$('#view-dashboard').hidden)renderKpis();
+  dashboardRefresh();
   toast('Agendamento cancelado · '+BRL(a.valor||0)+' somados ao Churn · cliente notificado');
 }
 function computeCashback(a){
@@ -2006,8 +2014,14 @@ function finalizeAppt(id){
   const cashback=computeCashback(a);
   a.cashbackGerado=cashback;
   sessionRevenueAdded+=(a.valor||0);
+  const cliente=CLIENTS.find(c=>c.nome===a.cliente);
+  if(cliente){
+    cliente.total+=(a.valor||0);
+    cliente.visitas+=1;
+    cliente.ult=0;
+  }
   renderAgenda();
-  if(!$('#view-dashboard').hidden)renderKpis();
+  dashboardRefresh();
   toast(`Atendimento encerrado · ${BRL(a.valor||0)} somados ao Faturamento · ${BRL(cashback)} de cashback creditado · push de agradecimento e pesquisa de satisfação enviados a ${a.cliente.split(' ')[0]}`);
 }
 function rescheduleAppt(id){
@@ -2182,7 +2196,9 @@ function renderStaff(){
     </div>
   </div>`).join('');
 }
+let currentDrawerStaffId=null;
 function openStaff(id){
+  currentDrawerStaffId=id;
   const p=PROS.find(x=>x.id===id);
   $('#staffDrawerHead').innerHTML=`<div class="d-profile">
       <div class="avatar" style="background:${p.cor}1f;color:${p.cor};overflow:hidden">${avatarInner(p)}</div>
@@ -2205,6 +2221,11 @@ function openStaff(id){
   $('#staffDrawerScrim').classList.add('open');
 }
 function closeStaffDrawer(){$('#staffDrawer').classList.remove('open');$('#staffDrawerScrim').classList.remove('open')}
+function editStaffFromDrawer(){
+  const id=currentDrawerStaffId;
+  closeStaffDrawer();
+  openStaffModal(id);
+}
 let stagedStaffPhoto=null;
 function handleStaffPhoto(e){
   const file=e.target.files&&e.target.files[0];
@@ -2225,32 +2246,61 @@ function removeStaffPhoto(){
   $('#stPhotoPreview').innerHTML='?';
   $('#stPhotoRemoveBtn').hidden=true;
 }
-function openStaffModal(){
-  ['stNome','stEsp','stExp','stIdade'].forEach(id=>$('#'+id).value='');
-  $('#stSexo').value='';
-  $('#stError').style.display='none';
+let staffEditId=null;
+function openStaffModal(editId){
+  staffEditId=editId||null;
   removeStaffPhoto();
+  if(staffEditId){
+    const p=PROS.find(x=>x.id===staffEditId);
+    $('#staffModalTitle').textContent='Editar funcionário';
+    $('#staffModalSaveBtn').textContent='Salvar alterações';
+    $('#stNome').value=p.nome;
+    $('#stEsp').value=p.esp||'';
+    $('#stExp').value=p.exp||'';
+    $('#stIdade').value=p.idade||'';
+    $('#stSexo').value=(p.sexo&&p.sexo!=='—')?p.sexo:'';
+    if(p.foto){
+      stagedStaffPhoto=p.foto;
+      $('#stPhotoPreview').style.overflow='hidden';
+      $('#stPhotoPreview').innerHTML=`<img src="${p.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+      $('#stPhotoRemoveBtn').hidden=false;
+    }
+  }else{
+    $('#staffModalTitle').textContent='Novo funcionário';
+    $('#staffModalSaveBtn').textContent='Cadastrar funcionário';
+    ['stNome','stEsp','stExp','stIdade'].forEach(id=>$('#'+id).value='');
+    $('#stSexo').value='';
+  }
+  $('#stError').style.display='none';
   $('#modalStaffScrim').classList.add('open');
 }
 function closeStaffModal(){$('#modalStaffScrim').classList.remove('open')}
 function saveStaff(){
   const nome=$('#stNome').value.trim();
   if(!nome){$('#stError').style.display='block';return}
-  const palette=['#C2366F','#2E5FBF','#178A63','#A96A0B','#7A5FC2','#C25A2E','#0E8C8C'];
-  const novo={
-    id:'staff'+Date.now(),nome,
-    esp:$('#stEsp').value.trim()||'Profissional',
-    exp:$('#stExp').value.trim()||'—',
-    idade:parseInt($('#stIdade').value)||null,
-    sexo:$('#stSexo').value||'—',
-    cor:palette[PROS.length%palette.length],
-    rating:5.0,atend30:0,
-    foto:stagedStaffPhoto,
-  };
-  PROS.push(novo);
-  closeStaffModal();
-  renderStaff();
-  toast('Funcionário '+nome.split(' ')[0]+' cadastrado com sucesso');
+  const esp=$('#stEsp').value.trim()||'Profissional';
+  const exp=$('#stExp').value.trim()||'—';
+  const idade=parseInt($('#stIdade').value)||null;
+  const sexo=$('#stSexo').value||'—';
+  if(staffEditId){
+    const p=PROS.find(x=>x.id===staffEditId);
+    Object.assign(p,{nome,esp,exp,idade,sexo,foto:stagedStaffPhoto});
+    closeStaffModal();
+    renderStaff();
+    toast('Perfil de '+nome.split(' ')[0]+' atualizado com sucesso');
+  }else{
+    const palette=['#C2366F','#2E5FBF','#178A63','#A96A0B','#7A5FC2','#C25A2E','#0E8C8C'];
+    const novo={
+      id:'staff'+Date.now(),nome,esp,exp,idade,sexo,
+      cor:palette[PROS.length%palette.length],
+      rating:5.0,atend30:0,
+      foto:stagedStaffPhoto,
+    };
+    PROS.push(novo);
+    closeStaffModal();
+    renderStaff();
+    toast('Funcionário '+nome.split(' ')[0]+' cadastrado com sucesso');
+  }
 }
 
 let FID_RULES=[
@@ -2354,19 +2404,6 @@ function renderCashback(){
     <td>${r.gatilho}</td><td>${r.recomp}</td><td style="font-size:12px;color:var(--text-2)">${r.cond}</td>
     <td><span class="tag ${r.on?'tag-ok':'tag-risk'}">${r.on?'Ativo':'Pausado'}</span></td>
     <td><span class="rule-edit" onclick="toast('Editor de regra')">Editar</span></td></tr>`).join('');
-
-  const extrato=[
-    {t:'Cashback creditado',c:'Ana Beatriz Souza',v:'+R$ 18,50',cls:'income',d:'Hoje, 14:32',cat:'5% sobre Coloração'},
-    {t:'Cashback resgatado',c:'Juliana Castro',v:'-R$ 42,00',cls:'expense',d:'Hoje, 11:10',cat:'Usado em Manicure + Pedicure'},
-    {t:'Giftback entregue',c:'Beatriz Nunes',v:'Hidratação grátis',cls:'',d:'Ontem, 16:45',cat:'5ª visita no mês'},
-    {t:'Cashback creditado',c:'Pedro H. Alves',v:'+R$ 8,50',cls:'income',d:'Ontem, 10:20',cat:'5% sobre Corte + Barba'},
-    {t:'Cashback expirado',c:'Marcos Vinícius',v:'-R$ 12,00',cls:'expense',d:'05/07, 00:00',cat:'Validade de 30 dias atingida'},
-    {t:'Cashback creditado',c:'Camila Duarte',v:'+R$ 25,00',cls:'income',d:'04/07, 15:50',cat:'Bônus fixo Coloração'},
-  ];
-  $('#cashExtrato').innerHTML=extrato.map(e=>`<div class="fin-tx">
-    <div class="ft-icon" style="background:${e.cls==='income'?'var(--pos-soft)':e.cls==='expense'?'var(--neg-soft)':'var(--brand-soft)'};color:${e.cls==='income'?'var(--pos)':e.cls==='expense'?'var(--neg)':'var(--brand)'}">${e.cls==='income'?'↑':e.cls==='expense'?'↓':'🎁'}</div>
-    <div class="ft-info"><div class="ft-name">${e.t} · ${e.c}</div><div class="ft-cat">${e.cat} · ${e.d}</div></div>
-    <div class="ft-val ${e.cls}">${e.v}</div></div>`).join('');
 }
 
 /* ================= MARKETING ================= */
@@ -2421,19 +2458,25 @@ function saveCampaign(){
 }
 
 /* ================= ESTOQUE ================= */
+function daysFromNow(n){const d=new Date();d.setDate(d.getDate()+n);return fmtDate(d)}
 let PRODUCTS=[
-  {nome:'Pó Descolorante 500g',categoria:'Coloração',estoque:2,nivelMin:5,custo:42,provencendo:true},
-  {nome:'OX Cremoso 30 Vol 1L',categoria:'Coloração',estoque:3,nivelMin:5,custo:18,provencendo:false},
-  {nome:'Esmalte Nude Rosé',categoria:'Manicure',estoque:1,nivelMin:4,custo:8.5,provencendo:false},
-  {nome:'Cera Modeladora 100g',categoria:'Barbearia',estoque:2,nivelMin:3,custo:24,provencendo:true},
-  {nome:'Shampoo Reconstrutor 1L',categoria:'Tratamento',estoque:12,nivelMin:4,custo:32,provencendo:false},
-  {nome:'Máscara Reparadora 500g',categoria:'Tratamento',estoque:8,nivelMin:3,custo:38,provencendo:false},
-  {nome:'Tintura Castanho Médio',categoria:'Coloração',estoque:14,nivelMin:6,custo:15,provencendo:false},
-  {nome:'Spray Térmico 200ml',categoria:'Finalização',estoque:6,nivelMin:3,custo:22,provencendo:false},
-  {nome:'Óleo de Argan 60ml',categoria:'Finalização',estoque:9,nivelMin:4,custo:28,provencendo:false},
-  {nome:'Base Coat Fortalecedora',categoria:'Manicure',estoque:7,nivelMin:3,custo:12,provencendo:false},
+  {nome:'Pó Descolorante 500g',categoria:'Coloração',estoque:2,nivelMin:5,custo:42,venc:daysFromNow(18)},
+  {nome:'OX Cremoso 30 Vol 1L',categoria:'Coloração',estoque:3,nivelMin:5,custo:18,venc:null},
+  {nome:'Esmalte Nude Rosé',categoria:'Manicure',estoque:1,nivelMin:4,custo:8.5,venc:null},
+  {nome:'Cera Modeladora 100g',categoria:'Barbearia',estoque:2,nivelMin:3,custo:24,venc:daysFromNow(25)},
+  {nome:'Shampoo Reconstrutor 1L',categoria:'Tratamento',estoque:12,nivelMin:4,custo:32,venc:daysFromNow(240)},
+  {nome:'Máscara Reparadora 500g',categoria:'Tratamento',estoque:8,nivelMin:3,custo:38,venc:null},
+  {nome:'Tintura Castanho Médio',categoria:'Coloração',estoque:14,nivelMin:6,custo:15,venc:daysFromNow(300)},
+  {nome:'Spray Térmico 200ml',categoria:'Finalização',estoque:6,nivelMin:3,custo:22,venc:null},
+  {nome:'Óleo de Argan 60ml',categoria:'Finalização',estoque:9,nivelMin:4,custo:28,venc:null},
+  {nome:'Base Coat Fortalecedora',categoria:'Manicure',estoque:7,nivelMin:3,custo:12,venc:null},
 ];
 let stockFilter='todos';
+function isVencendo(p){
+  if(!p.venc)return false;
+  const diffDays=Math.floor((parseDate(p.venc)-new Date())/86400000);
+  return diffDays<=30;
+}
 function setStockFilter(f){
   stockFilter=f;
   document.querySelectorAll('#stockFilterChips .chip').forEach(c=>c.classList.toggle('active',c.dataset.f===f));
@@ -2444,7 +2487,7 @@ function renderEstoque(){
   const totalUnidades=PRODUCTS.reduce((s,p)=>s+p.estoque,0);
   const valorEstoque=PRODUCTS.reduce((s,p)=>s+p.estoque*p.custo,0);
   const baixo=PRODUCTS.filter(p=>p.estoque<p.nivelMin).length;
-  const proxVenc=PRODUCTS.filter(p=>p.provencendo).length;
+  const proxVenc=PRODUCTS.filter(isVencendo).length;
   $('#statProdutosCount').textContent=PRODUCTS.length;
   $('#statCategoriasCount').textContent=totalUnidades+' unidades no total';
   $('#statValorEstoque').textContent=BRL(valorEstoque);
@@ -2453,18 +2496,22 @@ function renderEstoque(){
 
   let list=PRODUCTS.map((p,i)=>({...p,_idx:i}));
   if(stockFilter==='baixo')list=list.filter(p=>p.estoque<p.nivelMin);
+  if(stockFilter==='venc')list=list.filter(isVencendo);
 
   $('#stockTable tbody').innerHTML=list.length?list.map(p=>{
     const pct=p.nivelMin?Math.min(150,Math.round(p.estoque/p.nivelMin*100)):100;
     const low=p.estoque<p.nivelMin;
+    const venc=isVencendo(p);
     const barColor=low?'var(--neg)':pct<150?'var(--warn)':'var(--pos)';
+    const vencLabel=p.venc?new Date(p.venc+'T00:00:00').toLocaleDateString('pt-BR'):'—';
     return `<tr>
-      <td><b>${p.nome}</b>${p.provencendo?'<br><span style="font-size:11px;color:var(--warn)">Vence em breve</span>':''}</td>
+      <td><b>${p.nome}</b></td>
       <td class="num">${p.estoque} un</td>
       <td><div class="stock-bar"><div class="sb-track"><div class="sb-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div><span class="sb-label" style="color:${barColor}">${low?'Baixo':'OK'}</span></div></td>
       <td class="num">${BRL(p.custo)}</td>
+      <td style="${venc?'color:var(--warn);font-weight:700':''}">${vencLabel}${venc?' ⚠':''}</td>
       <td style="white-space:nowrap"><span class="rule-edit" onclick="openProductModal(${p._idx})">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteProduct(${p._idx})">Excluir</span></td></tr>`;
-  }).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:32px">Nenhum produto encontrado.</td></tr>';
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px">Nenhum produto encontrado.</td></tr>';
 }
 let productEditIndex=-1;
 function openProductModal(i){
@@ -2474,9 +2521,10 @@ function openProductModal(i){
     $('#productModalTitle').textContent='Editar produto';
     $('#pdNome').value=p.nome;
     $('#pdEstoque').value=p.estoque;$('#pdNivel').value=p.nivelMin;$('#pdCusto').value=p.custo;
+    $('#pdValidade').value=p.venc||'';
   }else{
     $('#productModalTitle').textContent='Novo produto';
-    $('#pdNome').value='';$('#pdEstoque').value='';$('#pdNivel').value='';$('#pdCusto').value='';
+    $('#pdNome').value='';$('#pdEstoque').value='';$('#pdNivel').value='';$('#pdCusto').value='';$('#pdValidade').value='';
   }
   $('#pdError').style.display='none';
   $('#modalProductScrim').classList.add('open');
@@ -2488,7 +2536,8 @@ function saveProduct(){
   const custo=parseFloat($('#pdCusto').value);
   if(!nome||isNaN(estoque)||isNaN(custo)){$('#pdError').style.display='block';return}
   const nivelMin=parseInt($('#pdNivel').value)||0;
-  const obj={nome,estoque,nivelMin,custo,provencendo:productEditIndex>=0?PRODUCTS[productEditIndex].provencendo:false};
+  const venc=$('#pdValidade').value||null;
+  const obj={nome,estoque,nivelMin,custo,venc};
   if(productEditIndex>=0)PRODUCTS[productEditIndex]=obj;
   else PRODUCTS.push(obj);
   closeProductModal();
@@ -2676,7 +2725,7 @@ const h=now.getHours();
 $('#greeting').textContent=(h<12?'Bom dia':h<18?'Boa tarde':'Boa noite')+', Fabiano';
 $('#todayLabel').textContent='Studio Jardins · '+now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 initBusinessHours();
-renderKpis();renderHeatmap();renderRanking();renderAlerts();renderAgenda();renderClients();renderWaitlist();renderStaff();
+renderKpis();renderHeatmap();renderRanking();renderAgenda();renderClients();renderWaitlist();renderStaff();
 renderTiers();renderFidRanking();renderFidRules();syncRewardsFromServices(true);renderCashback();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();initBrandColor();initLogo();initReminderConfig();checkReminders();
 buildCharts();
 </script>
