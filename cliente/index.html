@@ -54,6 +54,8 @@
   --shadow-lg:0 20px 50px rgba(0,0,0,.55);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{display:none;width:0;height:0}
 html,body{height:100%}
 body{
   font-family:var(--font-body); background:#EDEBE4; color:var(--text);
@@ -163,8 +165,8 @@ a{color:inherit;text-decoration:none}
 
 /* ============ MISC ============ */
 .divider{height:1px; background:var(--border); margin:16px 0}
-.hscroll{display:flex; gap:12px; overflow-x:auto; padding:2px 20px 10px; -webkit-overflow-scrolling:touch}
-.hscroll::-webkit-scrollbar{display:none}
+.hscroll{display:flex; gap:12px; overflow-x:auto; padding:2px 20px 10px; -webkit-overflow-scrolling:touch; scrollbar-width:none; -ms-overflow-style:none}
+.hscroll::-webkit-scrollbar{display:none;width:0;height:0}
 .fade-in{animation:fadeUp .35s ease both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes pop{0%{transform:scale(.9);opacity:0}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
@@ -248,9 +250,9 @@ a{color:inherit;text-decoration:none}
 .hero-carousel{margin:14px 20px 4px}
 .hero-track{
   display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
-  border-radius:20px;scrollbar-width:none;
+  border-radius:20px;scrollbar-width:none;-ms-overflow-style:none;
 }
-.hero-track::-webkit-scrollbar{display:none}
+.hero-track::-webkit-scrollbar{display:none;width:0;height:0}
 .hero-slide-wrap{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box}
 .hero-slide-wrap .next-appt-card,.hero-slide-wrap .empty-appt-card{margin:0}
 .ad-slide{
@@ -310,8 +312,8 @@ a{color:inherit;text-decoration:none}
 .pro-card .pro-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;display:grid;place-items:center}
 .pro-card.selected .pro-check{background:var(--brand);border-color:var(--brand);color:#fff}
 
-.day-strip{display:flex;gap:10px;overflow-x:auto;padding:2px 20px 6px;margin:0 -20px;-webkit-overflow-scrolling:touch}
-.day-strip::-webkit-scrollbar{display:none}
+.day-strip{display:flex;gap:10px;overflow-x:auto;padding:2px 20px 6px;margin:0 -20px;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}
+.day-strip::-webkit-scrollbar{display:none;width:0;height:0}
 .day-chip{min-width:58px;padding:12px 8px;border-radius:16px;border:1.5px solid var(--border);text-align:center;flex-shrink:0;background:var(--surface)}
 .day-chip.active{background:var(--brand);border-color:var(--brand);color:#fff}
 .day-chip.disabled{opacity:.35;pointer-events:none}
@@ -701,6 +703,11 @@ let ADS=[];
 function getTier(nome){return TIERS.find(t=>t.nome===nome)||TIERS[0]}
 function getNextTier(nome){const i=TIERS.findIndex(t=>t.nome===nome);return TIERS[i+1]||null}
 function proById(id){return PROS.find(p=>p.id===id)}
+function staffEspLabel(p){
+  if(!p)return '';
+  if(Array.isArray(p.esp))return p.esp.join(' · ');
+  return p.esp||'Profissional';
+}
 function staffAvatarInner(p){
   if(p&&p.foto)return `<img src="${p.foto}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
   return initials(p?p.nome:'?');
@@ -935,6 +942,20 @@ function initHeroCarousel(){
   track.addEventListener('scroll',onHeroInteraction,{passive:true});
   updateHeroDots(0);
   startHeroAutoplay();
+  syncHeroSlideHeights();
+}
+function syncHeroSlideHeights(){
+  // o card de agendamento tem altura variável (depende do conteúdo); os ads precisam
+  // ficar com a MESMA altura real dele, então medimos depois do primeiro paint.
+  requestAnimationFrame(()=>{
+    const wraps=[...document.querySelectorAll('.hero-slide-wrap')];
+    if(wraps.length<2)return;
+    const firstCard=wraps[0].querySelector('.next-appt-card,.empty-appt-card');
+    if(!firstCard)return;
+    const h=firstCard.offsetHeight;
+    if(!h)return;
+    document.querySelectorAll('.ad-slide').forEach(el=>{el.style.height=h+'px'});
+  });
 }
 
 /* ================= OFERTAS (campanhas) ================= */
@@ -1258,7 +1279,7 @@ function renderReviewBody(pro){
     <div style="text-align:center;margin-bottom:18px">
       <div class="avatar" style="width:56px;height:56px;font-size:18px;margin:0 auto 8px;background:${pro.cor}1f;color:${pro.cor};overflow:hidden">${staffAvatarInner(pro)}</div>
       <div style="font-weight:700;font-size:15px">${pro.nome}</div>
-      <div class="text-3" style="font-size:12.5px">${pro.esp}</div>
+      <div class="text-3" style="font-size:12.5px">${staffEspLabel(pro)}</div>
     </div>
     <label style="display:block;font-weight:700;font-size:13.5px;margin-bottom:8px">Como foi o atendimento do profissional?</label>
     <div id="starsProRow" style="display:flex;gap:6px;justify-content:center;margin-bottom:20px"></div>
@@ -1365,7 +1386,7 @@ function renderBooking(){
       const sel=booking.pro===p.id;
       return `<div class="pro-card ${sel?'selected':''}" onclick="selectBookingPro('${p.id}')">
         <div class="avatar" style="background:${p.cor}1f;color:${p.cor};overflow:hidden">${staffAvatarInner(p)}</div>
-        <div class="pro-info"><div class="pro-name">${p.nome}</div><div class="pro-esp">${p.esp} · ${p.exp}</div>
+        <div class="pro-info"><div class="pro-name">${p.nome}</div><div class="pro-esp">${staffEspLabel(p)} · ${p.exp}</div>
           <div class="pro-meta"><span class="stars">${starsHtmlSmall(p.rating)}</span> ${p.rating.toFixed(1)} · ${p.atend30} atend. em 30d</div>
         </div>
         <div class="pro-check">${sel?'✓':''}</div>
@@ -1468,7 +1489,7 @@ async function confirmBooking(){
   const servico=booking.services.join(' + ');
   const start=computeApptStart(booking.date,booking.time);
   await db.collection('appointments').add({
-    pro,cliente:CLIENT.nome,servico,date:booking.date,start,dur,valor,status:'pendente',
+    pro,cliente:CLIENT.nome,servico,date:booking.date,start,dur,valor,status:'pendente',origem:'app',
   });
   pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time}`);
   booking.step=5;
