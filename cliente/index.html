@@ -258,13 +258,14 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:flex-end;cursor:pointer;overflow:hidden;
 }
 .ad-slide-overlay{
-  width:100%;padding:20px;box-sizing:border-box;color:#fff;
-  background:linear-gradient(0deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,0) 65%);
+  width:100%;padding:22px 20px 20px;box-sizing:border-box;color:#fff;
+  background:linear-gradient(0deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.28) 60%,rgba(0,0,0,0) 100%);
 }
-.ad-slide-title{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-.01em;margin-bottom:8px}
+.ad-slide-title{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-.01em;margin-bottom:14px;line-height:1.3}
 .bn-cta{
-  display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:#fff;
-  background:rgba(255,255,255,.22);padding:7px 12px;border-radius:20px;width:fit-content;
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;
+  background:rgba(255,255,255,.24);padding:9px 14px;border-radius:20px;width:fit-content;
+  backdrop-filter:blur(2px);
 }
 .hero-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
 .hero-dot{width:6px;height:6px;border-radius:50%;background:var(--border-strong);transition:width .25s ease,background .25s ease}
@@ -868,20 +869,20 @@ function renderApptCardInner(upcoming){
   </div>`;
 }
 function renderAdSlide(ad){
+  const hasCta=ad.ctaDestino&&ad.ctaDestino!=='nenhum'&&ad.ctaTexto;
   return `<div class="ad-slide" style="background-image:url('${ad.imagem}')" onclick="handleAdClick('${ad.id}')">
     <div class="ad-slide-overlay">
       <div class="ad-slide-title">${ad.titulo}</div>
-      ${ad.cta&&ad.cta!=='nenhum'&&PROMO_CTA_LABELS[ad.cta]?`<div class="bn-cta">${PROMO_CTA_LABELS[ad.cta]} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`:''}
+      ${hasCta?`<div class="bn-cta">${ad.ctaTexto} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`:''}
     </div>
   </div>`;
 }
 function handleAdClick(id){
   const ad=ADS.find(a=>a.id===id);
-  if(!ad)return;
-  if(ad.cta&&ad.cta!=='nenhum'){
-    if(ad.cta==='agendar')startBooking();
-    else setView(ad.cta);
-  }
+  if(!ad||!ad.ctaDestino||ad.ctaDestino==='nenhum')return;
+  if(ad.ctaDestino==='agendar')startBooking();
+  else if(ad.ctaDestino==='externo'&&ad.ctaUrl)window.open(ad.ctaUrl,'_blank');
+  else setView(ad.ctaDestino);
 }
 function renderHeroSlot(upcoming){
   const apptHtml=renderApptCardInner(upcoming);
@@ -979,6 +980,9 @@ function renderInicio(){
     </button>
   </div>`;
 
+  html+=renderHeroSlot(upcoming);
+  html+=renderOfertas();
+
   html+=`<div class="quick-stats fade-in">
     <div class="qs-card card" style="background:var(--gold-soft)" onclick="setView('fidelidade')">
       <div class="qs-ico">${getTier(CLIENT.tier).ico}</div>
@@ -991,9 +995,6 @@ function renderInicio(){
       <div class="qs-lbl">cashback disponível</div>
     </div>
   </div>`;
-
-  html+=renderOfertas();
-  html+=renderHeroSlot(upcoming);
 
   if(pendingReview){
     const pro=proById(pendingReview.pro);
