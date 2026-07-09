@@ -362,11 +362,42 @@ a{color:inherit;text-decoration:none}
 .menu-item .mi-chevron{color:var(--text-3)}
 
 ::-webkit-scrollbar{width:0;height:0}
+
+/* ============ AUTENTICAÇÃO ============ */
+.client-auth-screen{
+  position:absolute;inset:0;z-index:900;background:var(--bg);display:flex;align-items:center;justify-content:center;
+  padding:24px;overflow-y:auto;
+}
+.client-auth-screen .auth-card{width:100%;max-width:340px}
+.client-auth-screen .auth-brand{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:26px}
+.client-auth-screen .auth-mark{width:52px;height:52px;border-radius:16px;background:var(--brand);color:#fff;display:grid;place-items:center}
+.client-auth-screen .auth-brand-name{font-family:var(--font-display);font-weight:800;font-size:17px}
+.client-auth-screen h1{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;text-align:center;font-family:var(--font-display)}
+.client-auth-screen .auth-sub{color:var(--text-3);font-size:13px;text-align:center;margin-bottom:20px;line-height:1.5}
+.client-auth-screen .auth-error{color:var(--neg);font-size:12.5px;margin-top:-6px;margin-bottom:12px;text-align:center}
+.client-auth-screen .auth-success{color:var(--pos);font-size:12.5px;margin-top:-6px;margin-bottom:12px;text-align:center}
+.client-auth-screen .auth-links{display:flex;justify-content:space-between;margin-top:16px;font-size:12.5px}
+.client-auth-screen .auth-link{color:var(--brand);font-weight:600;cursor:pointer}
+
+/* ============ SPLASH ============ */
+.splash-screen{
+  position:absolute;inset:0;z-index:950;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-strong) 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  opacity:0;pointer-events:none;transition:opacity .4s ease;
+}
+.splash-screen.show{opacity:1;pointer-events:auto}
+.splash-logo{
+  width:76px;height:76px;border-radius:24px;background:rgba(255,255,255,.16);color:#fff;
+  display:grid;place-items:center;animation:splashPulse 1.4s ease-in-out infinite;
+}
+@keyframes splashPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+.splash-name{color:#fff;font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-.01em;opacity:.95}
 </style>
 <body>
 <!-- ============ FIREBASE ============ -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAaNdmniVfOhYRd8OtlKu1YDZSxrkvv1Uo",
@@ -378,9 +409,62 @@ a{color:inherit;text-decoration:none}
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const auth = firebase.auth();
   db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 </script>
 <div class="shell">
+
+  <!-- ============ TELA DE AUTENTICAÇÃO ============ -->
+  <div class="client-auth-screen" id="clientAuthScreen">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.8 20 19M8.5 15.2 20 5"/></svg></div>
+        <div class="auth-brand-name">Studio Jardins</div>
+      </div>
+
+      <div id="cAuthModeLogin">
+        <h1>Entrar</h1>
+        <p class="auth-sub">Acesse sua conta para agendar e acompanhar sua fidelidade.</p>
+        <div class="field"><label>Email</label><input id="cLoginEmail" type="email" placeholder="voce@email.com" autocomplete="username"></div>
+        <div class="field"><label>Senha</label><input id="cLoginSenha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLoginCliente()"></div>
+        <p id="cLoginError" class="auth-error" style="display:none"></p>
+        <button class="btn btn-primary btn-block" onclick="doLoginCliente()">Entrar</button>
+        <div class="auth-links">
+          <span class="auth-link" onclick="setClientAuthMode('forgot')">Esqueci minha senha</span>
+          <span class="auth-link" onclick="setClientAuthMode('register')">1º Acesso</span>
+        </div>
+      </div>
+
+      <div id="cAuthModeForgot" style="display:none">
+        <h1>Recuperar senha</h1>
+        <p class="auth-sub">Informe seu email — vamos enviar um link para redefinir sua senha.</p>
+        <div class="field"><label>Email</label><input id="cForgotEmail" type="email" placeholder="voce@email.com"></div>
+        <p id="cForgotError" class="auth-error" style="display:none"></p>
+        <p id="cForgotSuccess" class="auth-success" style="display:none">Email enviado! Confira sua caixa de entrada.</p>
+        <button class="btn btn-primary btn-block" onclick="doForgotPasswordCliente()">Enviar link de recuperação</button>
+        <div class="auth-links"><span class="auth-link" onclick="setClientAuthMode('login')">← Voltar ao login</span></div>
+      </div>
+
+      <div id="cAuthModeRegister" style="display:none">
+        <h1>1º Acesso</h1>
+        <p class="auth-sub">Crie sua conta para começar a agendar pelo app.</p>
+        <div class="field"><label>Email</label><input id="cRegisterEmail" type="email" placeholder="voce@email.com"></div>
+        <div class="field"><label>Crie uma senha</label><input id="cRegisterSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
+        <div class="field"><label>Confirme a senha</label><input id="cRegisterSenha2" type="password" placeholder="Repita a senha"></div>
+        <p id="cRegisterError" class="auth-error" style="display:none"></p>
+        <button class="btn btn-primary btn-block" onclick="doRegisterCliente()">1º Acesso</button>
+        <div class="auth-links"><span class="auth-link" onclick="setClientAuthMode('login')">← Voltar ao login</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SPLASH (após login, antes da tela principal) ============ -->
+  <div class="splash-screen" id="splashScreen">
+    <div class="splash-logo" id="splashLogo">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.8 20 19M8.5 15.2 20 5"/></svg>
+    </div>
+    <div class="splash-name" id="splashSalonName">Studio Jardins</div>
+  </div>
 
   <div class="screen" id="screen">
     <!-- content injected by JS per view -->
@@ -446,6 +530,14 @@ a{color:inherit;text-decoration:none}
       <div class="field"><label>Data de nascimento</label><input id="pfNasc" type="date"></div>
       <div class="field"><label>Sexo</label><select id="pfSexo"><option value="">Não informar</option><option>Feminino</option><option>Masculino</option><option>Outro</option></select></div>
       <p id="pfError" style="display:none;color:var(--neg);font-size:13px;margin-top:-8px">Preencha nome e telefone para continuar.</p>
+
+      <div style="margin:20px 0 14px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:4px">Segurança</div>
+        <div class="text-3" style="font-size:12px;margin-bottom:12px">Deixe em branco se não quiser alterar sua senha.</div>
+      </div>
+      <div class="field"><label>Nova senha</label><input id="pfNovaSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div class="field"><label>Confirmar nova senha</label><input id="pfNovaSenha2" type="password" placeholder="Repita a nova senha"></div>
+      <p id="pfSenhaError" style="display:none;color:var(--neg);font-size:13px;margin-top:-8px"></p>
     </div>
     <div class="sheet-foot"><button class="btn btn-primary btn-block" onclick="saveProfile()">Salvar alterações</button></div>
   </div>
@@ -466,6 +558,20 @@ a{color:inherit;text-decoration:none}
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
       Traçar rota no Google Maps
     </button></div>
+  </div>
+
+  <!-- ============ SHEET: OFERTA ============ -->
+  <div class="sheet-scrim" id="promoScrim" onclick="closePromoSheet()"></div>
+  <div class="sheet" id="promoSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-body">
+      <div style="text-align:center;padding:6px 0 4px">
+        <div id="promoEmojiBig" style="font-size:40px;margin-bottom:10px"></div>
+        <div id="promoTitleBig" style="font-family:var(--font-display);font-weight:800;font-size:19px;margin-bottom:8px"></div>
+        <p id="promoMsgBig" class="text-2" style="font-size:14px;line-height:1.55"></p>
+      </div>
+    </div>
+    <div class="sheet-foot" id="promoSheetFoot"></div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -537,7 +643,6 @@ let CLIENT={
   id:null,nome:'Ana Beatriz Souza',tel:'',email:'',nasc:'',sexo:'',avatarCor:'#C2366F',foto:null,
   pontos:0,tier:'Bronze',cashback:0,visitas:0,desde:'',
 };
-const DEMO_CLIENT_NAME='Ana Beatriz Souza'; // sem login real ainda: este app representa este cliente específico
 
 const TIERS=[
   {nome:'Bronze',min:0,ico:'🥉',cor1:'#B08D57',cor2:'#8C6B3F'},
@@ -567,6 +672,10 @@ let PROMOS=[];
 function getTier(nome){return TIERS.find(t=>t.nome===nome)||TIERS[0]}
 function getNextTier(nome){const i=TIERS.findIndex(t=>t.nome===nome);return TIERS[i+1]||null}
 function proById(id){return PROS.find(p=>p.id===id)}
+function staffAvatarInner(p){
+  if(p&&p.foto)return `<img src="${p.foto}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+  return initials(p?p.nome:'?');
+}
 
 /* ================= FIRESTORE: LISTENERS EM TEMPO REAL ================= */
 function cashbackExtractFromAppts(){
@@ -574,15 +683,23 @@ function cashbackExtractFromAppts(){
     .sort((a,b)=>b.date.localeCompare(a.date))
     .map(a=>({t:'Cashback creditado',d:a.servico,v:a.cashbackGerado,data:a.date}));
 }
-async function ensureClientDoc(){
-  const snap=await db.collection('clients').where('nome','==',DEMO_CLIENT_NAME).limit(1).get();
+async function establishClientIdentity(user){
+  let snap=await db.collection('clients').where('authUid','==',user.uid).limit(1).get();
+  if(snap.empty && user.email){
+    snap=await db.collection('clients').where('email','==',user.email).limit(1).get();
+  }
   if(!snap.empty){
     CLIENT.id=snap.docs[0].id;
+    if(!snap.docs[0].data().authUid){
+      await db.collection('clients').doc(CLIENT.id).update({authUid:user.uid});
+    }
   }else{
+    const nomeInicial=(user.email||'Cliente').split('@')[0];
     const ref=await db.collection('clients').add({
-      nome:DEMO_CLIENT_NAME,tel:'',email:'',nasc:'',sexo:'',
+      nome:nomeInicial,tel:'',email:user.email||'',nasc:'',sexo:'',
       ult:0,visitas:0,total:0,vip:false,aniver:false,fav:'—',pro:'—',dia:'—',intervalo:0,produtos:false,
       pontos:0,tier:'Bronze',cashback:0,desde:new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'}),
+      authUid:user.uid,
     });
     CLIENT.id=ref.id;
   }
@@ -604,7 +721,12 @@ function initFirestoreListeners(){
     const emojiFor=ico=>ico||'📣';
     PROMOS=snap.docs.map(d=>{
       const c=d.data();
-      return {emoji:emojiFor(c.ico),bg:c.bg||'var(--brand-soft)',title:c.name,desc:(c.desc||'').replace(/^Push[^:]*:\s*/,'').replace(/["""]/g,'')};
+      return {
+        id:d.id,emoji:emojiFor(c.ico),bg:c.bg||'var(--brand-soft)',title:c.name,
+        desc:(c.desc||'').replace(/^Push[^:]*:\s*/,'').replace(/["""]/g,''),
+        mensagem:c.mensagem||(c.desc||'').replace(/^Push[^:]*:\s*/,'').replace(/["""]/g,''),
+        cta:c.cta||'agendar',
+      };
     });
     if(currentView==='inicio')renderScreen();
   },err=>console.error('campaigns listener:',err));
@@ -613,30 +735,37 @@ function initFirestoreListeners(){
     const cfg=doc.data();
     if(cfg.businessHours)BUSINESS_HOURS=cfg.businessHours;
     if(cfg.brandColor)applyClientBrandColor(cfg.brandColor);
-    if(cfg.salon)SALON=cfg.salon;
+    if(cfg.salon){SALON=cfg.salon;const sn=$('#splashSalonName');if(sn)sn.textContent=SALON.nome||'Studio Jardins';}
     if(currentView==='perfil'||currentView==='inicio')renderScreen();
   });
   if(CLIENT.id){
     db.collection('clients').doc(CLIENT.id).onSnapshot(doc=>{
       if(!doc.exists)return;
       const data=doc.data();
+      const nomeAnterior=CLIENT.nome;
       Object.assign(CLIENT,{
         nome:data.nome||CLIENT.nome,tel:data.tel||'',email:data.email||'',nasc:data.nasc||'',sexo:data.sexo||'',
         foto:data.foto||null,pontos:data.pontos||0,tier:data.tier||'Bronze',cashback:data.cashback||0,
         visitas:data.visitas||0,desde:data.desde||'',
       });
       renderScreen();
+      // assina (ou re-assina, se o nome mudou) os agendamentos vinculados a este cliente
+      if(CLIENT.nome!==nomeAnterior)subscribeApptsForClientName(CLIENT.nome);
     });
-    db.collection('appointments').where('cliente','==',DEMO_CLIENT_NAME).onSnapshot(snap=>{
-      APPTS=snap.docs.map(d=>{
-        const raw={id:d.id,...d.data()};
-        // o painel do salão guarda "start" (min. desde a abertura); o app do cliente usa "hora" (HH:MM literal)
-        if(raw.start!==undefined&&!raw.hora)raw.hora=apptStartToHora(raw);
-        return raw;
-      });
-      if(currentView==='inicio'||currentView==='horarios')renderScreen();
-    },err=>console.error('appointments listener:',err));
   }
+}
+let _apptsUnsub=null;
+function subscribeApptsForClientName(nome){
+  if(_apptsUnsub)_apptsUnsub();
+  _apptsUnsub=db.collection('appointments').where('cliente','==',nome).onSnapshot(snap=>{
+    APPTS=snap.docs.map(d=>{
+      const raw={id:d.id,...d.data()};
+      // o painel do salão guarda "start" (min. desde a abertura); o app do cliente usa "hora" (HH:MM literal)
+      if(raw.start!==undefined&&!raw.hora)raw.hora=apptStartToHora(raw);
+      return raw;
+    });
+    if(currentView==='inicio'||currentView==='horarios')renderScreen();
+  },err=>console.error('appointments listener:',err));
 }
 function apptStartToHora(a){
   const cfg=businessHoursForDate(parseDate(a.date));
@@ -696,7 +825,7 @@ function renderInicio(){
       <div class="na-eyebrow">${isExpired?'⏰ Horário passou':isPulsing?'⏰ Está quase na hora!':'Próximo agendamento'}</div>
       <div class="na-date">${dateLabel} · ${upcoming.hora}</div>
       <div class="na-detail">
-        <div class="na-avatar">${initials(pro.nome)}</div>
+        <div class="na-avatar" style="overflow:hidden">${staffAvatarInner(pro)}</div>
         <div><div class="na-svc">${upcoming.servico}</div><div class="na-pro">com ${pro.nome} · ${BRL(upcoming.valor)}</div></div>
       </div>
       ${isExpired?`
@@ -741,13 +870,13 @@ function renderInicio(){
   </div>`;
 
   html+=`<div class="section-head fade-in"><h3>Ofertas para você</h3></div>
-  <div class="hscroll fade-in">${PROMOS.map(p=>`<div class="promo-card card" style="background:${p.bg}">
+  <div class="hscroll fade-in">${PROMOS.map((p,i)=>`<div class="promo-card card" style="background:${p.bg};cursor:pointer" onclick="openPromoSheet(${i})">
     <div class="pc-emoji">${p.emoji}</div><div class="pc-title">${p.title}</div><div class="pc-desc">${p.desc}</div>
   </div>`).join('')}</div>`;
 
   html+=`<div class="section-head fade-in"><h3>Nossa equipe</h3><span class="see-all" onclick="startBooking()">Agendar</span></div>
   <div class="hscroll fade-in">${PROS.map(p=>`<div class="staff-mini" onclick="startBooking('${p.id}')">
-    <div class="avatar" style="background:${p.cor}1f;color:${p.cor}">${initials(p.nome)}</div>
+    <div class="avatar" style="background:${p.cor}1f;color:${p.cor};overflow:hidden">${staffAvatarInner(p)}</div>
     <div class="sm-name">${p.nome.split(' ')[0]}</div>
     <div class="sm-rating">★ ${p.rating.toFixed(1)}</div>
   </div>`).join('')}</div>
@@ -894,7 +1023,7 @@ function renderFidelidade(){
   return html;
 }
 function closeAllSheets(){
-  ['#reviewScrim','#reviewSheet','#redeemScrim','#redeemSheet','#profileScrim','#profileSheet','#addressScrim','#addressSheet'].forEach(sel=>{
+  ['#reviewScrim','#reviewSheet','#redeemScrim','#redeemSheet','#profileScrim','#profileSheet','#addressScrim','#addressSheet','#promoScrim','#promoSheet'].forEach(sel=>{
     const el=$(sel);if(el)el.classList.remove('open');
   });
 }
@@ -910,6 +1039,24 @@ function openMapsRoute(){
   const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(SALON.endereco);
   window.open(url,'_blank');
 }
+const PROMO_CTA_LABELS={agendar:'Agendar horário',fidelidade:'Ver recompensas',horarios:'Ver meus horários'};
+function openPromoSheet(i){
+  closeAllSheets();
+  const p=PROMOS[i];
+  if(!p)return;
+  $('#promoEmojiBig').textContent=p.emoji;
+  $('#promoTitleBig').textContent=p.title;
+  $('#promoMsgBig').textContent=p.mensagem||p.desc;
+  const foot=$('#promoSheetFoot');
+  if(p.cta&&p.cta!=='nenhum'&&PROMO_CTA_LABELS[p.cta]){
+    foot.innerHTML=`<button class="btn btn-primary btn-block" onclick="closePromoSheet();${p.cta==='agendar'?'startBooking()':`setView('${p.cta}')`}">${PROMO_CTA_LABELS[p.cta]}</button>`;
+  }else{
+    foot.innerHTML=`<button class="btn btn-ghost btn-block" onclick="closePromoSheet()">Fechar</button>`;
+  }
+  $('#promoScrim').classList.add('open');
+  $('#promoSheet').classList.add('open');
+}
+function closePromoSheet(){$('#promoScrim').classList.remove('open');$('#promoSheet').classList.remove('open')}
 function openRedeemSheet(nome){
   closeAllSheets();
   const r=REWARDS.find(x=>x.nome===nome);
@@ -975,7 +1122,7 @@ function renderPerfil(){
       <div class="mi-ico">📍</div><div class="mi-label">Endereço do salão</div>
       <svg class="mi-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
     </div>
-    <div class="menu-item" style="color:var(--neg)" onclick="toast('Você saiu da sua conta')">
+    <div class="menu-item" style="color:var(--neg)" onclick="logoutCliente()">
       <div class="mi-ico" style="background:var(--neg-soft);color:var(--neg)">🚪</div><div class="mi-label" style="color:var(--neg)">Sair da conta</div>
     </div>
   </div>
@@ -996,7 +1143,7 @@ function openReviewSheet(id){
 function renderReviewBody(pro){
   $('#reviewBody').innerHTML=`
     <div style="text-align:center;margin-bottom:18px">
-      <div class="avatar" style="width:56px;height:56px;font-size:18px;margin:0 auto 8px;background:${pro.cor}1f;color:${pro.cor}">${initials(pro.nome)}</div>
+      <div class="avatar" style="width:56px;height:56px;font-size:18px;margin:0 auto 8px;background:${pro.cor}1f;color:${pro.cor};overflow:hidden">${staffAvatarInner(pro)}</div>
       <div style="font-weight:700;font-size:15px">${pro.nome}</div>
       <div class="text-3" style="font-size:12.5px">${pro.esp}</div>
     </div>
@@ -1104,7 +1251,7 @@ function renderBooking(){
     html+=PROS.map(p=>{
       const sel=booking.pro===p.id;
       return `<div class="pro-card ${sel?'selected':''}" onclick="selectBookingPro('${p.id}')">
-        <div class="avatar" style="background:${p.cor}1f;color:${p.cor}">${initials(p.nome)}</div>
+        <div class="avatar" style="background:${p.cor}1f;color:${p.cor};overflow:hidden">${staffAvatarInner(p)}</div>
         <div class="pro-info"><div class="pro-name">${p.nome}</div><div class="pro-esp">${p.esp} · ${p.exp}</div>
           <div class="pro-meta"><span class="stars">${starsHtmlSmall(p.rating)}</span> ${p.rating.toFixed(1)} · ${p.atend30} atend. em 30d</div>
         </div>
@@ -1208,7 +1355,7 @@ async function confirmBooking(){
   const servico=booking.services.join(' + ');
   const start=computeApptStart(booking.date,booking.time);
   await db.collection('appointments').add({
-    pro,cliente:DEMO_CLIENT_NAME,servico,date:booking.date,start,dur,valor,status:'pendente',
+    pro,cliente:CLIENT.nome,servico,date:booking.date,start,dur,valor,status:'pendente',
   });
   pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time}`);
   booking.step=5;
@@ -1240,6 +1387,8 @@ function openProfileSheet(){
   $('#pfSexo').value=CLIENT.sexo||'';
   $('#pfAvatarPreview').innerHTML=avatarInnerClient();
   $('#pfError').style.display='none';
+  $('#pfSenhaError').style.display='none';
+  $('#pfNovaSenha').value='';$('#pfNovaSenha2').value='';
   $('#profileScrim').classList.add('open');
   $('#profileSheet').classList.add('open');
 }
@@ -1249,23 +1398,110 @@ async function saveProfile(){
   const tel=$('#pfTel').value.trim();
   if(!nome||!tel){$('#pfError').style.display='block';return}
   if(!CLIENT.id){toast('Cliente não sincronizado ainda, tente novamente em instantes');return}
+
+  const novaSenha=$('#pfNovaSenha').value;
+  const novaSenha2=$('#pfNovaSenha2').value;
+  const senhaErr=$('#pfSenhaError');
+  senhaErr.style.display='none';
+  if(novaSenha||novaSenha2){
+    if(novaSenha.length<6){senhaErr.textContent='A nova senha precisa ter pelo menos 6 caracteres.';senhaErr.style.display='block';return}
+    if(novaSenha!==novaSenha2){senhaErr.textContent='As senhas não coincidem.';senhaErr.style.display='block';return}
+    try{
+      await auth.currentUser.updatePassword(novaSenha);
+    }catch(e){
+      if(e.code==='auth/requires-recent-login'){
+        senhaErr.textContent='Por segurança, saia e entre de novo antes de trocar a senha.';
+      }else{
+        senhaErr.textContent='Não foi possível trocar a senha. Tente novamente.';
+      }
+      senhaErr.style.display='block';
+      return;
+    }
+  }
+
   await db.collection('clients').doc(CLIENT.id).update({
-    tel,email:$('#pfEmail').value.trim(),nasc:$('#pfNasc').value,sexo:$('#pfSexo').value,
-    // o campo "nome" fica de fora de propósito: é a chave usada para casar os agendamentos deste cliente no protótipo.
+    nome,tel,email:$('#pfEmail').value.trim(),nasc:$('#pfNasc').value,sexo:$('#pfSexo').value,
   });
   closeProfileSheet();
-  toast('Dados atualizados com sucesso');
+  toast(novaSenha?'Dados e senha atualizados com sucesso':'Dados atualizados com sucesso');
 }
+
+/* ================= AUTENTICAÇÃO ================= */
+function setClientAuthMode(mode){
+  ['Login','Forgot','Register'].forEach(m=>{
+    const el=$('#cAuthMode'+m);
+    if(el)el.style.display=(m.toLowerCase()===mode)?'block':'none';
+  });
+  ['cLoginError','cForgotError','cForgotSuccess','cRegisterError'].forEach(id=>{const el=$('#'+id);if(el)el.style.display='none'});
+}
+function clientAuthErrorMessage(e){
+  const map={
+    'auth/invalid-email':'Email inválido.',
+    'auth/user-not-found':'Não encontramos uma conta com esse email.',
+    'auth/wrong-password':'Senha incorreta.',
+    'auth/invalid-credential':'Email ou senha incorretos.',
+    'auth/email-already-in-use':'Esse email já tem uma conta. Tente fazer login.',
+    'auth/weak-password':'Senha muito fraca — use pelo menos 6 caracteres.',
+    'auth/too-many-requests':'Muitas tentativas. Aguarde um pouco e tente de novo.',
+  };
+  return map[e.code]||'Não foi possível completar a ação. Tente novamente.';
+}
+async function doLoginCliente(){
+  const email=$('#cLoginEmail').value.trim();
+  const senha=$('#cLoginSenha').value;
+  const errEl=$('#cLoginError');
+  errEl.style.display='none';
+  if(!email||!senha){errEl.textContent='Preencha email e senha.';errEl.style.display='block';return}
+  try{await auth.signInWithEmailAndPassword(email,senha)}
+  catch(e){errEl.textContent=clientAuthErrorMessage(e);errEl.style.display='block'}
+}
+async function doForgotPasswordCliente(){
+  const email=$('#cForgotEmail').value.trim();
+  const errEl=$('#cForgotError'),okEl=$('#cForgotSuccess');
+  errEl.style.display='none';okEl.style.display='none';
+  if(!email){errEl.textContent='Informe seu email.';errEl.style.display='block';return}
+  try{await auth.sendPasswordResetEmail(email);okEl.style.display='block'}
+  catch(e){errEl.textContent=clientAuthErrorMessage(e);errEl.style.display='block'}
+}
+async function doRegisterCliente(){
+  const email=$('#cRegisterEmail').value.trim();
+  const senha=$('#cRegisterSenha').value;
+  const senha2=$('#cRegisterSenha2').value;
+  const errEl=$('#cRegisterError');
+  errEl.style.display='none';
+  if(!email||!senha){errEl.textContent='Preencha email e senha.';errEl.style.display='block';return}
+  if(senha.length<6){errEl.textContent='A senha precisa ter pelo menos 6 caracteres.';errEl.style.display='block';return}
+  if(senha!==senha2){errEl.textContent='As senhas não coincidem.';errEl.style.display='block';return}
+  try{await auth.createUserWithEmailAndPassword(email,senha)}
+  catch(e){errEl.textContent=clientAuthErrorMessage(e);errEl.style.display='block'}
+}
+function logoutCliente(){auth.signOut()}
+
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    $('#clientAuthScreen').style.display='none';
+    if(!window._clientAppStarted){
+      window._clientAppStarted=true;
+      $('#splashScreen').classList.add('show');
+      try{
+        await establishClientIdentity(user);
+        initFirestoreListeners();
+      }catch(err){
+        console.error('Erro ao estabelecer identidade do cliente:',err);
+      }
+      setTimeout(()=>{$('#splashScreen').classList.remove('show')},1400);
+    }
+  }else{
+    window._clientAppStarted=false;
+    $('#clientAuthScreen').style.display='flex';
+    $('#splashScreen').classList.remove('show');
+    setClientAuthMode('login');
+  }
+});
 
 /* ================= INIT ================= */
 setView('inicio');
 setInterval(()=>{if(currentView==='inicio')renderScreen()},30000);
-
-ensureClientDoc()
-  .catch(err=>console.error('Erro ao localizar/criar o cliente:',err))
-  .finally(()=>{
-    initFirestoreListeners();
-  });
 
 /* ================= PWA: SERVICE WORKER ================= */
 if('serviceWorker' in navigator){
