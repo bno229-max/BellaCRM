@@ -584,6 +584,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAaNdmniVfOhYRd8OtlKu1YDZSxrkvv1Uo",
@@ -596,6 +597,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
+  const storage = firebase.storage();
   db.enablePersistence({synchronizeTabs:true}).catch(()=>{}); // cache offline, opcional mas ajuda no celular
 </script>
 <!-- ============ TELA DE AUTENTICAÇÃO ============ -->
@@ -1009,9 +1011,15 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       </div>
 
       <div id="marketingPanelAds" style="display:none">
+        <div class="mod-grid fade-in" style="margin-bottom:18px">
+          <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Anúncios ativos</div><div class="sc-icon" style="background:var(--brand-soft);color:var(--brand)">🖼</div></div><div class="sc-val num" id="adsKpiAtivos">0</div><div class="sc-lbl" id="adsKpiTotal">0 no total</div></div>
+          <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Visualizações</div><div class="sc-icon" style="background:var(--info-soft);color:var(--info)">👁</div></div><div class="sc-val num" id="adsKpiViews">0</div><div class="sc-lbl">Todos os anúncios somados</div></div>
+          <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Cliques no link</div><div class="sc-icon" style="background:var(--pos-soft);color:var(--pos)">👆</div></div><div class="sc-val num" id="adsKpiClicks">0</div><div class="sc-lbl">Todos os anúncios somados</div></div>
+          <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">CTR médio</div><div class="sc-icon" style="background:var(--warn-soft);color:var(--warn)">%</div></div><div class="sc-val num" id="adsKpiCtr">0%</div><div class="sc-lbl">Cliques ÷ visualizações</div></div>
+        </div>
         <div class="config-section fade-in" style="margin-top:0">
-          <h3>Anúncios com foto</h3>
-          <div class="cs-sub">Estrutura separada das campanhas: são banners com imagem que alternam com o card "Próximo agendamento" na Início do app do cliente, a cada 4 segundos.</div>
+          <h3>Anúncios com foto ou vídeo</h3>
+          <div class="cs-sub">Estrutura separada das campanhas: alternam com o card "Próximo agendamento" na Início do app do cliente, a cada 4 segundos.</div>
           <div id="adsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:14px"></div>
         </div>
       </div>
@@ -1305,15 +1313,36 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <div class="modal-scrim" id="modalAdScrim" onclick="if(event.target===this)closeAdModal()">
   <div class="modal" role="dialog" aria-label="Novo anúncio">
     <h3 id="adModalTitle">Novo anúncio</h3>
-    <p class="m-sub">Aparece com foto alternando com o card "Próximo agendamento" na Início do app do cliente.</p>
-    <div style="display:flex;justify-content:center;margin-bottom:6px">
-      <div id="adPhotoPreview" style="width:100%;height:130px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;color:var(--text-3);font-size:13px;overflow:hidden;cursor:pointer;background-size:cover;background-position:center;text-align:center;padding:12px" onclick="document.getElementById('adFotoFile').click()">Toque para escolher uma foto</div>
+    <p class="m-sub">Aparece alternando com o card "Próximo agendamento" na Início do app do cliente.</p>
+
+    <div class="chip-row" style="margin-bottom:14px">
+      <button type="button" class="chip active" id="adTipoFotoBtn" onclick="setAdTipo('foto')">📷 Foto</button>
+      <button type="button" class="chip" id="adTipoVideoBtn" onclick="setAdTipo('video')">🎬 Vídeo</button>
     </div>
-    <div style="text-align:center;margin-bottom:6px">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('adFotoFile').click()">Escolher foto</button>
-      <input type="file" id="adFotoFile" accept="image/*" style="display:none" onchange="handleAdPhoto(event)">
+
+    <div id="adFotoSection">
+      <div style="display:flex;justify-content:center;margin-bottom:6px">
+        <div id="adPhotoPreview" style="width:100%;height:130px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;color:var(--text-3);font-size:13px;overflow:hidden;cursor:pointer;background-size:cover;background-position:center;text-align:center;padding:12px" onclick="document.getElementById('adFotoFile').click()">Toque para escolher uma foto</div>
+      </div>
+      <div style="text-align:center;margin-bottom:6px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('adFotoFile').click()">Escolher foto</button>
+        <input type="file" id="adFotoFile" accept="image/*" style="display:none" onchange="handleAdPhoto(event)">
+      </div>
+      <p style="font-size:11.5px;color:var(--text-3);text-align:center;margin-bottom:16px">Tamanho exato exigido: <b style="color:var(--text-2)">800 × 450 px</b> (proporção 16:9). Fotos em outro tamanho são recusadas automaticamente.</p>
     </div>
-    <p style="font-size:11.5px;color:var(--text-3);text-align:center;margin-bottom:16px">Tamanho exato exigido: <b style="color:var(--text-2)">800 × 450 px</b> (proporção 16:9). Fotos em outro tamanho são recusadas automaticamente.</p>
+
+    <div id="adVideoSection" style="display:none">
+      <div style="display:flex;justify-content:center;margin-bottom:6px">
+        <div id="adVideoPreviewWrap" style="width:100%;height:130px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;color:var(--text-3);font-size:13px;overflow:hidden;cursor:pointer;text-align:center;padding:12px" onclick="document.getElementById('adVideoFile').click()">Toque para escolher um vídeo</div>
+      </div>
+      <div style="text-align:center;margin-bottom:6px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('adVideoFile').click()">Escolher vídeo</button>
+        <input type="file" id="adVideoFile" accept="video/*" style="display:none" onchange="handleAdVideo(event)">
+      </div>
+      <p style="font-size:11.5px;color:var(--text-3);text-align:center;margin-bottom:6px">Duração máxima: <b style="color:var(--text-2)">5 segundos</b>. Vídeos mais longos são recusados automaticamente.</p>
+      <p id="adVideoUploadStatus" style="font-size:11.5px;color:var(--info);text-align:center;margin-bottom:16px;display:none">Enviando vídeo...</p>
+    </div>
+
     <div class="field"><label>Título do anúncio *</label><input id="adTitulo" placeholder="Ex: Novo tratamento de queratina"></div>
     <div class="field"><label>Texto do botão (personalizável)</label><input id="adCtaTexto" placeholder="Ex: Agendar agora, Saiba mais, Aproveitar oferta"></div>
     <div class="field"><label>Destino do botão</label><select id="adCtaDestino" onchange="toggleAdUrlField()">
@@ -2399,8 +2428,15 @@ function dashboardRefresh(){
   if(typeof rebuildCharts==='function')rebuildCharts();
   if(typeof renderRanking==='function')renderRanking();
 }
+async function notifyClient(clienteName,text){
+  const cliente=CLIENTS.find(c=>c.nome===clienteName);
+  if(!cliente)return;
+  try{await db.collection('clientNotifications').add({clientId:cliente.id,text,ts:Date.now(),read:false})}catch(e){}
+}
 async function confirmAppt(id){
+  const a=appts.find(x=>x.id===id);
   await db.collection('appointments').doc(id).update({status:'confirmado'});
+  if(a)notifyClient(a.cliente,`✅ Seu agendamento de ${a.servico} foi confirmado pelo salão!`);
   toast('Agendamento confirmado · indicador atualizado no Dashboard');
 }
 let sessionRevenueAdded=0; // somado a cada "Encerrar atendimento" na Agenda, alimenta o Faturamento do Dashboard
@@ -2409,6 +2445,7 @@ async function cancelAppt(id){
   const a=appts.find(x=>x.id===id);if(!a)return;
   await db.collection('appointments').doc(id).update({status:'cancelado'});
   sessionChurnAdded+=(a.valor||0);
+  notifyClient(a.cliente,`❌ Seu agendamento de ${a.servico} foi cancelado pelo salão. Qualquer dúvida, chama a gente!`);
   dashboardRefresh();
   toast('Agendamento cancelado · '+BRL(a.valor||0)+' somados ao Churn · cliente notificado');
 }
@@ -2445,6 +2482,7 @@ async function finalizeAppt(id){
     if(pontos>0)patch.pontos=firebase.firestore.FieldValue.increment(pontos);
     await db.collection('clients').doc(cliente.id).update(patch);
   }
+  notifyClient(a.cliente,`🎉 Atendimento de ${a.servico} concluído! ${BRL(cashback)} de cashback${pontos>0?' e '+pontos+' pontos':''} creditados na sua carteira.`);
   dashboardRefresh();
   toast(`Atendimento encerrado · ${BRL(a.valor||0)} somados ao Faturamento · ${BRL(cashback)} de cashback${pontos>0?' · '+pontos+' pontos':''} creditados · push de agradecimento e pesquisa de satisfação enviados a ${a.cliente.split(' ')[0]}`);
 }
@@ -2486,6 +2524,7 @@ function checkReminders(){
           .replace('{servico}',a.servico)
           .replace('{horario}',apptTimeLabel(a));
         toast('📲 Push enviado a '+a.cliente.split(' ')[0]+': "'+msg+'"');
+        notifyClient(a.cliente,'⏰ '+msg);
         db.collection('appointments').doc(a.id).update({reminderSent:true,needsAttention:true}).catch(()=>{});
       }else if(!a.needsAttention){
         db.collection('appointments').doc(a.id).update({needsAttention:true}).catch(()=>{});
@@ -2875,8 +2914,11 @@ function setMarketingTab(tab){
 /* ================= ADS (estrutura separada das campanhas — banners com foto) ================= */
 let ADS=[];
 let stagedAdPhoto=null;
+let stagedAdVideoUrl=null;
 let adEditId=null;
+let adTipoAtual='foto';
 const AD_PHOTO_W=800,AD_PHOTO_H=450;
+const AD_VIDEO_MAX_SECONDS=5;
 function adCtaLabel(ad){
   if(!ad.ctaDestino||ad.ctaDestino==='nenhum')return 'Sem botão';
   const dest={agendar:'Agendamento',fidelidade:'Recompensas',horarios:'Meus horários',externo:'Link externo'}[ad.ctaDestino]||ad.ctaDestino;
@@ -2885,23 +2927,53 @@ function adCtaLabel(ad){
 function renderAdsList(){
   const el=$('#adsList');
   if(!el)return;
-  el.innerHTML=ADS.length?ADS.map(ad=>`<div class="card" style="overflow:hidden;padding:0">
-    <div style="height:110px;background:${ad.imagem?`url('${ad.imagem}') center/cover`:'var(--surface-2)'}"></div>
+  const ativos=ADS.filter(a=>a.status==='ativo').length;
+  const totalViews=ADS.reduce((s,a)=>s+(a.visualizacoes||0),0);
+  const totalClicks=ADS.reduce((s,a)=>s+(a.cliques||0),0);
+  const ctr=totalViews>0?((totalClicks/totalViews)*100).toFixed(1)+'%':'0%';
+  if($('#adsKpiAtivos'))$('#adsKpiAtivos').textContent=ativos;
+  if($('#adsKpiTotal'))$('#adsKpiTotal').textContent=ADS.length+' no total';
+  if($('#adsKpiViews'))$('#adsKpiViews').textContent=totalViews.toLocaleString('pt-BR');
+  if($('#adsKpiClicks'))$('#adsKpiClicks').textContent=totalClicks.toLocaleString('pt-BR');
+  if($('#adsKpiCtr'))$('#adsKpiCtr').textContent=ctr;
+
+  el.innerHTML=ADS.length?ADS.map(ad=>{
+    const thumb=ad.tipo==='video'
+      ?`<video src="${ad.videoUrl}" muted style="width:100%;height:100%;object-fit:cover" onmouseover="this.play()" onmouseout="this.pause()"></video>`
+      :`<div style="height:100%;background:${ad.imagem?`url('${ad.imagem}') center/cover`:'var(--surface-2)'}"></div>`;
+    const adViews=ad.visualizacoes||0, adClicks=ad.cliques||0;
+    const adCtr=adViews>0?((adClicks/adViews)*100).toFixed(1)+'%':'—';
+    return `<div class="card" style="overflow:hidden;padding:0">
+    <div style="height:110px;position:relative">${thumb}${ad.tipo==='video'?'<span style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;padding:3px 7px;border-radius:8px">🎬 VÍDEO</span>':''}</div>
     <div style="padding:12px 14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="font-weight:700;font-size:13.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ad.titulo}</span>
         <span class="tag ${ad.status==='ativo'?'tag-ok':'tag-risk'}">${ad.status==='ativo'?'Ativo':'Pausado'}</span>
       </div>
       <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">${adCtaLabel(ad)}</div>
+      <div style="display:flex;gap:12px;font-size:11.5px;color:var(--text-2);margin-bottom:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <span>👁 ${adViews.toLocaleString('pt-BR')}</span>
+        <span>👆 ${adClicks.toLocaleString('pt-BR')}</span>
+        <span>CTR ${adCtr}</span>
+      </div>
       <div style="display:flex;gap:10px;font-size:12.5px">
         <span class="rule-edit" onclick="openAdModal('${ad.id}')">Editar</span>
         <span class="rule-edit" style="color:var(--neg)" onclick="deleteAd('${ad.id}')">Excluir</span>
       </div>
     </div>
-  </div>`).join(''):'<p style="color:var(--text-3);font-size:13px;padding:20px 4px">Nenhum anúncio publicado ainda. Clique em "Novo anúncio" para criar o primeiro.</p>';
+  </div>`;
+  }).join(''):'<p style="color:var(--text-3);font-size:13px;padding:20px 4px">Nenhum anúncio publicado ainda. Clique em "Novo anúncio" para criar o primeiro.</p>';
 }
 function toggleAdUrlField(){
   $('#adUrlField').style.display=$('#adCtaDestino').value==='externo'?'':'none';
+}
+function setAdTipo(tipo){
+  adTipoAtual=tipo;
+  $('#adTipoFotoBtn').classList.toggle('active',tipo==='foto');
+  $('#adTipoVideoBtn').classList.toggle('active',tipo==='video');
+  $('#adFotoSection').style.display=tipo==='foto'?'':'none';
+  $('#adVideoSection').style.display=tipo==='video'?'':'none';
+  $('#adError').style.display='none';
 }
 function handleAdPhoto(e){
   const file=e.target.files&&e.target.files[0];
@@ -2930,13 +3002,57 @@ function handleAdPhoto(e){
   };
   reader.readAsDataURL(file);
 }
+function handleAdVideo(e){
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  if(!file.type.startsWith('video/')){toast('Selecione um arquivo de vídeo');return}
+  const errEl=$('#adError');
+  const localUrl=URL.createObjectURL(file);
+  const videoEl=document.createElement('video');
+  videoEl.preload='metadata';
+  videoEl.onloadedmetadata=async()=>{
+    if(videoEl.duration>AD_VIDEO_MAX_SECONDS+0.3){ // pequena tolerância de arredondamento
+      errEl.textContent=`Vídeo muito longo: dura ${videoEl.duration.toFixed(1)}s. O máximo permitido é ${AD_VIDEO_MAX_SECONDS} segundos.`;
+      errEl.style.display='block';
+      $('#adVideoFile').value='';
+      URL.revokeObjectURL(localUrl);
+      return;
+    }
+    errEl.style.display='none';
+    const pv=$('#adVideoPreviewWrap');
+    pv.innerHTML=`<video src="${localUrl}" style="width:100%;height:100%;object-fit:cover" autoplay muted loop playsinline></video>`;
+    // upload pro Firebase Storage
+    $('#adVideoUploadStatus').style.display='block';
+    try{
+      const path='ads/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'');
+      const ref=storage.ref().child(path);
+      await ref.put(file);
+      stagedAdVideoUrl=await ref.getDownloadURL();
+      $('#adVideoUploadStatus').textContent='Vídeo enviado com sucesso ✓';
+      setTimeout(()=>{$('#adVideoUploadStatus').style.display='none'},2000);
+    }catch(err){
+      console.error('Erro no upload do vídeo:',err);
+      errEl.textContent='Não foi possível enviar o vídeo. Verifique sua conexão e tente novamente.';
+      errEl.style.display='block';
+      $('#adVideoUploadStatus').style.display='none';
+      stagedAdVideoUrl=null;
+    }
+  };
+  videoEl.onerror=()=>{toast('Não foi possível ler esse vídeo. Tente outro arquivo.')};
+  videoEl.src=localUrl;
+}
 function openAdModal(id){
   adEditId=id||null;
   stagedAdPhoto=null;
+  stagedAdVideoUrl=null;
   const pv=$('#adPhotoPreview');
   pv.style.backgroundImage='';
   pv.textContent='Toque para escolher uma foto';
   $('#adFotoFile').value='';
+  const vpv=$('#adVideoPreviewWrap');
+  vpv.innerHTML='Toque para escolher um vídeo';
+  $('#adVideoFile').value='';
+  $('#adVideoUploadStatus').style.display='none';
   if(adEditId){
     const ad=ADS.find(x=>x.id===adEditId);
     $('#adModalTitle').textContent='Editar anúncio';
@@ -2946,7 +3062,13 @@ function openAdModal(id){
     $('#adCtaDestino').value=ad.ctaDestino||'agendar';
     $('#adCtaUrl').value=ad.ctaUrl||'';
     $('#adStatus').value=ad.status||'ativo';
-    if(ad.imagem){stagedAdPhoto=ad.imagem;pv.style.backgroundImage=`url('${ad.imagem}')`;pv.textContent='';}
+    setAdTipo(ad.tipo||'foto');
+    if(ad.tipo==='video'&&ad.videoUrl){
+      stagedAdVideoUrl=ad.videoUrl;
+      vpv.innerHTML=`<video src="${ad.videoUrl}" style="width:100%;height:100%;object-fit:cover" autoplay muted loop playsinline></video>`;
+    }else if(ad.imagem){
+      stagedAdPhoto=ad.imagem;pv.style.backgroundImage=`url('${ad.imagem}')`;pv.textContent='';
+    }
   }else{
     $('#adModalTitle').textContent='Novo anúncio';
     $('#adModalSaveBtn').textContent='Publicar anúncio';
@@ -2955,6 +3077,7 @@ function openAdModal(id){
     $('#adCtaDestino').value='agendar';
     $('#adCtaUrl').value='';
     $('#adStatus').value='ativo';
+    setAdTipo('foto');
   }
   toggleAdUrlField();
   $('#adError').style.display='none';
@@ -2964,8 +3087,18 @@ function closeAdModal(){$('#modalAdScrim').classList.remove('open')}
 async function saveAd(){
   const titulo=$('#adTitulo').value.trim();
   const errEl=$('#adError');
-  if(!titulo||!stagedAdPhoto){
-    errEl.textContent='Escolha uma foto (800×450px) e preencha o título do anúncio.';
+  if(!titulo){
+    errEl.textContent='Preencha o título do anúncio.';
+    errEl.style.display='block';
+    return;
+  }
+  if(adTipoAtual==='foto'&&!stagedAdPhoto){
+    errEl.textContent='Escolha uma foto (800×450px) para o anúncio.';
+    errEl.style.display='block';
+    return;
+  }
+  if(adTipoAtual==='video'&&!stagedAdVideoUrl){
+    errEl.textContent='Escolha um vídeo (até 5 segundos) e aguarde o envio terminar.';
     errEl.style.display='block';
     return;
   }
@@ -2978,13 +3111,15 @@ async function saveAd(){
   }
   errEl.style.display='none';
   const obj={
-    titulo,imagem:stagedAdPhoto,
+    titulo,tipo:adTipoAtual,
+    imagem:adTipoAtual==='foto'?stagedAdPhoto:null,
+    videoUrl:adTipoAtual==='video'?stagedAdVideoUrl:null,
     ctaTexto:$('#adCtaTexto').value.trim(),
     ctaDestino,ctaUrl:ctaDestino==='externo'?ctaUrl:'',
     status:$('#adStatus').value,
   };
   if(adEditId)await db.collection('ads').doc(adEditId).update(obj);
-  else await db.collection('ads').add({...obj,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  else await db.collection('ads').add({...obj,visualizacoes:0,cliques:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
   closeAdModal();
   toast('Anúncio "'+titulo+'" '+(adEditId?'atualizado':'publicado')+' com sucesso');
 }

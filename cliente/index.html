@@ -60,7 +60,7 @@ html,body{height:100%}
 body{
   font-family:var(--font-body); background:#EDEBE4; color:var(--text);
   font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased;
-  display:flex; justify-content:center; min-height:100vh;
+  display:flex; justify-content:center; height:100vh; overflow:hidden;
 }
 [data-theme="dark"] body{background:#08070a}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;-webkit-tap-highlight-color:transparent}
@@ -71,13 +71,13 @@ a{color:inherit;text-decoration:none}
 
 /* ============ PHONE SHELL ============ */
 .shell{
-  width:100%; max-width:430px; min-height:100vh; background:var(--bg); position:relative;
+  width:100%; max-width:430px; height:100vh; background:var(--bg); position:relative;
   display:flex; flex-direction:column; overflow:hidden; transition:background .25s;
   box-shadow:0 0 60px rgba(0,0,0,.15);
 }
 @media(min-width:431px){
   body{padding:28px 0}
-  .shell{min-height:calc(100vh - 56px); border-radius:40px; box-shadow:0 30px 80px rgba(0,0,0,.28);}
+  .shell{height:calc(100vh - 56px); border-radius:40px; box-shadow:0 30px 80px rgba(0,0,0,.28);}
 }
 
 .screen{flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:calc(var(--nav-h) + var(--safe-b) + 20px); -webkit-overflow-scrolling:touch}
@@ -116,6 +116,26 @@ a{color:inherit;text-decoration:none}
 .back-btn{width:36px; height:36px; border-radius:12px; display:grid; place-items:center; background:var(--surface-2); flex-shrink:0}
 .icon-btn-sm{width:38px; height:38px; border-radius:12px; display:grid; place-items:center; background:var(--surface-2); flex-shrink:0; position:relative}
 .icon-btn-sm .dot{position:absolute; top:8px; right:9px; width:7px; height:7px; border-radius:50%; background:var(--brand); border:2px solid var(--surface-2)}
+
+.client-notif-panel{
+  position:absolute;top:calc(100% + 10px);right:0;width:290px;max-width:78vw;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);z-index:120;
+  opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .15s,transform .15s;overflow:hidden;
+}
+.client-notif-panel.open{opacity:1;transform:none;pointer-events:auto}
+.client-notif-head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px}
+.client-notif-mark-all{font-size:11px;font-weight:600;color:var(--brand)}
+.client-notif-list-wrap{max-height:320px;overflow-y:auto}
+.client-notif-item{display:flex;gap:9px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.client-notif-item:last-child{border-bottom:none}
+.client-notif-item.unread{background:var(--brand-soft)}
+.client-notif-item .cni-dot{width:7px;height:7px;border-radius:50%;background:var(--brand);flex-shrink:0;margin-top:5px}
+.client-notif-item.read .cni-dot{background:transparent}
+.client-notif-item .cni-text{flex:1;font-size:12.5px;line-height:1.4}
+.client-notif-item .cni-meta{display:flex;align-items:center;gap:5px;margin-top:3px;font-size:10.5px;color:var(--text-3)}
+.client-notif-item .cni-status{font-weight:700}
+.client-notif-item.unread .cni-status{color:var(--brand)}
+.client-notif-empty{padding:26px 14px;text-align:center;color:var(--text-3);font-size:12.5px}
 
 /* ============ TYPOGRAPHY HELPERS ============ */
 .h-display{font-family:var(--font-display); font-weight:800; letter-spacing:-.02em}
@@ -259,8 +279,9 @@ a{color:inherit;text-decoration:none}
   min-height:186px;border-radius:var(--r-xl);background-size:cover;background-position:center;position:relative;
   display:flex;align-items:flex-end;cursor:pointer;overflow:hidden;
 }
+.ad-slide-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .ad-slide-overlay{
-  width:100%;padding:22px 20px 20px;box-sizing:border-box;color:#fff;
+  width:100%;padding:22px 20px 20px;box-sizing:border-box;color:#fff;position:relative;z-index:1;
   background:linear-gradient(0deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.28) 60%,rgba(0,0,0,0) 100%);
 }
 .ad-slide-title{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-.01em;margin-bottom:14px;line-height:1.3}
@@ -334,6 +355,7 @@ a{color:inherit;text-decoration:none}
 .pay-option .po-ico{width:36px;height:36px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;font-size:16px;flex-shrink:0}
 .pay-option .po-radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;margin-left:auto}
 .pay-option.selected .po-radio{border-color:var(--brand);background:var(--brand);box-shadow:inset 0 0 0 4px var(--surface)}
+.pay-option.disabled{opacity:.45;pointer-events:none}
 
 .sticky-cta{position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 60%,transparent);padding:16px 20px calc(16px + var(--safe-b));margin-top:8px}
 
@@ -653,6 +675,53 @@ function applyClientBrandColor(hex){
 function pushNotification(text){
   db.collection('notifications').add({text,ts:Date.now(),read:false}).catch(()=>{});
 }
+
+/* ================= NOTIFICAÇÕES DO CLIENTE (enviadas pelo salão) ================= */
+let CLIENT_NOTIFS_LOCAL=[];
+function formatClientNotifTime(ts){
+  const d=ts&&ts.toDate?ts.toDate():new Date(ts||Date.now());
+  const today=new Date();
+  const isToday=d.toDateString()===today.toDateString();
+  const timeStr=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const dateStr=isToday?'Hoje':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  return dateStr+' às '+timeStr;
+}
+function renderClientNotifList(){
+  const el=$('#clientNotifList');
+  if(!el)return;
+  const notifs=CLIENT_NOTIFS_LOCAL.slice().reverse();
+  const unread=notifs.filter(n=>!n.read);
+  const dot=$('#clientNotifDot');
+  if(dot)dot.style.display=unread.length?'block':'none';
+  if(!notifs.length){el.innerHTML='<div class="client-notif-empty">Nenhuma notificação por aqui ainda.</div>';return}
+  el.innerHTML='<div class="client-notif-list-wrap">'+notifs.map(n=>`<div class="client-notif-item ${n.read?'read':'unread'}" onclick="markClientNotifRead('${n.id}')">
+    <div class="cni-dot"></div>
+    <div class="cni-text">${n.text}
+      <div class="cni-meta"><span>${formatClientNotifTime(n.ts)}</span><span>·</span><span class="cni-status">${n.read?'Lida':'Nova'}</span></div>
+    </div>
+  </div>`).join('')+'</div>';
+}
+async function markClientNotifRead(id){
+  await db.collection('clientNotifications').doc(id).update({read:true});
+}
+async function markAllClientNotifsRead(){
+  const batch=db.batch();
+  CLIENT_NOTIFS_LOCAL.filter(n=>!n.read).forEach(n=>batch.update(db.collection('clientNotifications').doc(n.id),{read:true}));
+  await batch.commit();
+}
+function toggleClientNotifPanel(){
+  const panel=$('#clientNotifPanel');
+  if(!panel)return;
+  const willOpen=!panel.classList.contains('open');
+  panel.classList.toggle('open',willOpen);
+}
+document.addEventListener('click',e=>{
+  const panel=$('#clientNotifPanel');
+  if(!panel||!panel.classList.contains('open'))return;
+  if(!panel.contains(e.target)&&e.target.id!=='clientNotifBellBtn'&&!e.target.closest('#clientNotifBellBtn')){
+    panel.classList.remove('open');
+  }
+});
 function apptRealDateTime(a){
   const d=parseDate(a.date);
   const [h,m]=a.hora.split(':').map(Number);
@@ -792,6 +861,10 @@ function initFirestoreListeners(){
       // assina (ou re-assina, se o nome mudou) os agendamentos vinculados a este cliente
       if(CLIENT.nome!==nomeAnterior)subscribeApptsForClientName(CLIENT.nome);
     });
+    db.collection('clientNotifications').where('clientId','==',CLIENT.id).onSnapshot(snap=>{
+      CLIENT_NOTIFS_LOCAL=snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderClientNotifList();
+    },err=>console.error('clientNotifications listener:',err));
   }
 }
 let _apptsUnsub=null;
@@ -835,8 +908,12 @@ function renderScreen(){
 function afterRender(){
   renderThemeToggleUI();
   if(currentView==='horarios')wireHorariosTabs();
-  if(currentView==='inicio')initHeroCarousel();
-  else stopHeroAutoplay();
+  if(currentView==='inicio'){
+    initHeroCarousel();
+    renderClientNotifList();
+  }else{
+    stopHeroAutoplay();
+  }
 }
 
 /* ================= CARROSSEL DE BANNERS (campanhas ativas) ================= */
@@ -877,7 +954,11 @@ function renderApptCardInner(upcoming){
 }
 function renderAdSlide(ad){
   const hasCta=ad.ctaDestino&&ad.ctaDestino!=='nenhum'&&ad.ctaTexto;
-  return `<div class="ad-slide" style="background-image:url('${ad.imagem}')" onclick="handleAdClick('${ad.id}')">
+  const media=ad.tipo==='video'&&ad.videoUrl
+    ?`<video src="${ad.videoUrl}" autoplay muted loop playsinline class="ad-slide-video"></video>`
+    :'';
+  return `<div class="ad-slide" ${ad.tipo==='video'?'':`style="background-image:url('${ad.imagem}')"`} onclick="handleAdClick('${ad.id}')">
+    ${media}
     <div class="ad-slide-overlay">
       <div class="ad-slide-title">${ad.titulo}</div>
       ${hasCta?`<div class="bn-cta">${ad.ctaTexto} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`:''}
@@ -886,14 +967,24 @@ function renderAdSlide(ad){
 }
 function handleAdClick(id){
   const ad=ADS.find(a=>a.id===id);
-  if(!ad||!ad.ctaDestino||ad.ctaDestino==='nenhum')return;
+  if(!ad)return;
+  db.collection('ads').doc(id).update({cliques:firebase.firestore.FieldValue.increment(1)}).catch(()=>{});
+  if(!ad.ctaDestino||ad.ctaDestino==='nenhum')return;
   if(ad.ctaDestino==='agendar')startBooking();
   else if(ad.ctaDestino==='externo'&&ad.ctaUrl)window.open(ad.ctaUrl,'_blank');
   else setView(ad.ctaDestino);
 }
+let viewedAdsThisSession=new Set();
+let heroActiveAdIds=[]; // mapeia índice do slide (a partir de 1) -> id do ad, pra rastrear visualização
+function trackAdView(adId){
+  if(!adId||viewedAdsThisSession.has(adId))return;
+  viewedAdsThisSession.add(adId);
+  db.collection('ads').doc(adId).update({visualizacoes:firebase.firestore.FieldValue.increment(1)}).catch(()=>{});
+}
 function renderHeroSlot(upcoming){
   const apptHtml=renderApptCardInner(upcoming);
   const activeAds=ADS.filter(a=>a.status==='ativo');
+  heroActiveAdIds=activeAds.map(a=>a.id);
   if(!activeAds.length)return apptHtml; // sem ads publicados: mostra só o card de agendamento, sem carrossel
   const slides=[apptHtml,...activeAds.map(renderAdSlide)];
   return `<div class="hero-carousel fade-in" id="heroCarousel">
@@ -911,6 +1002,7 @@ function getCurrentHeroIndex(){
 }
 function updateHeroDots(i){
   document.querySelectorAll('#heroDots .hero-dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));
+  if(i>=1)trackAdView(heroActiveAdIds[i-1]); // índice 0 é sempre o card de agendamento
 }
 function scrollToHeroSlide(i){
   const track=$('#heroTrack');
@@ -995,10 +1087,19 @@ function renderInicio(){
 
   let html=`<div class="hero-greet fade-in">
     <div class="greet-text"><h2>${greet}, ${firstName} 👋</h2><p>${SALON.nome} · ${CLIENT.tier} ${getTier(CLIENT.tier).ico}</p></div>
-    <button class="icon-btn-sm" onclick="toast('3 notificações novas')" aria-label="Notificações">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10.3 21a2 2 0 0 0 3.4 0"/></svg>
-      <span class="dot"></span>
-    </button>
+    <div style="position:relative">
+      <button class="icon-btn-sm" id="clientNotifBellBtn" onclick="toggleClientNotifPanel()" aria-label="Notificações">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10.3 21a2 2 0 0 0 3.4 0"/></svg>
+        <span class="dot" id="clientNotifDot" style="display:none"></span>
+      </button>
+      <div id="clientNotifPanel" class="client-notif-panel">
+        <div class="client-notif-head">
+          <span>Notificações</span>
+          <button class="client-notif-mark-all" onclick="markAllClientNotifsRead()">Marcar todas como lidas</button>
+        </div>
+        <div id="clientNotifList"></div>
+      </div>
+    </div>
   </div>`;
 
   html+=renderHeroSlot(upcoming);
@@ -1116,6 +1217,8 @@ async function cancelAppt(id){
 
 /* ================= FIDELIDADE ================= */
 let cashExtractOpen=false;
+let rewardsListOpen=true;
+function toggleRewardsList(){rewardsListOpen=!rewardsListOpen;renderScreen()}
 function toggleCashExtract(){cashExtractOpen=!cashExtractOpen;renderScreen()}
 function renderFidelidade(){
   const tier=getTier(CLIENT.tier);
@@ -1143,18 +1246,23 @@ function renderFidelidade(){
       <div class="wc-lbl">Total de visitas</div>
       <div class="wc-val num">${CLIENT.visitas}</div>
     </div>
-  </div>
+  </div>`;
 
-  <div class="section-head fade-in"><h3>Recompensas disponíveis</h3></div>`;
+  html+=`<div class="section-head fade-in" style="cursor:pointer" onclick="toggleRewardsList()">
+    <h3>Recompensas disponíveis</h3>
+    <svg id="rewardsChevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);transition:transform .2s;transform:rotate(${rewardsListOpen?'180':'0'}deg)"><path d="m6 9 6 6 6-6"/></svg>
+  </div>`;
 
-  html+=REWARDS.map(r=>{
-    const can=CLIENT.pontos>=r.custo;
-    return `<div class="reward-card fade-in" style="${can?'':'opacity:.55'}">
-      <div class="rc-ico">${r.icon}</div>
-      <div class="rc-info"><div class="rc-name">${r.nome}</div><div class="rc-cost">${r.custo.toLocaleString('pt-BR')} pontos</div></div>
-      <button class="btn ${can?'btn-primary':'btn-ghost'} btn-sm" ${can?`onclick="openRedeemSheet('${r.nome.replace(/'/g,"\\'")}')"`:'disabled'}>Resgatar</button>
-    </div>`;
-  }).join('');
+  if(rewardsListOpen){
+    html+=REWARDS.map(r=>{
+      const can=CLIENT.pontos>=r.custo;
+      return `<div class="reward-card fade-in" style="${can?'':'opacity:.55'}">
+        <div class="rc-ico">${r.icon}</div>
+        <div class="rc-info"><div class="rc-name">${r.nome}</div><div class="rc-cost">${r.custo.toLocaleString('pt-BR')} pontos</div></div>
+        <button class="btn ${can?'btn-primary':'btn-ghost'} btn-sm" ${can?`onclick="openRedeemSheet('${r.nome.replace(/'/g,"\\'")}')"`:'disabled'}>Resgatar</button>
+      </div>`;
+    }).join('');
+  }
 
   html+=`<div class="section-head fade-in" style="cursor:pointer" onclick="toggleCashExtract()">
     <h3>Extrato de cashback</h3>
@@ -1308,15 +1416,21 @@ async function submitReview(){
 }
 
 /* ================= AGENDAR (WIZARD) ================= */
-let booking={step:1,services:[],pro:null,date:null,time:null,payment:'pix',obs:'',rescheduleId:null};
+let booking={step:1,services:[],pro:null,date:null,time:null,payment:'pix',desconto:'nenhum',obs:'',rescheduleId:null};
+const POINTS_TO_BRL_RATE=10; // 10 pontos = R$1 de desconto
+function computeBookingDiscount(totalValor){
+  if(booking.desconto==='cashback')return Math.min(CLIENT.cashback||0,totalValor);
+  if(booking.desconto==='pontos')return Math.min((CLIENT.pontos||0)/POINTS_TO_BRL_RATE,totalValor);
+  return 0;
+}
 function startBooking(proId){
-  booking={step:1,services:[],pro:proId||null,date:null,time:null,payment:'pix',obs:'',rescheduleId:null};
+  booking={step:1,services:[],pro:proId||null,date:null,time:null,payment:'pix',desconto:'nenhum',obs:'',rescheduleId:null};
   if(proId)booking.step=1;
   setView('agendar');
 }
 function startReschedule(id){
   const a=APPTS.find(x=>x.id===id);if(!a)return;
-  booking={step:3,services:a.servico.split(' + '),pro:a.pro,date:null,time:null,payment:'pix',obs:'',rescheduleId:id};
+  booking={step:3,services:a.servico.split(' + '),pro:a.pro,date:null,time:null,payment:'pix',desconto:'nenhum',obs:'',rescheduleId:id};
   setView('agendar');
 }
 async function confirmReschedule(){
@@ -1408,6 +1522,8 @@ function renderBooking(){
   else if(booking.step===4){
     const pro=booking.pro==='qualquer'?{nome:'Qualquer profissional disponível',esp:'',cor:'#8E8A96'}:proById(booking.pro);
     const d=parseDate(booking.date);
+    const desconto=computeBookingDiscount(totalValor);
+    const totalFinal=Math.max(0,totalValor-desconto);
     html+=`<div class="screen-pad fade-in">
       <div class="card card-pad" style="margin-bottom:16px">
         <div class="summary-row"><span class="sr-label">Serviços</span><span class="sr-value">${booking.services.join(', ')}</span></div>
@@ -1415,9 +1531,26 @@ function renderBooking(){
         <div class="summary-row"><span class="sr-label">Data</span><span class="sr-value">${d.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})}</span></div>
         <div class="summary-row"><span class="sr-label">Horário</span><span class="sr-value">${booking.time}</span></div>
         <div class="summary-row"><span class="sr-label">Duração estimada</span><span class="sr-value">${totalDur} min</span></div>
-        <div class="summary-row"><span class="sr-label" style="font-weight:700;color:var(--text)">Total</span><span class="sr-value" style="font-size:17px;color:var(--brand)">${BRL(totalValor)}</span></div>
       </div>
-      <div class="field" style="margin-top:4px"><label>Observações (opcional)</label><textarea id="bookingObs" rows="2" placeholder="Alergias, preferências…" oninput="booking.obs=this.value"></textarea></div>
+
+      <label style="display:block;font-weight:700;font-size:13.5px;margin-bottom:10px">Forma de pagamento</label>
+      ${payOption('pix','💳','PIX')}
+      ${payOption('credito','💳','Cartão de crédito')}
+      ${payOption('debito','💳','Cartão de débito')}
+
+      <label style="display:block;font-weight:700;font-size:13.5px;margin:18px 0 10px">Usar cashback ou pontos? (opcional)</label>
+      ${discOption('nenhum','—','Sem desconto',false)}
+      ${discOption('cashback','💰',`Cashback disponível · ${BRL(CLIENT.cashback||0)}`,!(CLIENT.cashback>0))}
+      ${discOption('pontos','⭐',`Pontos disponíveis · ${(CLIENT.pontos||0).toLocaleString('pt-BR')} pts (≈ ${BRL((CLIENT.pontos||0)/POINTS_TO_BRL_RATE)})`,!(CLIENT.pontos>=POINTS_TO_BRL_RATE))}
+      <p class="text-3" style="font-size:11.5px;margin:-2px 0 16px">Não é possível combinar cashback e pontos no mesmo agendamento — escolha um dos dois. O valor restante é pago na forma selecionada acima.</p>
+
+      <div class="card card-pad">
+        <div class="summary-row"><span class="sr-label">Subtotal</span><span class="sr-value">${BRL(totalValor)}</span></div>
+        ${desconto>0?`<div class="summary-row"><span class="sr-label" style="color:var(--pos)">Desconto (${booking.desconto==='cashback'?'cashback':'pontos'})</span><span class="sr-value" style="color:var(--pos)">-${BRL(desconto)}</span></div>`:''}
+        <div class="summary-row"><span class="sr-label" style="font-weight:700;color:var(--text)">Total a pagar</span><span class="sr-value" style="font-size:17px;color:var(--brand)">${BRL(totalFinal)}</span></div>
+      </div>
+
+      <div class="field" style="margin-top:16px"><label>Observações (opcional)</label><textarea id="bookingObs" rows="2" placeholder="Alergias, preferências…" oninput="booking.obs=this.value"></textarea></div>
     </div>`;
     html+=bookingCta(true,'Confirmar agendamento','confirmBooking()');
   }
@@ -1443,6 +1576,20 @@ function starsHtmlSmall(rating){
   for(let i=1;i<=5;i++)s+=`<span style="color:${i<=full?'var(--gold)':'var(--border-strong)'}">★</span>`;
   return s;
 }
+function payOption(id,ico,label){
+  const sel=booking.payment===id;
+  return `<div class="pay-option ${sel?'selected':''}" onclick="selectBookingPayment('${id}')">
+    <div class="po-ico">${ico}</div><div style="font-weight:600;font-size:14px;flex:1">${label}</div><div class="po-radio"></div>
+  </div>`;
+}
+function selectBookingPayment(p){booking.payment=p;renderScreen()}
+function discOption(id,ico,label,disabled){
+  const sel=booking.desconto===id;
+  return `<div class="pay-option ${sel?'selected':''} ${disabled?'disabled':''}" onclick="${disabled?'':`selectBookingDesconto('${id}')`}">
+    <div class="po-ico">${ico}</div><div style="font-weight:600;font-size:13px;flex:1">${label}</div><div class="po-radio"></div>
+  </div>`;
+}
+function selectBookingDesconto(dsc){booking.desconto=dsc;renderScreen()}
 function bookingCta(enabled,label,onclick){
   return `<div class="sticky-cta"><button class="btn btn-primary btn-block" ${enabled?'':'disabled'} onclick="${onclick}">${label}</button></div>`;
 }
@@ -1488,10 +1635,22 @@ async function confirmBooking(){
   const pro=booking.pro==='qualquer'?PROS[Math.floor(Math.random()*PROS.length)].id:booking.pro;
   const servico=booking.services.join(' + ');
   const start=computeApptStart(booking.date,booking.time);
+  const desconto=computeBookingDiscount(valor);
+  const totalFinal=Math.max(0,valor-desconto);
+
   await db.collection('appointments').add({
-    pro,cliente:CLIENT.nome,servico,date:booking.date,start,dur,valor,status:'pendente',origem:'app',
+    pro,cliente:CLIENT.nome,servico,date:booking.date,start,dur,valor,valorFinal:totalFinal,status:'pendente',origem:'app',
+    pagamento:booking.payment,desconto:booking.desconto,descontoValor:desconto,
   });
-  pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time}`);
+
+  if(desconto>0&&CLIENT.id){
+    const patch={};
+    if(booking.desconto==='cashback')patch.cashback=firebase.firestore.FieldValue.increment(-desconto);
+    else if(booking.desconto==='pontos')patch.pontos=firebase.firestore.FieldValue.increment(-Math.round(desconto*POINTS_TO_BRL_RATE));
+    await db.collection('clients').doc(CLIENT.id).update(patch);
+  }
+
+  pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time}${desconto>0?' · usou '+(booking.desconto==='cashback'?'cashback':'pontos'):''}`);
   booking.step=5;
   renderScreen();
 }
