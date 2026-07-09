@@ -364,6 +364,22 @@ a{color:inherit;text-decoration:none}
 ::-webkit-scrollbar{width:0;height:0}
 </style>
 <body>
+<!-- ============ FIREBASE ============ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAaNdmniVfOhYRd8OtlKu1YDZSxrkvv1Uo",
+    authDomain: "hairos-studio-jardins.firebaseapp.com",
+    projectId: "hairos-studio-jardins",
+    storageBucket: "hairos-studio-jardins.firebasestorage.app",
+    messagingSenderId: "439932036177",
+    appId: "1:439932036177:web:23061432249b40f5be0470"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+</script>
 <div class="shell">
 
   <div class="screen" id="screen">
@@ -491,40 +507,15 @@ function renderThemeToggleUI(){
 }
 try{const saved=localStorage.getItem('hairos-client-theme');if(saved)applyTheme(saved)}catch(e){}
 
-/* ================= SINCRONIZAÇÃO COM O PAINEL DO SALÃO ================= */
-// Usa localStorage compartilhado (mesma origem) para refletir mudanças feitas pelo admin em tempo real.
-const SYNC_KEYS={brand:'hairos-brand',clientProfile:'hairos-client-sync',apptEvents:'hairos-appt-events',notifications:'hairos-notifications'};
+/* ================= COR DA MARCA (também aceita mudança instantânea via localStorage na mesma aba do navegador) ================= */
 function applyClientBrandColor(hex){
   if(!/^#[0-9A-Fa-f]{6}$/.test(hex))return;
   document.documentElement.style.setProperty('--brand',hex);
   document.documentElement.style.setProperty('--brand-strong',hex);
   document.documentElement.style.setProperty('--brand-soft',`color-mix(in srgb, ${hex} 12%, transparent)`);
 }
-function initBrandSync(){
-  try{const saved=localStorage.getItem(SYNC_KEYS.brand);if(saved)applyClientBrandColor(saved)}catch(e){}
-}
-window.addEventListener('storage',e=>{
-  if(e.key===SYNC_KEYS.brand&&e.newValue)applyClientBrandColor(e.newValue);
-});
-initBrandSync();
-function pushApptEvent(evt){
-  let arr=[];
-  try{arr=JSON.parse(localStorage.getItem(SYNC_KEYS.apptEvents)||'[]')}catch(e){}
-  arr.push({...evt,ts:Date.now()});
-  if(arr.length>200)arr=arr.slice(-200);
-  try{localStorage.setItem(SYNC_KEYS.apptEvents,JSON.stringify(arr))}catch(e){}
-}
 function pushNotification(text){
-  let arr=[];
-  try{arr=JSON.parse(localStorage.getItem(SYNC_KEYS.notifications)||'[]')}catch(e){}
-  arr.push({id:Date.now()+Math.random(),text,ts:Date.now(),read:false});
-  if(arr.length>50)arr=arr.slice(-50);
-  try{localStorage.setItem(SYNC_KEYS.notifications,JSON.stringify(arr))}catch(e){}
-}
-function pushClientSync(){
-  try{localStorage.setItem(SYNC_KEYS.clientProfile,JSON.stringify({
-    id:CLIENT.id,nome:CLIENT.nome,tel:CLIENT.tel,email:CLIENT.email||'',nasc:CLIENT.nasc||'',sexo:CLIENT.sexo||'',foto:CLIENT.foto||null,ts:Date.now()
-  }))}catch(e){}
+  db.collection('notifications').add({text,ts:Date.now(),read:false}).catch(()=>{});
 }
 function apptRealDateTime(a){
   const d=parseDate(a.date);
@@ -539,14 +530,14 @@ function computeApptStart(dateStr,hora){
   return (h-openHour)*60+m;
 }
 
-/* ================= MOCK DATA (espelha o painel administrativo) ================= */
-const SALON={nome:'Studio Jardins',endereco:'R. Augusta, 2140 · Jardins · São Paulo, SP'};
+/* ================= FIRESTORE: DADOS EM TEMPO REAL ================= */
+let SALON={nome:'Studio Jardins',endereco:'R. Augusta, 2140 · Jardins · São Paulo, SP'};
 
-const CLIENT={
-  id:1,nome:'Ana Beatriz Souza',tel:'(11) 98877-1023',email:'ana.beatriz@email.com',nasc:'',sexo:'Feminino',avatarCor:'#C2366F',foto:null,
-  pontos:6910,tier:'Black',proximoTier:'Diamond',proximoTierPontos:10000,
-  cashback:187.40,visitas:24,desde:'Janeiro de 2024',
+let CLIENT={
+  id:null,nome:'Ana Beatriz Souza',tel:'',email:'',nasc:'',sexo:'',avatarCor:'#C2366F',foto:null,
+  pontos:0,tier:'Bronze',cashback:0,visitas:0,desde:'',
 };
+const DEMO_CLIENT_NAME='Ana Beatriz Souza'; // sem login real ainda: este app representa este cliente específico
 
 const TIERS=[
   {nome:'Bronze',min:0,ico:'🥉',cor1:'#B08D57',cor2:'#8C6B3F'},
@@ -556,20 +547,9 @@ const TIERS=[
   {nome:'Diamond',min:10000,ico:'💎',cor1:'#C2366F',cor2:'#7A2049'},
 ];
 
-const PROS=[
-  {id:'marina',nome:'Marina Costa',esp:'Colorista',cor:'#C2366F',rating:4.9,atend30:87,exp:'6 anos'},
-  {id:'thiago',nome:'Thiago Lima',esp:'Cabeleireiro',cor:'#2E5FBF',rating:4.7,atend30:64,exp:'9 anos'},
-  {id:'julia',nome:'Júlia Rocha',esp:'Manicure',cor:'#178A63',rating:4.8,atend30:102,exp:'3 anos'},
-  {id:'rafa',nome:'Rafa Mendes',esp:'Barbeiro',cor:'#A96A0B',rating:4.6,atend30:78,exp:'5 anos'},
-];
-
-const SERVICES=[
- {n:'Corte feminino',v:90,d:60},{n:'Corte masculino',v:55,d:30},{n:'Coloração',v:180,d:120},{n:'Mechas / Luzes',v:260,d:150},
- {n:'Escova',v:70,d:45},{n:'Hidratação',v:95,d:45},{n:'Manicure',v:45,d:45},{n:'Pedicure',v:50,d:45},
- {n:'Barba',v:40,d:20},{n:'Progressiva',v:320,d:180},{n:'Sobrancelha',v:35,d:15},
-];
-
-const BUSINESS_HOURS=[
+let PROS=[];
+let SERVICES=[];
+let BUSINESS_HOURS=[
   {open:'09:00',close:'20:00',active:true},{open:'09:00',close:'20:00',active:true},
   {open:'09:00',close:'20:00',active:true},{open:'09:00',close:'20:00',active:true},
   {open:'09:00',close:'21:00',active:true},{open:'09:00',close:'18:00',active:true},
@@ -580,38 +560,90 @@ function businessHoursForDate(date){const dow=date.getDay();return BUSINESS_HOUR
 const TODAY_STR=fmtDate(new Date());
 function daysFromToday(n){const d=new Date();d.setDate(d.getDate()+n);return fmtDate(d)}
 
-let APPTS=[
-  {id:1,servico:'Coloração',pro:'marina',date:daysFromToday(2),hora:'15:00',valor:180,status:'pendente',needsAttention:false},
-  {id:2,servico:'Manicure',pro:'julia',date:daysFromToday(9),hora:'10:30',valor:45,status:'confirmado',needsAttention:false},
-  {id:3,servico:'Corte feminino + Escova',pro:'marina',date:daysFromToday(-6),hora:'14:00',valor:160,status:'concluido',rated:false,cashback:8.0},
-  {id:4,servico:'Hidratação',pro:'marina',date:daysFromToday(-21),hora:'16:00',valor:95,status:'concluido',rated:true,cashback:4.75},
-  {id:5,servico:'Manicure + Pedicure',pro:'julia',date:daysFromToday(-35),hora:'11:00',valor:95,status:'concluido',rated:true,cashback:4.75},
-];
+let APPTS=[];
+let REWARDS=[];
+let PROMOS=[];
 
-let REWARDS=[
-  {nome:'Corte feminino grátis',custo:360,icon:'✂️'},
-  {nome:'Hidratação grátis',custo:380,icon:'💆'},
-  {nome:'Coloração grátis',custo:720,icon:'🎨'},
-  {nome:'Manicure grátis',custo:180,icon:'💅'},
-  {nome:'Sobrancelha grátis',custo:140,icon:'✨'},
-];
-
-let CASHBACK_EXTRACT=[
-  {t:'Cashback creditado',d:'Corte feminino + Escova',v:8.0,data:daysFromToday(-6)},
-  {t:'Cashback creditado',d:'Hidratação',v:4.75,data:daysFromToday(-21)},
-  {t:'Cashback resgatado',d:'Usado em Manicure',v:-15.0,data:daysFromToday(-30)},
-  {t:'Cashback creditado',d:'Manicure + Pedicure',v:4.75,data:daysFromToday(-35)},
-];
-
-const PROMOS=[
-  {emoji:'🔥',bg:'var(--neg-soft)',title:'Volte a Brilhar',desc:'Ganhe um giftback de hidratação grátis ao agendar esta semana.'},
-  {emoji:'🎂',bg:'var(--brand-soft)',title:'Mês de Aniversário',desc:'30% de desconto no seu serviço favorito na semana do seu aniversário.'},
-  {emoji:'⚡',bg:'var(--warn-soft)',title:'Flash Friday',desc:'Sexta das 14h às 16h: cashback em dobro em todos os serviços.'},
-];
-
-function getTier(nome){return TIERS.find(t=>t.nome===nome)}
+function getTier(nome){return TIERS.find(t=>t.nome===nome)||TIERS[0]}
 function getNextTier(nome){const i=TIERS.findIndex(t=>t.nome===nome);return TIERS[i+1]||null}
 function proById(id){return PROS.find(p=>p.id===id)}
+
+/* ================= FIRESTORE: LISTENERS EM TEMPO REAL ================= */
+function cashbackExtractFromAppts(){
+  return APPTS.filter(a=>a.status==='concluido'&&a.cashbackGerado)
+    .sort((a,b)=>b.date.localeCompare(a.date))
+    .map(a=>({t:'Cashback creditado',d:a.servico,v:a.cashbackGerado,data:a.date}));
+}
+async function ensureClientDoc(){
+  const snap=await db.collection('clients').where('nome','==',DEMO_CLIENT_NAME).limit(1).get();
+  if(!snap.empty){
+    CLIENT.id=snap.docs[0].id;
+  }else{
+    const ref=await db.collection('clients').add({
+      nome:DEMO_CLIENT_NAME,tel:'',email:'',nasc:'',sexo:'',
+      ult:0,visitas:0,total:0,vip:false,aniver:false,fav:'—',pro:'—',dia:'—',intervalo:0,produtos:false,
+      pontos:0,tier:'Bronze',cashback:0,desde:new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'}),
+    });
+    CLIENT.id=ref.id;
+  }
+}
+function initFirestoreListeners(){
+  db.collection('staff').onSnapshot(snap=>{
+    PROS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentView==='inicio'||currentView==='agendar')renderScreen();
+  });
+  db.collection('services').orderBy('n').onSnapshot(snap=>{
+    SERVICES=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentView==='agendar')renderScreen();
+  });
+  db.collection('loyaltyRewards').onSnapshot(snap=>{
+    REWARDS=snap.docs.map(d=>({id:d.id,nome:d.data().nome,custo:d.data().custo,icon:'🎁'}));
+    if(currentView==='fidelidade')renderScreen();
+  });
+  db.collection('campaigns').where('status','==','Ativa').onSnapshot(snap=>{
+    const emojiFor=ico=>ico||'📣';
+    PROMOS=snap.docs.map(d=>{
+      const c=d.data();
+      return {emoji:emojiFor(c.ico),bg:c.bg||'var(--brand-soft)',title:c.name,desc:(c.desc||'').replace(/^Push[^:]*:\s*/,'').replace(/["""]/g,'')};
+    });
+    if(currentView==='inicio')renderScreen();
+  },err=>console.error('campaigns listener:',err));
+  db.collection('config').doc('business').onSnapshot(doc=>{
+    if(!doc.exists)return;
+    const cfg=doc.data();
+    if(cfg.businessHours)BUSINESS_HOURS=cfg.businessHours;
+    if(cfg.brandColor)applyClientBrandColor(cfg.brandColor);
+    if(cfg.salon)SALON=cfg.salon;
+    if(currentView==='perfil'||currentView==='inicio')renderScreen();
+  });
+  if(CLIENT.id){
+    db.collection('clients').doc(CLIENT.id).onSnapshot(doc=>{
+      if(!doc.exists)return;
+      const data=doc.data();
+      Object.assign(CLIENT,{
+        nome:data.nome||CLIENT.nome,tel:data.tel||'',email:data.email||'',nasc:data.nasc||'',sexo:data.sexo||'',
+        foto:data.foto||null,pontos:data.pontos||0,tier:data.tier||'Bronze',cashback:data.cashback||0,
+        visitas:data.visitas||0,desde:data.desde||'',
+      });
+      renderScreen();
+    });
+    db.collection('appointments').where('cliente','==',DEMO_CLIENT_NAME).onSnapshot(snap=>{
+      APPTS=snap.docs.map(d=>{
+        const raw={id:d.id,...d.data()};
+        // o painel do salão guarda "start" (min. desde a abertura); o app do cliente usa "hora" (HH:MM literal)
+        if(raw.start!==undefined&&!raw.hora)raw.hora=apptStartToHora(raw);
+        return raw;
+      });
+      if(currentView==='inicio'||currentView==='horarios')renderScreen();
+    },err=>console.error('appointments listener:',err));
+  }
+}
+function apptStartToHora(a){
+  const cfg=businessHoursForDate(parseDate(a.date));
+  const openHour=cfg&&cfg.open?parseInt(cfg.open.split(':')[0]):8;
+  const mins=openHour*60+a.start;
+  return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
+}
 function svcByName(n){return SERVICES.find(s=>s.n===n)}
 
 /* ================= ROUTER ================= */
@@ -669,10 +701,10 @@ function renderInicio(){
       </div>
       ${isExpired?`
       <div style="margin-top:12px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25);font-size:12.5px;opacity:.95">Esse horário já passou. Quer marcar um novo?</div>
-      <div class="na-actions"><button class="na-btn solid" style="flex:1" onclick="startReschedule(${upcoming.id})">Reagendar agora</button></div>
+      <div class="na-actions"><button class="na-btn solid" style="flex:1" onclick="startReschedule('${upcoming.id}')">Reagendar agora</button></div>
       `:`
       <div class="na-actions">
-        <button class="na-btn" onclick="startReschedule(${upcoming.id})">Reagendar</button>
+        <button class="na-btn" onclick="startReschedule('${upcoming.id}')">Reagendar</button>
         <button class="na-btn solid" onclick="setView('horarios')">Ver detalhes</button>
       </div>
       `}
@@ -688,7 +720,7 @@ function renderInicio(){
 
   if(pendingReview){
     const pro=proById(pendingReview.pro);
-    html+=`<div class="review-prompt fade-in" onclick="openReviewSheet(${pendingReview.id})" style="cursor:pointer">
+    html+=`<div class="review-prompt fade-in" onclick="openReviewSheet('${pendingReview.id}')" style="cursor:pointer">
       <div class="rp-ico">⭐</div>
       <div class="rp-text">Avalie seu último atendimento<span>${pendingReview.servico} com ${pro.nome}</span></div>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
@@ -757,17 +789,17 @@ function renderHorarios(){
       extra=`<div class="ac-confirm">
         <div class="ac-confirm-q">⚠️ Confirma presença no seu horário?</div>
         <div class="ac-confirm-btns">
-          <button class="btn btn-primary btn-sm" style="flex:1" onclick="confirmPresence(${a.id})">Sim, vou comparecer</button>
-          <button class="btn btn-outline btn-sm" style="flex:1" onclick="cancelAppt(${a.id})">Não vou poder</button>
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="confirmPresence('${a.id}')">Sim, vou comparecer</button>
+          <button class="btn btn-outline btn-sm" style="flex:1" onclick="cancelAppt('${a.id}')">Não vou poder</button>
         </div>
       </div>`;
     }else if(horariosTab==='proximos'){
       extra=`<div class="ac-actions">
-        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="startReschedule(${a.id})">Reagendar</button>
-        <button class="btn btn-danger-ghost btn-sm" style="flex:1" onclick="cancelAppt(${a.id})">Cancelar</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="startReschedule('${a.id}')">Reagendar</button>
+        <button class="btn btn-danger-ghost btn-sm" style="flex:1" onclick="cancelAppt('${a.id}')">Cancelar</button>
       </div>`;
     }else if(a.status==='concluido'&&!a.rated){
-      extra=`<div class="ac-actions"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openReviewSheet(${a.id})">⭐ Avaliar atendimento</button></div>`;
+      extra=`<div class="ac-actions"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openReviewSheet('${a.id}')">⭐ Avaliar atendimento</button></div>`;
     }else if(a.status==='concluido'&&a.rated){
       extra=`<div class="ac-actions"><span class="tag tag-ok">✓ Avaliado · obrigado!</span></div>`;
     }
@@ -789,18 +821,15 @@ function renderHorarios(){
 function wireHorariosTabs(){
   $$('.segmented button').forEach(b=>b.addEventListener('click',()=>{horariosTab=b.dataset.tab;renderScreen()}));
 }
-function confirmPresence(id){
+async function confirmPresence(id){
   const a=APPTS.find(x=>x.id===id);if(!a)return;
-  a.needsAttention=false;a.status='confirmado';
-  renderScreen();
+  await db.collection('appointments').doc(id).update({needsAttention:false,status:'confirmado',reminderConfirmed:true});
   toast('Presença confirmada! Te esperamos ✨');
 }
-function cancelAppt(id){
+async function cancelAppt(id){
   const a=APPTS.find(x=>x.id===id);if(!a)return;
-  a.status='cancelado';
-  pushApptEvent({apptId:id,type:'cancel',cliente:CLIENT.nome});
+  await db.collection('appointments').doc(id).update({status:'cancelado'});
   pushNotification(`❌ ${CLIENT.nome.split(' ')[0]} cancelou ${a.servico} do dia ${parseDate(a.date).toLocaleDateString('pt-BR')}`);
-  renderScreen();
   toast('Agendamento cancelado. Sentiremos sua falta!');
 }
 
@@ -851,7 +880,7 @@ function renderFidelidade(){
     <svg id="cashExtractChevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);transition:transform .2s;transform:rotate(${cashExtractOpen?'180':'0'}deg)"><path d="m6 9 6 6 6-6"/></svg>
   </div>`;
   if(cashExtractOpen){
-    html+=CASHBACK_EXTRACT.map(e=>{
+    html+=cashbackExtractFromAppts().map(e=>{
       const d=parseDate(e.data);
       return `<div class="reward-card fade-in">
         <div class="rc-ico" style="background:${e.v>0?'var(--pos-soft)':'var(--neg-soft)'};color:${e.v>0?'var(--pos)':'var(--neg)'}">${e.v>0?'↑':'↓'}</div>
@@ -898,13 +927,12 @@ function openRedeemSheet(nome){
   $('#redeemSheet').classList.add('open');
 }
 function closeRedeemSheet(){$('#redeemScrim').classList.remove('open');$('#redeemSheet').classList.remove('open')}
-function confirmRedeem(){
+async function confirmRedeem(){
   const nome=$('#redeemConfirmBtn').dataset.reward;
   const r=REWARDS.find(x=>x.nome===nome);
-  if(!r)return;
-  CLIENT.pontos-=r.custo;
+  if(!r||!CLIENT.id)return;
+  await db.collection('clients').doc(CLIENT.id).update({pontos:firebase.firestore.FieldValue.increment(-r.custo)});
   closeRedeemSheet();
-  renderScreen();
   toast('🎉 Recompensa resgatada: '+r.nome);
 }
 
@@ -991,11 +1019,10 @@ function setReviewStar(which,n){
   buildStarRow(which==='pro'?'starsProRow':'starsSvcRow',which);
 }
 function closeReviewSheet(){$('#reviewScrim').classList.remove('open');$('#reviewSheet').classList.remove('open')}
-function submitReview(){
+async function submitReview(){
   const a=APPTS.find(x=>x.id===reviewApptId);
-  if(a)a.rated=true;
+  if(a)await db.collection('appointments').doc(reviewApptId).update({rated:true,ratingPro:reviewProStars,ratingServico:reviewSvcStars});
   closeReviewSheet();
-  renderScreen();
   toast('Obrigado pela avaliação! ⭐ Isso ajuda '+(a?proById(a.pro).nome.split(' ')[0]:'a equipe')+' a melhorar cada vez mais');
 }
 
@@ -1011,11 +1038,13 @@ function startReschedule(id){
   booking={step:3,services:a.servico.split(' + '),pro:a.pro,date:null,time:null,payment:'pix',obs:'',rescheduleId:id};
   setView('agendar');
 }
-function confirmReschedule(){
+async function confirmReschedule(){
   const a=APPTS.find(x=>x.id===booking.rescheduleId);if(!a)return;
-  a.date=booking.date;a.hora=booking.time;a.status='pendente';a.needsAttention=false;
-  pushApptEvent({apptId:a.id,type:'reschedule',date:a.date,start:computeApptStart(a.date,a.hora),status:'pendente',cliente:CLIENT.nome});
-  pushNotification(`🔄 ${CLIENT.nome.split(' ')[0]} reagendou ${a.servico} para ${parseDate(a.date).toLocaleDateString('pt-BR')} às ${a.hora}`);
+  const start=computeApptStart(booking.date,booking.time);
+  await db.collection('appointments').doc(booking.rescheduleId).update({
+    date:booking.date,start,status:'pendente',needsAttention:false,reminderSent:false,reminderConfirmed:false,
+  });
+  pushNotification(`🔄 ${CLIENT.nome.split(' ')[0]} reagendou ${a.servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time}`);
   booking.step=5;
   renderScreen();
 }
@@ -1172,19 +1201,16 @@ function renderDateTimeStep(){
   }
   return html;
 }
-function confirmBooking(){
+async function confirmBooking(){
   const dur=booking.services.reduce((s,n)=>s+(svcByName(n)?.d||60),0);
   const valor=booking.services.reduce((s,n)=>s+(svcByName(n)?.v||0),0);
-  const newAppt={
-    id:Date.now(),
-    servico:booking.services.join(' + '),
-    pro:booking.pro==='qualquer'?PROS[Math.floor(Math.random()*PROS.length)].id:booking.pro,
-    date:booking.date,hora:booking.time,
-    valor,status:'pendente',needsAttention:false,
-  };
-  APPTS.push(newAppt);
-  pushApptEvent({apptId:newAppt.id,type:'create',pro:newAppt.pro,cliente:CLIENT.nome,servico:newAppt.servico,date:newAppt.date,start:computeApptStart(newAppt.date,newAppt.hora),dur,valor,status:'pendente'});
-  pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${newAppt.servico} para ${parseDate(newAppt.date).toLocaleDateString('pt-BR')} às ${newAppt.hora}`);
+  const pro=booking.pro==='qualquer'?PROS[Math.floor(Math.random()*PROS.length)].id:booking.pro;
+  const servico=booking.services.join(' + ');
+  const start=computeApptStart(booking.date,booking.time);
+  await db.collection('appointments').add({
+    pro,cliente:DEMO_CLIENT_NAME,servico,date:booking.date,start,dur,valor,status:'pendente',
+  });
+  pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time}`);
   booking.step=5;
   renderScreen();
 }
@@ -1196,13 +1222,11 @@ function handleProfilePhoto(e){
   if(!file)return;
   if(!file.type.startsWith('image/')){toast('Selecione um arquivo de imagem');return}
   const reader=new FileReader();
-  reader.onload=ev=>{
+  reader.onload=async ev=>{
     stagedProfilePhoto=ev.target.result;
     const img=`<img src="${stagedProfilePhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
     const pv=$('#pfAvatarPreview');if(pv)pv.innerHTML=img;
-    CLIENT.foto=stagedProfilePhoto;
-    pushClientSync();
-    if(currentView==='perfil')renderScreen();
+    if(CLIENT.id)await db.collection('clients').doc(CLIENT.id).update({foto:stagedProfilePhoto});
     toast('Foto atualizada');
   };
   reader.readAsDataURL(file);
@@ -1220,23 +1244,28 @@ function openProfileSheet(){
   $('#profileSheet').classList.add('open');
 }
 function closeProfileSheet(){$('#profileScrim').classList.remove('open');$('#profileSheet').classList.remove('open')}
-function saveProfile(){
+async function saveProfile(){
   const nome=$('#pfNome').value.trim();
   const tel=$('#pfTel').value.trim();
   if(!nome||!tel){$('#pfError').style.display='block';return}
-  CLIENT.nome=nome;CLIENT.tel=tel;
-  CLIENT.email=$('#pfEmail').value.trim();
-  CLIENT.nasc=$('#pfNasc').value;
-  CLIENT.sexo=$('#pfSexo').value;
-  pushClientSync();
+  if(!CLIENT.id){toast('Cliente não sincronizado ainda, tente novamente em instantes');return}
+  await db.collection('clients').doc(CLIENT.id).update({
+    tel,email:$('#pfEmail').value.trim(),nasc:$('#pfNasc').value,sexo:$('#pfSexo').value,
+    // o campo "nome" fica de fora de propósito: é a chave usada para casar os agendamentos deste cliente no protótipo.
+  });
   closeProfileSheet();
-  renderScreen();
   toast('Dados atualizados com sucesso');
 }
 
 /* ================= INIT ================= */
 setView('inicio');
 setInterval(()=>{if(currentView==='inicio')renderScreen()},30000);
+
+ensureClientDoc()
+  .catch(err=>console.error('Erro ao localizar/criar o cliente:',err))
+  .finally(()=>{
+    initFirestoreListeners();
+  });
 
 /* ================= PWA: SERVICE WORKER ================= */
 if('serviceWorker' in navigator){
