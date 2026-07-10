@@ -780,12 +780,19 @@ let CLIENT={
   pontos:0,tier:'Bronze',cashback:0,visitas:0,desde:'',
 };
 
-const TIERS=[
-  {nome:'Bronze',min:0,ico:'🥉',cor1:'#B08D57',cor2:'#8C6B3F'},
-  {nome:'Prata',min:500,ico:'🥈',cor1:'#9CA3AF',cor2:'#6B7280'},
-  {nome:'Ouro',min:1500,ico:'🥇',cor1:'#E0B84A',cor2:'#B8860B'},
-  {nome:'Black',min:4000,ico:'🖤',cor1:'#3A3841',cor2:'#17151B'},
-  {nome:'Diamond',min:10000,ico:'💎',cor1:'#C2366F',cor2:'#7A2049'},
+const TIER_COLOR_PALETTE=[
+  {cor1:'#B08D57',cor2:'#8C6B3F'},
+  {cor1:'#9CA3AF',cor2:'#6B7280'},
+  {cor1:'#E0B84A',cor2:'#B8860B'},
+  {cor1:'#3A3841',cor2:'#17151B'},
+  {cor1:'#C2366F',cor2:'#7A2049'},
+];
+let TIERS=[
+  {nome:'Bronze',min:0,ico:'🥉',cor1:'#B08D57',cor2:'#8C6B3F',beneficios:[]},
+  {nome:'Prata',min:500,ico:'🥈',cor1:'#9CA3AF',cor2:'#6B7280',beneficios:[]},
+  {nome:'Ouro',min:1500,ico:'🥇',cor1:'#E0B84A',cor2:'#B8860B',beneficios:[]},
+  {nome:'Black',min:4000,ico:'🖤',cor1:'#3A3841',cor2:'#17151B',beneficios:[]},
+  {nome:'Diamond',min:10000,ico:'💎',cor1:'#C2366F',cor2:'#7A2049',beneficios:[]},
 ];
 
 let PROS=[];
@@ -830,7 +837,7 @@ async function establishClientIdentity(user){
   if(snap.empty && user.email){
     snap=await db.collection('clients').where('email','==',user.email).limit(1).get();
   }
-  if(!snap.empty){
+  if(snap.docs&&snap.docs.length>0){
     CLIENT.id=snap.docs[0].id;
     if(!snap.docs[0].data().authUid){
       await db.collection('clients').doc(CLIENT.id).update({authUid:user.uid});
@@ -859,6 +866,16 @@ function initFirestoreListeners(){
     REWARDS=snap.docs.map(d=>({id:d.id,nome:d.data().nome,custo:d.data().custo,icon:'🎁'}));
     if(currentView==='fidelidade')renderScreen();
   });
+  db.collection('loyaltyTiers').orderBy('min').onSnapshot(snap=>{
+    if(snap.docs&&snap.docs.length>0){
+      TIERS=snap.docs.map((d,i)=>{
+        const t=d.data();
+        const palette=TIER_COLOR_PALETTE[i%TIER_COLOR_PALETTE.length];
+        return {nome:t.nome,min:t.min,ico:t.ico,cor1:palette.cor1,cor2:palette.cor2,beneficios:t.beneficios||[]};
+      });
+    }
+    if(currentView==='fidelidade'||currentView==='inicio')renderScreen();
+  },err=>console.error('loyaltyTiers listener:',err));
   db.collection('campaigns').where('status','==','Ativa').onSnapshot(snap=>{
     const emojiFor=ico=>ico||'📣';
     PROMOS=snap.docs.map(d=>{
@@ -1128,17 +1145,22 @@ function openPromoSheet(i){
   closeAllSheets();
   const p=PROMOS[i];
   if(!p)return;
+  db.collection('campaigns').doc(p.id).update({clicks:firebase.firestore.FieldValue.increment(1)}).catch(()=>{});
   $('#promoEmojiBig').textContent=p.emoji;
   $('#promoTitleBig').textContent=p.title;
   $('#promoMsgBig').textContent=p.mensagem||p.desc;
   const foot=$('#promoSheetFoot');
   if(p.cta&&p.cta!=='nenhum'&&PROMO_CTA_LABELS[p.cta]){
-    foot.innerHTML=`<button class="btn btn-primary btn-block" onclick="closePromoSheet();${p.cta==='agendar'?'startBooking()':`setView('${p.cta}')`}">${PROMO_CTA_LABELS[p.cta]}</button>`;
+    foot.innerHTML=`<button class="btn btn-primary btn-block" onclick="closePromoSheet();${p.cta==='agendar'?`startBookingFromCampaign('${p.id}')`:`setView('${p.cta}')`}">${PROMO_CTA_LABELS[p.cta]}</button>`;
   }else{
     foot.innerHTML=`<button class="btn btn-ghost btn-block" onclick="closePromoSheet()">Fechar</button>`;
   }
   $('#promoScrim').classList.add('open');
   $('#promoSheet').classList.add('open');
+}
+function startBookingFromCampaign(campaignId){
+  startBooking();
+  booking.origemCampanha=campaignId;
 }
 function closePromoSheet(){$('#promoScrim').classList.remove('open');$('#promoSheet').classList.remove('open')}
 
@@ -1227,7 +1249,7 @@ function renderHorarios(){
   }
 
   html+=list.map(a=>{
-    const pro=proById(a.pro);
+    const pro=proById(a.pro)||{nome:'Profissional',cor:'#8E8A96'};
     const d=parseDate(a.date);
     const statusMap={pendente:{t:'Aguardando confirmação',c:'var(--warn)'},confirmado:{t:'Confirmado',c:'var(--pos)'},concluido:{t:'Concluído',c:'var(--text-3)'},cancelado:{t:'Cancelado',c:'var(--neg)'}};
     const st=statusMap[a.status];
@@ -1705,8 +1727,9 @@ async function confirmBooking(){
   const totalFinal=Math.max(0,valor-desconto);
 
   await db.collection('appointments').add({
-    pro,cliente:CLIENT.nome,servico,date:booking.date,start,dur,valor,valorFinal:totalFinal,status:'pendente',origem:'app',
+    pro,cliente:CLIENT.nome,clientId:CLIENT.id||null,servico,date:booking.date,start,dur,valor,valorFinal:totalFinal,status:'pendente',origem:'app',
     pagamento:booking.payment,desconto:booking.desconto,descontoValor:desconto,
+    origemCampanha:booking.origemCampanha||null,
   });
 
   if(desconto>0&&CLIENT.id){
