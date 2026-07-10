@@ -280,6 +280,11 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:flex-end;cursor:pointer;overflow:hidden;
 }
 .ad-slide-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.ad-mute-btn{
+  position:absolute;top:12px;right:12px;z-index:2;width:32px;height:32px;border-radius:50%;
+  background:rgba(0,0,0,.45);color:#fff;border:none;display:grid;place-items:center;font-size:14px;
+  cursor:pointer;backdrop-filter:blur(2px);
+}
 .ad-slide-overlay{
   width:100%;padding:22px 20px 20px;box-sizing:border-box;color:#fff;position:relative;z-index:1;
   background:linear-gradient(0deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.28) 60%,rgba(0,0,0,0) 100%);
@@ -450,6 +455,7 @@ a{color:inherit;text-decoration:none}
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAaNdmniVfOhYRd8OtlKu1YDZSxrkvv1Uo",
@@ -462,6 +468,8 @@ a{color:inherit;text-decoration:none}
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
+  let messaging=null;
+  try{ if(firebase.messaging.isSupported()) messaging=firebase.messaging(); }catch(e){ console.warn('Push notifications não suportadas neste navegador:',e); }
   db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 </script>
 <div class="shell">
@@ -960,16 +968,35 @@ function renderApptCardInner(upcoming){
 }
 function renderAdSlide(ad){
   const hasCta=ad.ctaDestino&&ad.ctaDestino!=='nenhum'&&ad.ctaTexto;
-  const media=ad.tipo==='video'&&ad.videoUrl
-    ?`<video src="${ad.videoUrl}" autoplay muted loop playsinline class="ad-slide-video"></video>`
+  const isVideo=ad.tipo==='video'&&ad.videoUrl;
+  const media=isVideo
+    ?`<video id="adVideo_${ad.id}" src="${ad.videoUrl}" autoplay muted loop playsinline class="ad-slide-video"></video>`
     :'';
-  return `<div class="ad-slide" ${ad.tipo==='video'?'':`style="background-image:url('${ad.imagem}')"`} onclick="handleAdClick('${ad.id}')">
+  const muteBtn=isVideo
+    ?`<button class="ad-mute-btn" id="adMuteBtn_${ad.id}" onclick="event.stopPropagation();toggleAdMute('${ad.id}')" aria-label="Ativar som">🔇</button>`
+    :'';
+  return `<div class="ad-slide" ${isVideo?'':`style="background-image:url('${ad.imagem}')"`} onclick="handleAdClick('${ad.id}')">
     ${media}
+    ${muteBtn}
     <div class="ad-slide-overlay">
       <div class="ad-slide-title">${ad.titulo}</div>
       ${hasCta?`<div class="bn-cta">${ad.ctaTexto} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`:''}
     </div>
   </div>`;
+}
+function toggleAdMute(id){
+  const v=document.getElementById('adVideo_'+id);
+  const btn=document.getElementById('adMuteBtn_'+id);
+  if(!v)return;
+  v.muted=!v.muted;
+  if(btn){
+    btn.textContent=v.muted?'🔇':'🔊';
+    btn.setAttribute('aria-label',v.muted?'Ativar som':'Desativar som');
+  }
+  if(!v.muted){
+    // navegadores exigem que o play() seja re-disparado dentro do gesto do clique quando se sai do mudo
+    v.play().catch(()=>{});
+  }
 }
 function handleAdClick(id){
   const ad=ADS.find(a=>a.id===id);
@@ -1360,7 +1387,7 @@ function renderPerfil(){
     </div>
     <div class="menu-item">
       <div class="mi-ico">🔔</div><div class="mi-label">Notificações push</div>
-      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      <div class="toggle ${(typeof Notification!=='undefined'&&Notification.permission==='granted')?'on':''}" id="pushToggle" onclick="handlePushToggleClick()"></div>
     </div>
     <div class="menu-item">
       <div class="mi-ico">${document.documentElement.dataset.theme==='dark'?'🌙':'☀️'}</div><div class="mi-label">Modo escuro</div>
@@ -1776,6 +1803,50 @@ async function doRegisterCliente(){
 }
 function logoutCliente(){auth.signOut()}
 
+/* ================= NOTIFICAÇÕES PUSH (funcionam com o app fechado) ================= */
+const VAPID_KEY='BOIZZXHVuawQcKW-G1kTj2AAlbIaWdTBI3yM2yOujr-xL4jbb97ABK9TrI4-uU7-EdFnORGBuTTsVRhse1M98wU';
+async function setupPushNotifications(silent){
+  if(!messaging){
+    if(!silent)toast('Este navegador não suporta notificações push');
+    return false;
+  }
+  try{
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted'){
+      if(!silent)toast('Permissão de notificação negada — ative nas configurações do navegador/celular');
+      return false;
+    }
+    const registration=await navigator.serviceWorker.ready;
+    const token=await messaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:registration});
+    if(token&&CLIENT.id){
+      await db.collection('clients').doc(CLIENT.id).update({fcmToken:token});
+      if(!silent)toast('Notificações push ativadas com sucesso 🔔');
+      return true;
+    }
+  }catch(err){
+    console.error('Erro ao configurar notificações push:',err);
+    if(!silent)toast('Não foi possível ativar as notificações push agora');
+  }
+  return false;
+}
+function initPushForegroundHandler(){
+  if(!messaging)return;
+  messaging.onMessage(payload=>{
+    const title=payload.notification?.title||'Nova notificação';
+    const body=payload.notification?.body||'';
+    toast('🔔 '+title+(body?': '+body:''));
+  });
+}
+async function handlePushToggleClick(){
+  if(typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    toast('Notificações já estão ativadas neste navegador. Para desativar, use as configurações do navegador/celular.');
+    return;
+  }
+  const ok=await setupPushNotifications(false);
+  const el=$('#pushToggle');
+  if(el)el.classList.toggle('on',ok);
+}
+
 auth.onAuthStateChanged(async user=>{
   if(user){
     $('#clientAuthScreen').style.display='none';
@@ -1785,6 +1856,8 @@ auth.onAuthStateChanged(async user=>{
       try{
         await establishClientIdentity(user);
         initFirestoreListeners();
+        initPushForegroundHandler();
+        setupPushNotifications(true); // silencioso — não incomoda se o usuário ainda não permitiu
       }catch(err){
         console.error('Erro ao estabelecer identidade do cliente:',err);
       }

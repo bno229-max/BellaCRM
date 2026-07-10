@@ -198,6 +198,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .spark{position:absolute;right:14px;bottom:14px;opacity:.9}
 .grid-2{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
 .grid-2b{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px;margin-bottom:16px}
 @media(max-width:1100px){.grid-2,.grid-2b{grid-template-columns:1fr}}
 .panel{padding:20px}
 .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
@@ -790,19 +791,25 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 
       <div class="kpi-grid fade-in" id="kpiGrid"></div>
 
-      <div class="grid-2 fade-in">
+      <div class="grid-3 fade-in">
         <div class="card panel">
           <div class="panel-head">
-            <div><h3>Receita</h3><div class="sub">Últimos 30 dias · comparado ao período anterior</div></div>
-            <span class="tag tag-ok" id="revTag">Dados reais de hoje</span>
+            <div><h3>Receita x Churn</h3><div class="sub">Últimos 14 dias · atendimentos concluídos vs cancelados</div></div>
+            <span class="tag tag-ok" id="revTag">Dados reais</span>
           </div>
-          <div class="chart-box"><canvas id="chartRevenue"></canvas></div>
+          <div class="chart-box sm"><canvas id="chartRevenue"></canvas></div>
+        </div>
+        <div class="card panel">
+          <div class="panel-head">
+            <div><h3>Formas de pagamento</h3><div class="sub">Agendamentos feitos pelo app do cliente</div></div>
+          </div>
+          <div class="chart-box sm"><canvas id="chartPayments"></canvas></div>
         </div>
         <div class="card panel">
           <div class="panel-head">
             <div><h3>Receita por profissional</h3><div class="sub">Com base nos agendamentos de hoje</div></div>
           </div>
-          <div class="chart-box"><canvas id="chartPros"></canvas></div>
+          <div class="chart-box sm"><canvas id="chartPros"></canvas></div>
         </div>
       </div>
 
@@ -1292,7 +1299,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <!-- ============ MODAL: NOVA CAMPANHA (PUSH) ============ -->
 <div class="modal-scrim" id="modalCampaignScrim" onclick="if(event.target===this)closeCampaignModal()">
   <div class="modal" role="dialog" aria-label="Nova campanha">
-    <h3>Nova campanha (push)</h3>
+    <h3 id="campaignModalTitle">Nova campanha (push)</h3>
     <p class="m-sub">Enviada como notificação push direto no app do cliente. Emojis são bem-vindos! 🎉</p>
     <div class="field"><label>Nome da campanha *</label><input id="cpNome" placeholder="Ex: Sexta com desconto"></div>
     <div class="field"><label>Segmento de clientes</label><select id="cpSegmento"></select></div>
@@ -1310,7 +1317,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <p id="cpError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:-6px;margin-bottom:12px">Preencha nome e mensagem da campanha.</p>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeCampaignModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveCampaign()">Criar e agendar push</button>
+      <button class="btn btn-primary" id="campaignModalSaveBtn" onclick="saveCampaign()">Criar e agendar push</button>
     </div>
   </div>
 </div>
@@ -1345,7 +1352,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('adVideoFile').click()">Escolher vídeo</button>
         <input type="file" id="adVideoFile" accept="video/*" style="display:none" onchange="handleAdVideo(event)">
       </div>
-      <p style="font-size:11.5px;color:var(--text-3);text-align:center;margin-bottom:6px">Duração máxima: <b style="color:var(--text-2)">5 segundos</b>. Vídeos mais longos são recusados automaticamente.</p>
+      <p style="font-size:11.5px;color:var(--text-3);text-align:center;margin-bottom:6px">Duração máxima: <b style="color:var(--text-2)">10 segundos</b>. Vídeos mais longos são recusados automaticamente.</p>
       <p id="adVideoUploadStatus" style="font-size:11.5px;color:var(--info);text-align:center;margin-bottom:16px;display:none">Enviando vídeo...</p>
     </div>
 
@@ -1491,39 +1498,6 @@ const SEED_CLIENTS=[
  {nome:'Camila Duarte',tel:'(11) 99381-4470',ult:2,visitas:36,total:5410,vip:true,aniver:false,fav:'Coloração',pro:'Marina Costa',dia:'sexta-feira',intervalo:30,produtos:true},
  {nome:'Gabriel Martins',tel:'(11) 97845-2216',ult:24,visitas:13,total:1120,vip:false,aniver:true,fav:'Corte masculino',pro:'Thiago Lima',dia:'domingo',intervalo:29,produtos:false},
 ];
-
-const KPI_DATA={
- hoje:[
-  {l:'Faturamento',v:2840,fmt:'brl',d:12.4,spark:[6,8,7,10,9,12,14]},
-  {l:'Agendamentos',v:23,fmt:'int',d:9.5,spark:[14,17,15,19,18,21,23]},
-  {l:'Ticket médio',v:123.5,fmt:'brl',d:4.1,spark:[9,10,9,11,10,11,12],rate:true},
-  {l:'Taxa de ocupação',v:82,fmt:'pct',d:6.0,spark:[60,66,70,68,74,79,82],rate:true},
-  {l:'Clientes novos',v:4,fmt:'int',d:33.3,spark:[1,2,1,3,2,3,4]},
-  {l:'Clientes retornando',v:15,fmt:'int',d:7.1,spark:[10,11,12,11,13,14,15]},
-  {l:'Cashback emitido',v:186,fmt:'brl',d:15.2,spark:[8,9,11,10,12,13,15]},
-  {l:'Churn',v:180,fmt:'brl',d:-8.5,spark:[5,4,4,3,3,2,1.8],invert:true},
- ],
- '7d':[
-  {l:'Faturamento',v:18320,fmt:'brl',d:14.8,spark:[10,12,11,14,13,16,18]},
-  {l:'Agendamentos',v:148,fmt:'int',d:8.0,spark:[110,118,124,120,132,140,148]},
-  {l:'Ticket médio',v:118.9,fmt:'brl',d:3.2,spark:[9,10,10,11,11,11,12],rate:true},
-  {l:'Taxa de ocupação',v:76,fmt:'pct',d:5.5,spark:[62,64,68,66,71,74,76],rate:true},
-  {l:'Clientes novos',v:21,fmt:'int',d:23.5,spark:[10,12,13,15,17,19,21]},
-  {l:'Clientes retornando',v:94,fmt:'int',d:6.8,spark:[70,74,78,80,85,90,94]},
-  {l:'Cashback emitido',v:1240,fmt:'brl',d:18.9,spark:[6,8,9,10,11,12,13]},
-  {l:'Churn',v:890,fmt:'brl',d:-6.2,spark:[14,13,12,11,10,9.5,8.9],invert:true},
- ],
- '30d':[
-  {l:'Faturamento',v:74650,fmt:'brl',d:18.4,spark:[40,46,44,52,58,63,74]},
-  {l:'Agendamentos',v:612,fmt:'int',d:11.2,spark:[420,455,470,510,540,580,612]},
-  {l:'Ticket médio',v:121.9,fmt:'brl',d:6.4,spark:[100,104,108,110,114,118,122],rate:true},
-  {l:'Taxa de ocupação',v:79,fmt:'pct',d:7.3,spark:[60,64,66,70,73,76,79],rate:true},
-  {l:'Clientes novos',v:87,fmt:'int',d:26.1,spark:[40,48,55,62,70,79,87]},
-  {l:'Clientes retornando',v:398,fmt:'int',d:9.4,spark:[290,310,325,345,362,380,398]},
-  {l:'Cashback emitido',v:5430,fmt:'brl',d:21.7,spark:[2,3,3,4,4,5,5.4]},
-  {l:'Churn',v:3200,fmt:'brl',d:-11.4,spark:[42,40,38,36,34,33,32],invert:true},
- ],
-};
 
 function fmtDate(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
 function parseDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
@@ -1722,11 +1696,60 @@ function fmtKpi(k){
 }
 let period='hoje';
 let customRangeLabel='';
+function getPeriodRange(){
+  const end=new Date();end.setHours(0,0,0,0);
+  let start=new Date(end);
+  if(period==='hoje'){
+    // apenas hoje
+  }else if(period==='7d'){
+    start.setDate(end.getDate()-6);
+  }else if(period==='30d'){
+    start.setDate(end.getDate()-29);
+  }else if(period==='custom'){
+    const s=$('#customStart').value,e=$('#customEnd').value;
+    if(s&&e){start=parseDate(s);end.setTime(parseDate(e).getTime())}
+  }
+  return {start,end};
+}
+function getPreviousPeriodRange(range){
+  const days=Math.round((range.end-range.start)/86400000)+1;
+  const prevEnd=new Date(range.start);prevEnd.setDate(prevEnd.getDate()-1);
+  const prevStart=new Date(prevEnd);prevStart.setDate(prevEnd.getDate()-days+1);
+  return {start:prevStart,end:prevEnd};
+}
+function apptsInRange(range){
+  const s=fmtDate(range.start),e=fmtDate(range.end);
+  return appts.filter(a=>a.date>=s&&a.date<=e);
+}
+function dateRangeDayList(range){
+  const days=[];
+  const cur=new Date(range.start);
+  while(cur<=range.end){days.push(fmtDate(cur));cur.setDate(cur.getDate()+1)}
+  return days;
+}
+function bucketedSpark(range,valueForDay,points){
+  const days=dateRangeDayList(range);
+  points=points||Math.min(7,days.length);
+  if(days.length<=points)return days.map(valueForDay);
+  const bucketSize=days.length/points;
+  const out=[];
+  for(let i=0;i<points;i++){
+    const from=Math.floor(i*bucketSize),to=Math.floor((i+1)*bucketSize);
+    const slice=days.slice(from,Math.max(to,from+1));
+    out.push(slice.reduce((s,d)=>s+valueForDay(d),0));
+  }
+  return out;
+}
+function pctDelta(cur,prev){
+  if(prev===0)return cur===0?0:100;
+  return +((cur-prev)/prev*100).toFixed(1);
+}
 function setPeriod(p){
   period=p;
   $('#customPeriodPanel').style.display='none';
   document.querySelectorAll('#periodChips .chip').forEach(c=>c.classList.toggle('active',c.dataset.period===p));
   renderKpis();
+  if(typeof rebuildCharts==='function')rebuildCharts();
 }
 function togglePeriodCustom(){
   const p=$('#customPeriodPanel');
@@ -1746,38 +1769,95 @@ function applyCustomPeriod(){
   const d1=parseDate(s),d2=parseDate(e);
   let days=Math.round((d2-d1)/86400000)+1;
   if(days<1){toast('A data final deve ser igual ou posterior à inicial');return}
-  days=Math.min(days,365);
-  const ratio=days/30;
-  KPI_DATA.custom=KPI_DATA['30d'].map(k=>{
-    if(k.rate)return {...k};
-    const v=k.fmt==='brl'?+(k.v*ratio).toFixed(2):Math.round(k.v*ratio);
-    return {...k,v};
-  });
-  customRangeLabel=days+' dias · '+d1.toLocaleDateString('pt-BR')+' – '+d2.toLocaleDateString('pt-BR');
+  customRangeLabel=days+' dia'+(days===1?'':'s')+' · '+d1.toLocaleDateString('pt-BR')+' – '+d2.toLocaleDateString('pt-BR');
   period='custom';
+  document.querySelectorAll('#periodChips .chip').forEach(c=>c.classList.toggle('active',c.dataset.period==='custom'));
   renderKpis();
+  if(typeof rebuildCharts==='function')rebuildCharts();
   toast('Período aplicado: '+customRangeLabel);
+}
+function computeKpiList(){
+  const range=getPeriodRange();
+  const prevRange=getPreviousPeriodRange(range);
+  const cur=apptsInRange(range);
+  const prev=apptsInRange(prevRange);
+  const includesToday=fmtDate(range.end)>=TODAY_STR&&fmtDate(range.start)<=TODAY_STR;
+  const sumValor=(list,status)=>list.filter(a=>a.status===status).reduce((s,a)=>s+(a.valor||0),0);
+
+  let faturamentoCur=sumValor(cur,'concluido');
+  let faturamentoPrev=sumValor(prev,'concluido');
+  if(typeof sessionRevenueAdded!=='undefined'&&sessionRevenueAdded>0&&includesToday)faturamentoCur+=sessionRevenueAdded;
+
+  const agendCur=cur.filter(a=>a.status!=='cancelado').length;
+  const agendPrev=prev.filter(a=>a.status!=='cancelado').length;
+
+  const concluidosCur=cur.filter(a=>a.status==='concluido');
+  const concluidosPrev=prev.filter(a=>a.status==='concluido');
+  const ticketCur=concluidosCur.length?faturamentoCur/concluidosCur.length:0;
+  const ticketPrev=concluidosPrev.length?faturamentoPrev/concluidosPrev.length:0;
+
+  function occupancy(rng,list){
+    let totalAvail=0;
+    dateRangeDayList(rng).forEach(dateStr=>{
+      const d=parseDate(dateStr);
+      const cfg=businessHoursForDate(d);
+      if(cfg&&cfg.active&&cfg.open&&cfg.close){
+        const [oh,om]=cfg.open.split(':').map(Number),[ch,cm]=cfg.close.split(':').map(Number);
+        totalAvail+=((ch*60+cm)-(oh*60+om))*PROS.length;
+      }
+    });
+    const totalBooked=list.filter(a=>a.status!=='cancelado').reduce((s,a)=>s+(a.dur||0),0);
+    return totalAvail>0?Math.round(totalBooked/totalAvail*100):0;
+  }
+  const occCur=occupancy(range,cur);
+  const occPrev=occupancy(prevRange,prev);
+
+  const clientesNovosCur=CLIENTS.filter(c=>c.desde&&c.desde>=fmtDate(range.start)&&c.desde<=fmtDate(range.end)).length;
+  const clientesNovosPrev=CLIENTS.filter(c=>c.desde&&c.desde>=fmtDate(prevRange.start)&&c.desde<=fmtDate(prevRange.end)).length;
+
+  function retornando(rng,list){
+    const nomes=new Set(list.filter(a=>a.status!=='cancelado').map(a=>a.cliente));
+    let count=0;
+    nomes.forEach(nome=>{
+      const c=CLIENTS.find(x=>x.nome===nome);
+      if(c&&c.desde&&c.desde<fmtDate(rng.start))count++;
+    });
+    return count;
+  }
+  const retCur=retornando(range,cur);
+  const retPrev=retornando(prevRange,prev);
+
+  let cashbackCur=cur.filter(a=>a.status==='concluido').reduce((s,a)=>s+(a.cashbackGerado||0),0);
+  let cashbackPrev=prev.filter(a=>a.status==='concluido').reduce((s,a)=>s+(a.cashbackGerado||0),0);
+
+  let churnCur=sumValor(cur,'cancelado');
+  let churnPrev=sumValor(prev,'cancelado');
+  if(typeof sessionChurnAdded!=='undefined'&&sessionChurnAdded>0&&includesToday)churnCur+=sessionChurnAdded;
+
+  const sparkFaturamento=bucketedSpark(range,d=>appts.filter(a=>a.date===d&&a.status==='concluido').reduce((s,a)=>s+(a.valor||0),0));
+  const sparkAgend=bucketedSpark(range,d=>appts.filter(a=>a.date===d&&a.status!=='cancelado').length);
+  const sparkChurn=bucketedSpark(range,d=>appts.filter(a=>a.date===d&&a.status==='cancelado').reduce((s,a)=>s+(a.valor||0),0));
+  const sparkCashback=bucketedSpark(range,d=>appts.filter(a=>a.date===d&&a.status==='concluido').reduce((s,a)=>s+(a.cashbackGerado||0),0));
+
+  return [
+    {l:'Faturamento',v:+faturamentoCur.toFixed(2),fmt:'brl',d:pctDelta(faturamentoCur,faturamentoPrev),spark:sparkFaturamento},
+    {l:'Agendamentos',v:agendCur,fmt:'int',d:pctDelta(agendCur,agendPrev),spark:sparkAgend},
+    {l:'Ticket médio',v:+ticketCur.toFixed(2),fmt:'brl',d:pctDelta(ticketCur,ticketPrev),spark:sparkFaturamento,rate:true},
+    {l:'Taxa de ocupação',v:occCur,fmt:'pct',d:pctDelta(occCur,occPrev),spark:sparkAgend,rate:true},
+    {l:'Clientes novos',v:clientesNovosCur,fmt:'int',d:pctDelta(clientesNovosCur,clientesNovosPrev),spark:sparkAgend},
+    {l:'Clientes retornando',v:retCur,fmt:'int',d:pctDelta(retCur,retPrev),spark:sparkAgend},
+    {l:'Cashback emitido',v:+cashbackCur.toFixed(2),fmt:'brl',d:pctDelta(cashbackCur,cashbackPrev),spark:sparkCashback},
+    {l:'Churn',v:+churnCur.toFixed(2),fmt:'brl',d:pctDelta(churnCur,churnPrev),spark:sparkChurn,invert:true},
+  ];
 }
 function renderKpis(){
   const vsMap={hoje:'vs ontem','7d':'vs 7 dias anteriores','30d':'vs mês anterior',custom:'vs período anterior equivalente'};
-  let list=KPI_DATA[period];
-  if(period==='hoje'){
-    list=list.map(k=>{
-      if(k.l==='Agendamentos')return{...k,v:appts.filter(a=>a.date===TODAY_STR&&a.status!=='cancelado').length};
-      return k;
-    });
-  }
-  if(typeof sessionRevenueAdded!=='undefined'&&sessionRevenueAdded>0){
-    list=list.map(k=>k.l==='Faturamento'?{...k,v:+(k.v+sessionRevenueAdded).toFixed(2)}:k);
-  }
-  if(typeof sessionChurnAdded!=='undefined'&&sessionChurnAdded>0){
-    list=list.map(k=>k.l==='Churn'?{...k,v:+(k.v+sessionChurnAdded).toFixed(2)}:k);
-  }
+  const list=computeKpiList();
   $('#kpiGrid').innerHTML=list.map(k=>{
     const good=k.invert?k.d<0:k.d>0;
-    const cls=k.d===0?'flat':good?'up':'down';
+    const cls=k.l==='Churn'?'down':(k.d===0?'flat':good?'up':'down'); // Churn representa perda de receita — fica sempre vermelho, independente da tendência
     const arrow=k.d===0?'—':(k.d>0?'↑':'↓');
-    const sparkColor=good?cssVar('--pos'):cssVar('--neg');
+    const sparkColor=k.l==='Churn'?cssVar('--neg'):(good?cssVar('--pos'):cssVar('--neg'));
     return `<div class="card kpi">
       <div class="k-label">${k.l}</div>
       <div class="k-value num">${fmtKpi(k)}</div>
@@ -1808,34 +1888,53 @@ function buildCharts(){
   Chart.defaults.font.size=11;
   Chart.defaults.color=text3;
 
-  // Receita — acumulada ao longo do dia, calculada dos atendimentos realmente concluídos
-  const ctx1=$('#chartRevenue').getContext('2d');
-  const concluded=appts.filter(a=>a.date===TODAY_STR&&a.status==='concluido').sort((a,b)=>apptClockMinutes(a)-apptClockMinutes(b));
-  let running=0;
-  const revLabels=[],revData=[];
-  concluded.forEach(a=>{running+=(a.valor||0);revLabels.push(apptTimeLabel(a));revData.push(+running.toFixed(2))});
-  if(!revLabels.length){revLabels.push('Sem atendimentos concluídos ainda');revData.push(0)}
-  const grad=ctx1.createLinearGradient(0,0,0,260);
-  grad.addColorStop(0,brand+'33');grad.addColorStop(1,brand+'00');
-  charts.push(new Chart(ctx1,{type:'line',data:{labels:revLabels,datasets:[
-    {label:'Receita acumulada hoje',data:revData,borderColor:brand,backgroundColor:grad,fill:true,tension:.35,borderWidth:2.5,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:brand}
-  ]},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.parsed.y)}}},
-    scales:{x:{grid:{display:false}},y:{grid:{color:border},border:{display:false},ticks:{callback:v=>'R$'+(v/1000).toLocaleString('pt-BR')+'k'}}}}}));
+  const range=getPeriodRange();
+  const rangeDays=dateRangeDayList(range);
+  const rangeAppts=apptsInRange(range);
 
-  // Receita por profissional — soma real dos agendamentos de hoje
-  const proRevenue=PROS.map(p=>({p,total:appts.filter(a=>a.date===TODAY_STR&&a.pro===p.id&&a.status!=='cancelado').reduce((s,a)=>s+(a.valor||0),0)}));
+  // Receita x Churn — dia a dia dentro do período selecionado no filtro do Dashboard
+  const ctx1=$('#chartRevenue').getContext('2d');
+  const neg=cssVar('--neg');
+  const revByDay=rangeDays.map(dateStr=>appts.filter(a=>a.date===dateStr&&a.status==='concluido').reduce((s,a)=>s+(a.valor||0),0));
+  const churnByDay=rangeDays.map(dateStr=>appts.filter(a=>a.date===dateStr&&a.status==='cancelado').reduce((s,a)=>s+(a.valor||0),0));
+  const revLabels=rangeDays.map(dateStr=>{const d=parseDate(dateStr);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')});
+  const gradRev=ctx1.createLinearGradient(0,0,0,200);
+  gradRev.addColorStop(0,brand+'33');gradRev.addColorStop(1,brand+'00');
+  const gradChurn=ctx1.createLinearGradient(0,0,0,200);
+  gradChurn.addColorStop(0,neg+'26');gradChurn.addColorStop(1,neg+'00');
+  charts.push(new Chart(ctx1,{type:'line',data:{labels:revLabels,datasets:[
+    {label:'Receita',data:revByDay.map(v=>+v.toFixed(2)),borderColor:brand,backgroundColor:gradRev,fill:true,tension:.35,borderWidth:2.5,pointRadius:2,pointHoverRadius:5,pointBackgroundColor:brand},
+    {label:'Churn',data:churnByDay.map(v=>+v.toFixed(2)),borderColor:neg,backgroundColor:gradChurn,fill:true,tension:.35,borderWidth:2.5,pointRadius:2,pointHoverRadius:5,pointBackgroundColor:neg},
+  ]},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,usePointStyle:true,pointStyle:'circle',padding:12}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+BRL(c.parsed.y)}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:7}},y:{grid:{color:border},border:{display:false},ticks:{callback:v=>'R$'+(v/1000).toFixed(1)+'k'}}}}}));
+
+  // Formas de pagamento — agendamentos feitos pelo app do cliente dentro do período selecionado
+  const payLabels={pix:'Pix',credito:'Crédito',debito:'Débito'};
+  const payCounts={pix:0,credito:0,debito:0};
+  rangeAppts.filter(a=>a.pagamento&&payCounts.hasOwnProperty(a.pagamento)).forEach(a=>{payCounts[a.pagamento]++});
+  const payHasData=Object.values(payCounts).some(v=>v>0);
+  const payColors=[brand,cssVar('--info'),cssVar('--pos')];
+  charts.push(new Chart($('#chartPayments'),{type:'doughnut',data:{
+    labels:payHasData?Object.keys(payCounts).map(k=>payLabels[k]):['Sem dados no período'],
+    datasets:[{data:payHasData?Object.values(payCounts):[1],backgroundColor:payHasData?payColors:[cssVar('--border')],borderWidth:3,borderColor:cssVar('--surface'),hoverOffset:6}]},
+    options:{maintainAspectRatio:false,cutout:'68%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,usePointStyle:true,pointStyle:'circle',padding:12}},
+      tooltip:{callbacks:{label:c=>{if(!payHasData)return ' Sem dados';const total=Object.values(payCounts).reduce((a,b)=>a+b,0);const pct=total?Math.round(c.parsed/total*100):0;return ' '+c.parsed+' agendamento'+(c.parsed===1?'':'s')+' ('+pct+'%)'}}}}}}));
+
+  // Receita por profissional — soma real dos agendamentos dentro do período selecionado
+  const proRevenue=PROS.map(p=>({p,total:rangeAppts.filter(a=>a.pro===p.id&&a.status!=='cancelado').reduce((s,a)=>s+(a.valor||0),0)}));
   const proHasData=proRevenue.some(x=>x.total>0);
   charts.push(new Chart($('#chartPros'),{type:'doughnut',data:{
-    labels:proHasData?proRevenue.map(x=>x.p.nome.split(' ')[0]):['Sem agendamentos hoje'],
+    labels:proHasData?proRevenue.map(x=>x.p.nome.split(' ')[0]):['Sem agendamentos no período'],
     datasets:[{data:proHasData?proRevenue.map(x=>x.total):[1],backgroundColor:proHasData?proRevenue.map(x=>x.p.cor):[cssVar('--border')],borderWidth:3,borderColor:cssVar('--surface'),hoverOffset:6}]},
     options:{maintainAspectRatio:false,cutout:'68%',
       plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,usePointStyle:true,pointStyle:'circle',padding:14}},
       tooltip:{callbacks:{label:c=>proHasData?' '+BRL(c.parsed):' Sem dados'}}}}}));
 
-  // Serviços mais vendidos — somados a partir dos agendamentos reais de hoje
+  // Serviços mais vendidos — somados a partir dos agendamentos reais dentro do período selecionado
   const svcTotals={};
-  appts.filter(a=>a.date===TODAY_STR&&a.status!=='cancelado').forEach(a=>{
+  rangeAppts.filter(a=>a.status!=='cancelado').forEach(a=>{
     const names=a.servico.split(' + ');
     names.forEach(name=>{
       const svc=SERVICES.find(s=>s.n===name);
@@ -1844,17 +1943,17 @@ function buildCharts(){
   });
   const svcSorted=Object.entries(svcTotals).sort((a,b)=>b[1]-a[1]).slice(0,6);
   charts.push(new Chart($('#chartServices'),{type:'bar',data:{
-    labels:svcSorted.length?svcSorted.map(x=>x[0]):['Sem dados ainda'],
+    labels:svcSorted.length?svcSorted.map(x=>x[0]):['Sem dados no período'],
     datasets:[{data:svcSorted.length?svcSorted.map(x=>+x[1].toFixed(2)):[0],backgroundColor:brand,borderRadius:6,barThickness:16}]},
     options:{indexAxis:'y',maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+BRL(c.parsed.x)}}},
       scales:{x:{grid:{color:border},border:{display:false},ticks:{callback:v=>'R$'+(v/1000).toFixed(1)+'k'}},y:{grid:{display:false}}}}}));
-  // Melhores dias da semana — agendamentos concluídos e faturamento agrupados por dia da semana
+  // Melhores dias da semana — agendamentos concluídos e faturamento agrupados por dia da semana, dentro do período selecionado
   const weekdayOrder=[1,2,3,4,5,6,0]; // Segunda…Domingo
   const weekdayShort=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
   const weekdayCounts=weekdayOrder.map(()=>0);
   const weekdayRevenue=weekdayOrder.map(()=>0);
-  appts.filter(a=>a.status==='concluido').forEach(a=>{
+  rangeAppts.filter(a=>a.status==='concluido').forEach(a=>{
     const dow=parseDate(a.date).getDay();
     const idx=weekdayOrder.indexOf(dow);
     if(idx<0)return;
@@ -2004,12 +2103,13 @@ function placeAppt(a){
   if(!col)return;
   const pro=PROS.find(p=>p.id===a.pro);
   if(!pro)return;
-  const isNewFromApp=a.origem==='app'&&a.status==='pendente';
+  const isPending=a.status==='pendente'; // pulsa até o profissional confirmar, não importa quem criou
+  const isFromApp=a.origem==='app';
   const el=document.createElement('div');
-  el.className='appt'+(a.needsAttention?' needs-attention':'')+(isNewFromApp?' new-from-app':'');el.dataset.id=a.id;
+  el.className='appt'+(a.needsAttention?' needs-attention':'')+(isPending?' new-from-app':'');el.dataset.id=a.id;
   el.style.top=(a.start/60*HOUR_PX)+'px';
   el.style.height=(a.dur/60*HOUR_PX-6)+'px';
-  if(!a.needsAttention&&!isNewFromApp){
+  if(!a.needsAttention&&!isPending){
     el.style.background=pro.cor+(document.documentElement.dataset.theme==='dark'?'26':'14');
     el.style.borderColor=pro.cor+'55';
   }
@@ -2017,8 +2117,8 @@ function placeAppt(a){
   const hasPhone=!!findClientPhone(a.cliente);
   const cbNote=(a.status==='concluido'&&a.cashbackGerado)?` · ${BRL(a.cashbackGerado)} cashback`:'';
   const attentionNote=a.needsAttention?' · ⚠ sem confirmação':'';
-  const appNote=isNewFromApp?' · 📲 agendado pelo app':'';
-  el.innerHTML=`<div class="ap-c"><span class="status-dot" style="background:${STATUS[a.status].c}"></span>${a.cliente}</div><div class="ap-s">${a.servico} · ${BRL(a.valor||0)}</div><div class="ap-t num">${minToLabel(a.start)} – ${minToLabel(a.start+a.dur)}</div><div class="ap-status" style="color:${a.needsAttention?'var(--neg)':isNewFromApp?'var(--info)':STATUS[a.status].c}">${STATUS[a.status].t}${cbNote}${attentionNote}${appNote}${hasPhone?' <span class="ap-wa">· WhatsApp ↗</span>':''}</div>${apptActionsHtml(a)}`;
+  const appNote=isFromApp?' · 📲 agendado pelo app':'';
+  el.innerHTML=`<div class="ap-c"><span class="status-dot" style="background:${STATUS[a.status].c}"></span>${a.cliente}</div><div class="ap-s">${a.servico} · ${BRL(a.valor||0)}</div><div class="ap-t num">${minToLabel(a.start)} – ${minToLabel(a.start+a.dur)}</div><div class="ap-status" style="color:${a.needsAttention?'var(--neg)':isPending?'var(--info)':STATUS[a.status].c}">${STATUS[a.status].t}${cbNote}${attentionNote}${appNote}${hasPhone?' <span class="ap-wa">· WhatsApp ↗</span>':''}</div>${apptActionsHtml(a)}`;
   attachDrag(el,a);
   el.addEventListener('click',()=>{ if(el._dragged)return; openWhatsApp(a)});
   col.appendChild(el);
@@ -2899,7 +2999,12 @@ function renderCampaignList(){
       <div class="cc-m"><b class="num">${c.ctr}</b><span>CTR</span></div>
       <div class="cc-m"><b class="num">${c.conv}</b><span>Conversões</span></div>
       <div class="cc-m"><b class="num">${c.receita}</b><span>Receita</span></div>
-    </div></div></div>`).join('');
+    </div>
+    <div style="display:flex;gap:10px;font-size:12.5px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <span class="rule-edit" onclick="openCampaignModal('${c.id}')">Editar</span>
+      <span class="rule-edit" style="color:var(--neg)" onclick="deleteCampaign('${c.id}')">Excluir</span>
+    </div>
+    </div></div>`).join('');
 }
 function renderMarketing(){
   renderCampaignList();
@@ -2924,7 +3029,7 @@ let stagedAdVideoUrl=null;
 let adEditId=null;
 let adTipoAtual='foto';
 const AD_PHOTO_W=800,AD_PHOTO_H=450;
-const AD_VIDEO_MAX_SECONDS=5;
+const AD_VIDEO_MAX_SECONDS=10;
 function adCtaLabel(ad){
   if(!ad.ctaDestino||ad.ctaDestino==='nenhum')return 'Sem botão';
   const dest={agendar:'Agendamento',fidelidade:'Recompensas',horarios:'Meus horários',externo:'Link externo'}[ad.ctaDestino]||ad.ctaDestino;
@@ -3162,7 +3267,7 @@ async function saveAd(){
     return;
   }
   if(adTipoAtual==='video'&&!stagedAdVideoUrl){
-    errEl.textContent='Escolha um vídeo (até 5 segundos) e aguarde o envio terminar.';
+    errEl.textContent='Escolha um vídeo (até 10 segundos) e aguarde o envio terminar.';
     errEl.style.display='block';
     toast('Escolha um vídeo e aguarde o envio terminar');
     return;
@@ -3205,12 +3310,28 @@ async function deleteAd(id){
   await db.collection('ads').doc(id).delete();
   toast('Anúncio "'+(ad?ad.titulo:'')+'" removido');
 }
-function openCampaignModal(){
-  $('#cpNome').value='';$('#cpMensagem').value='';
+let campaignEditId=null;
+function openCampaignModal(id){
+  campaignEditId=id||null;
   $('#cpSegmento').innerHTML=SEGMENTS.map(s=>`<option>${s}</option>`).join('');
-  $('#cpCta').value='agendar';
-  $('#cpData').value=fmtDate(new Date());
-  $('#cpHora').value='09:00';
+  if(campaignEditId){
+    const c=CAMPAIGNS.find(x=>x.id===campaignEditId);
+    $('#campaignModalTitle').textContent='Editar campanha';
+    $('#campaignModalSaveBtn').textContent='Salvar alterações';
+    $('#cpNome').value=c.name;
+    $('#cpMensagem').value=c.mensagem||'';
+    $('#cpSegmento').value=c.desc&&c.desc.match(/"([^"]+)"/)?.[1]||SEGMENTS[0];
+    $('#cpCta').value=c.cta||'agendar';
+    $('#cpData').value=fmtDate(new Date());
+    $('#cpHora').value='09:00';
+  }else{
+    $('#campaignModalTitle').textContent='Nova campanha (push)';
+    $('#campaignModalSaveBtn').textContent='Criar e agendar push';
+    $('#cpNome').value='';$('#cpMensagem').value='';
+    $('#cpCta').value='agendar';
+    $('#cpData').value=fmtDate(new Date());
+    $('#cpHora').value='09:00';
+  }
   $('#cpError').style.display='none';
   $('#modalCampaignScrim').classList.add('open');
 }
@@ -3223,15 +3344,28 @@ async function saveCampaign(){
   const dataEnvio=$('#cpData').value,horaEnvio=$('#cpHora').value;
   const hojeStr=fmtDate(new Date());
   const status=(dataEnvio&&dataEnvio>hojeStr)?'Agendada':'Ativa';
-  await db.collection('campaigns').add({
-    ico:'📣',bg:'var(--info-soft)',name:nome,
-    desc:'Push para "'+segmento+'": '+msg,
-    mensagem:msg,cta,
-    status,imp:0,clicks:0,ctr:'—',conv:0,receita:'R$ 0',
-    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-  });
-  closeCampaignModal();
-  toast(status==='Agendada'?'Campanha "'+nome+'" agendada para '+new Date(dataEnvio+'T00:00:00').toLocaleDateString('pt-BR')+' às '+horaEnvio:'Campanha "'+nome+'" criada · push enviado agora para o segmento "'+segmento+'"');
+  if(campaignEditId){
+    await db.collection('campaigns').doc(campaignEditId).update({
+      name:nome,desc:'Push para "'+segmento+'": '+msg,mensagem:msg,cta,status,
+    });
+    closeCampaignModal();
+    toast('Campanha "'+nome+'" atualizada com sucesso');
+  }else{
+    await db.collection('campaigns').add({
+      ico:'📣',bg:'var(--info-soft)',name:nome,
+      desc:'Push para "'+segmento+'": '+msg,
+      mensagem:msg,cta,
+      status,imp:0,clicks:0,ctr:'—',conv:0,receita:'R$ 0',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeCampaignModal();
+    toast(status==='Agendada'?'Campanha "'+nome+'" agendada para '+new Date(dataEnvio+'T00:00:00').toLocaleDateString('pt-BR')+' às '+horaEnvio:'Campanha "'+nome+'" criada · push enviado agora para o segmento "'+segmento+'"');
+  }
+}
+async function deleteCampaign(id){
+  const c=CAMPAIGNS.find(x=>x.id===id);
+  await db.collection('campaigns').doc(id).delete();
+  toast('Campanha "'+(c?c.name:'')+'" removida');
 }
 
 /* ================= ESTOQUE ================= */
