@@ -231,6 +231,7 @@ a{color:inherit;text-decoration:none}
 }
 [data-theme="dark"] .next-appt-card{box-shadow:0 12px 30px rgba(0,0,0,.4)}
 .next-appt-card .na-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.next-appt-card .na-eyebrow-confirmed{opacity:1;color:#fff}
 .next-appt-card .na-date{font-family:var(--font-display);font-size:24px;font-weight:800;margin-top:4px;letter-spacing:-.01em}
 .next-appt-card .na-detail{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25)}
 .next-appt-card .na-avatar{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-weight:800;font-size:14px}
@@ -530,7 +531,7 @@ a{color:inherit;text-decoration:none}
     <div class="splash-logo" id="splashLogo">
       <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.8 20 19M8.5 15.2 20 5"/></svg>
     </div>
-    <div class="splash-name" id="splashSalonName">Studio Jardins</div>
+    <div class="splash-name" id="splashSalonName"></div>
   </div>
 
   <div class="screen" id="screen">
@@ -726,7 +727,7 @@ function formatClientNotifTime(ts){
 function renderClientNotifList(){
   const el=$('#clientNotifList');
   if(!el)return;
-  const notifs=CLIENT_NOTIFS_LOCAL.slice().reverse();
+  const notifs=CLIENT_NOTIFS_LOCAL.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
   const unread=notifs.filter(n=>!n.read);
   const dot=$('#clientNotifDot');
   if(dot)dot.style.display=unread.length?'block':'none';
@@ -791,8 +792,7 @@ let TIERS=[
   {nome:'Bronze',min:0,ico:'🥉',cor1:'#B08D57',cor2:'#8C6B3F',beneficios:[]},
   {nome:'Prata',min:500,ico:'🥈',cor1:'#9CA3AF',cor2:'#6B7280',beneficios:[]},
   {nome:'Ouro',min:1500,ico:'🥇',cor1:'#E0B84A',cor2:'#B8860B',beneficios:[]},
-  {nome:'Black',min:4000,ico:'🖤',cor1:'#3A3841',cor2:'#17151B',beneficios:[]},
-  {nome:'Diamond',min:10000,ico:'💎',cor1:'#C2366F',cor2:'#7A2049',beneficios:[]},
+  {nome:'Platinum',min:4000,ico:'💎',cor1:'#C2366F',cor2:'#7A2049',beneficios:[]},
 ];
 
 let PROS=[];
@@ -983,15 +983,21 @@ function afterRender(){
 /* ================= CARROSSEL PRINCIPAL (Próximo Agendamento alternando com Ads) ================= */
 function renderApptCardInner(upcoming){
   if(upcoming){
-    const pro=proById(upcoming.pro);
+    const pro=proById(upcoming.pro)||{nome:'Profissional',cor:'#8E8A96'};
     const d=parseDate(upcoming.date);
     const dateLabel=d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
     const apptDt=apptRealDateTime(upcoming);
     const minutesUntil=(apptDt-new Date())/60000;
     const isPulsing=minutesUntil<=30&&minutesUntil>0;
     const isExpired=minutesUntil<=0;
+    const isConfirmed=upcoming.status==='confirmado';
+    let eyebrowText='Próximo agendamento';
+    if(isExpired)eyebrowText='⏰ Horário passou';
+    else if(isPulsing)eyebrowText='⏰ Está quase na hora!';
+    else if(isConfirmed)eyebrowText='✅ Confirmado';
+    else if(upcoming.status==='pendente')eyebrowText='Aguardando confirmação do salão';
     return `<div class="next-appt-card fade-in ${isPulsing?'pulsing':''} ${isExpired?'expired':''}">
-      <div class="na-eyebrow">${isExpired?'⏰ Horário passou':isPulsing?'⏰ Está quase na hora!':'Próximo agendamento'}</div>
+      <div class="na-eyebrow${isConfirmed?' na-eyebrow-confirmed':''}">${eyebrowText}</div>
       <div class="na-date">${dateLabel} · ${upcoming.hora}</div>
       <div class="na-detail">
         <div class="na-avatar" style="overflow:hidden">${staffAvatarInner(pro)}</div>
@@ -1206,7 +1212,7 @@ function renderInicio(){
   </div>`;
 
   if(pendingReview){
-    const pro=proById(pendingReview.pro);
+    const pro=proById(pendingReview.pro)||{nome:'Profissional',cor:'#8E8A96'};
     html+=`<div class="review-prompt fade-in" onclick="openReviewSheet('${pendingReview.id}')" style="cursor:pointer">
       <div class="rp-ico">⭐</div>
       <div class="rp-text">Avalie seu último atendimento<span>${pendingReview.servico} com ${pro.nome}</span></div>
@@ -1465,7 +1471,7 @@ function openReviewSheet(id){
   closeAllSheets();
   reviewApptId=id; reviewProStars=5; reviewSvcStars=5;
   const a=APPTS.find(x=>x.id===id);
-  const pro=proById(a.pro);
+  const pro=proById(a.pro)||{nome:'Profissional',cor:'#8E8A96'};
   renderReviewBody(pro);
   $('#reviewScrim').classList.add('open');
   $('#reviewSheet').classList.add('open');
@@ -1500,7 +1506,7 @@ async function submitReview(){
   const a=APPTS.find(x=>x.id===reviewApptId);
   if(a)await db.collection('appointments').doc(reviewApptId).update({rated:true,ratingPro:reviewProStars,ratingServico:reviewSvcStars});
   closeReviewSheet();
-  toast('Obrigado pela avaliação! ⭐ Isso ajuda '+(a?proById(a.pro).nome.split(' ')[0]:'a equipe')+' a melhorar cada vez mais');
+  toast('Obrigado pela avaliação! ⭐ Isso ajuda '+(a?(proById(a.pro)||{nome:'a equipe'}).nome.split(' ')[0]:'a equipe')+' a melhorar cada vez mais');
 }
 
 /* ================= AGENDAR (WIZARD) ================= */
