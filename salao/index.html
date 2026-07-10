@@ -259,16 +259,16 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .ag-slot-line{position:absolute;left:0;right:0;border-top:1px solid var(--border);pointer-events:none}
 .ag-slot-line.half{border-top-style:dashed;opacity:.5}
 .appt{
-  position:absolute;left:6px;right:6px;border-radius:9px;padding:7px 10px;font-size:11.5px;cursor:grab;
+  position:absolute;left:6px;right:6px;border-radius:10px;padding:9px 12px;font-size:12.5px;cursor:grab;
   border:1px solid transparent;overflow:hidden;user-select:none;box-shadow:var(--shadow-sm);
-  transition:box-shadow .12s,transform .12s;
+  transition:box-shadow .12s,transform .12s;min-height:58px;
 }
 .appt:hover{box-shadow:var(--shadow-md);z-index:8}
 .appt.dragging{opacity:.85;box-shadow:var(--shadow-lg);z-index:20;cursor:grabbing;transform:scale(1.02)}
-.appt .ap-c{font-weight:700;font-size:12px;display:flex;align-items:center;gap:6px}
-.appt .ap-s{opacity:.85}
-.appt .ap-t{opacity:.7;font-size:10.5px;margin-top:1px}
-.appt .ap-status{font-size:10px;font-weight:700;margin-top:3px;display:flex;align-items:center;gap:4px}
+.appt .ap-c{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px}
+.appt .ap-s{opacity:.85;margin-top:1px}
+.appt .ap-t{opacity:.7;font-size:11.5px;margin-top:2px}
+.appt .ap-status{font-size:11px;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .appt .ap-wa{opacity:.75}
 
 /* week view */
@@ -480,10 +480,9 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .st-meta-row b{font-family:var(--font-display);font-weight:800;font-size:14px;color:var(--text)}
 
 /* appointment actions */
-.appt-actions{position:absolute;right:5px;bottom:5px;display:flex;gap:3px;opacity:0;transition:opacity .12s;z-index:9}
-.appt:hover .appt-actions{opacity:1}
+.appt-actions{position:absolute;right:6px;bottom:6px;display:flex;gap:4px;z-index:9}
 .ap-act{
-  width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;
+  width:25px;height:25px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;
   background:var(--surface);box-shadow:var(--shadow-sm);color:var(--text-2);border:1px solid var(--border);
   transition:transform .1s,background .1s;
 }
@@ -1979,7 +1978,7 @@ function buildCharts(){
 }
 
 /* ================= AGENDA ================= */
-const HOUR_PX=64;let DAY_START=8,DAY_HOURS=12; // recalculated per day from BUSINESS_HOURS
+const HOUR_PX=92;let DAY_START=8,DAY_HOURS=12; // recalculated per day from BUSINESS_HOURS
 const WEEKDAY_LABELS=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 let SALON_CONFIG={nome:'Studio Jardins',proprietario:'',endereco:'R. Augusta, 2140 · Jardins · São Paulo, SP',telefone:'(11) 3045-8800',cnpj:'',instagram:'',site:''};
 let BUSINESS_HOURS=[
@@ -3292,8 +3291,12 @@ async function saveAd(){
   const saveBtn=$('#adModalSaveBtn');
   saveBtn.disabled=true;
   try{
-    if(adEditId)await db.collection('ads').doc(adEditId).update(obj);
-    else await db.collection('ads').add({...obj,visualizacoes:0,cliques:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    if(adEditId){
+      await db.collection('ads').doc(adEditId).update(obj);
+    }else{
+      await db.collection('ads').add({...obj,visualizacoes:0,cliques:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      if(obj.status==='ativo')notifyAllClients('🖼 Novo anúncio: '+titulo);
+    }
     closeAdModal();
     toast('Anúncio "'+titulo+'" '+(adEditId?'atualizado':'publicado')+' com sucesso');
   }catch(err){
@@ -3336,6 +3339,19 @@ function openCampaignModal(id){
   $('#modalCampaignScrim').classList.add('open');
 }
 function closeCampaignModal(){$('#modalCampaignScrim').classList.remove('open')}
+async function notifyAllClients(text){
+  if(!CLIENTS.length)return;
+  const chunks=[];
+  for(let i=0;i<CLIENTS.length;i+=400)chunks.push(CLIENTS.slice(i,i+400));
+  for(const chunk of chunks){
+    const batch=db.batch();
+    chunk.forEach(c=>{
+      const ref=db.collection('clientNotifications').doc();
+      batch.set(ref,{clientId:c.id,text,ts:Date.now(),read:false});
+    });
+    await batch.commit();
+  }
+}
 async function saveCampaign(){
   const nome=$('#cpNome').value.trim(),msg=$('#cpMensagem').value.trim();
   if(!nome||!msg){$('#cpError').style.display='block';return}
@@ -3359,7 +3375,12 @@ async function saveCampaign(){
       createdAt:firebase.firestore.FieldValue.serverTimestamp(),
     });
     closeCampaignModal();
-    toast(status==='Agendada'?'Campanha "'+nome+'" agendada para '+new Date(dataEnvio+'T00:00:00').toLocaleDateString('pt-BR')+' às '+horaEnvio:'Campanha "'+nome+'" criada · push enviado agora para o segmento "'+segmento+'"');
+    if(status==='Ativa'){
+      notifyAllClients('📣 Nova oferta: '+nome+' — '+msg);
+      toast('Campanha "'+nome+'" criada · push enviado agora para o segmento "'+segmento+'"');
+    }else{
+      toast('Campanha "'+nome+'" agendada para '+new Date(dataEnvio+'T00:00:00').toLocaleDateString('pt-BR')+' às '+horaEnvio);
+    }
   }
 }
 async function deleteCampaign(id){
