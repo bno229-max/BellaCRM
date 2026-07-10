@@ -612,10 +612,12 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <div id="authModeLogin">
       <h1>Acesso do salão</h1>
       <p class="auth-sub">Entre com sua conta para gerenciar o Studio Jardins.</p>
-      <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="voce@studiojardins.com" autocomplete="username"></div>
-      <div class="field"><label>Senha</label><input id="loginSenha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLoginSalao()"></div>
-      <p id="loginError" class="auth-error" style="display:none"></p>
-      <button class="btn btn-primary btn-block" onclick="doLoginSalao()">Entrar</button>
+      <form onsubmit="event.preventDefault();doLoginSalao();return false">
+        <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="voce@studiojardins.com" autocomplete="username"></div>
+        <div class="field"><label>Senha</label><input id="loginSenha" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+        <p id="loginError" class="auth-error" style="display:none"></p>
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+      </form>
       <div class="auth-links">
         <span class="auth-link" onclick="setAuthMode('forgot')">Esqueci minha senha</span>
         <span class="auth-link" onclick="setAuthMode('register')">1º Acesso</span>
@@ -626,10 +628,12 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <div id="authModeForgot" style="display:none">
       <h1>Recuperar senha</h1>
       <p class="auth-sub">Informe seu email — vamos enviar um link para redefinir sua senha.</p>
-      <div class="field"><label>Email</label><input id="forgotEmail" type="email" placeholder="voce@studiojardins.com"></div>
-      <p id="forgotError" class="auth-error" style="display:none"></p>
-      <p id="forgotSuccess" class="auth-success" style="display:none">Email enviado! Confira sua caixa de entrada.</p>
-      <button class="btn btn-primary btn-block" onclick="doForgotPasswordSalao()">Enviar link de recuperação</button>
+      <form onsubmit="event.preventDefault();doForgotPasswordSalao();return false">
+        <div class="field"><label>Email</label><input id="forgotEmail" type="email" placeholder="voce@studiojardins.com" autocomplete="username"></div>
+        <p id="forgotError" class="auth-error" style="display:none"></p>
+        <p id="forgotSuccess" class="auth-success" style="display:none">Email enviado! Confira sua caixa de entrada.</p>
+        <button type="submit" class="btn btn-primary btn-block">Enviar link de recuperação</button>
+      </form>
       <div class="auth-links"><span class="auth-link" onclick="setAuthMode('login')">← Voltar ao login</span></div>
     </div>
 
@@ -637,11 +641,13 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <div id="authModeRegister" style="display:none">
       <h1>1º Acesso</h1>
       <p class="auth-sub">Crie sua conta de administrador do salão.</p>
-      <div class="field"><label>Email</label><input id="registerEmail" type="email" placeholder="voce@studiojardins.com"></div>
-      <div class="field"><label>Crie uma senha</label><input id="registerSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
-      <div class="field"><label>Confirme a senha</label><input id="registerSenha2" type="password" placeholder="Repita a senha"></div>
-      <p id="registerError" class="auth-error" style="display:none"></p>
-      <button class="btn btn-primary btn-block" onclick="doRegisterSalao()">Criar conta e entrar</button>
+      <form onsubmit="event.preventDefault();doRegisterSalao();return false">
+        <div class="field"><label>Email</label><input id="registerEmail" type="email" placeholder="voce@studiojardins.com" autocomplete="username"></div>
+        <div class="field"><label>Crie uma senha</label><input id="registerSenha" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+        <div class="field"><label>Confirme a senha</label><input id="registerSenha2" type="password" placeholder="Repita a senha" autocomplete="new-password"></div>
+        <p id="registerError" class="auth-error" style="display:none"></p>
+        <button type="submit" class="btn btn-primary btn-block">Criar conta e entrar</button>
+      </form>
       <div class="auth-links"><span class="auth-link" onclick="setAuthMode('login')">← Voltar ao login</span></div>
     </div>
   </div>
@@ -3034,65 +3040,62 @@ function uploadAdVideoToStorage(file){
   isUploadingAdVideo=true;
   stagedAdVideoUrl=null;
   saveBtn.disabled=true;
-  saveBtn.textContent='Enviando vídeo...';
+  saveBtn.textContent='Enviando vídeo... aguarde';
   statusEl.style.display='block';
   statusEl.style.color='var(--info)';
   statusEl.textContent='Enviando vídeo... 0%';
+  errEl.style.display='none';
 
   const path='ads/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'');
   const ref=storage.ref().child(path);
   const task=ref.put(file);
 
-  const timeoutId=setTimeout(()=>{
-    if(!isUploadingAdVideo)return;
+  const finishUploadUI=()=>{
     isUploadingAdVideo=false;
-    task.cancel();
-    statusEl.style.display='none';
     saveBtn.disabled=false;
     saveBtn.textContent=adEditId?'Salvar alterações':'Publicar anúncio';
-    errEl.textContent='O envio do vídeo demorou demais e foi cancelado. Isso geralmente acontece quando o Firebase Storage ainda não foi configurado neste projeto — confirme que você ativou o Storage no Console e publicou as regras de segurança (peça o arquivo storage.rules).';
+  };
+
+  const timeoutId=setTimeout(()=>{
+    if(!isUploadingAdVideo)return;
+    task.cancel();
+    finishUploadUI();
+    statusEl.style.display='none';
+    errEl.textContent='O envio do vídeo demorou demais e foi cancelado. Isso geralmente acontece quando o Firebase Storage ainda não foi configurado neste projeto — confirme que você ativou o Storage no Console e publicou as regras de segurança (storage.rules).';
     errEl.style.display='block';
+    toast('Envio do vídeo cancelado por demora — veja o aviso no formulário');
   },30000);
 
-  task.on('state_changed',
-    snapshot=>{
-      const pct=Math.round((snapshot.bytesTransferred/snapshot.totalBytes)*100);
-      statusEl.textContent='Enviando vídeo... '+pct+'%';
-    },
-    err=>{
-      clearTimeout(timeoutId);
-      isUploadingAdVideo=false;
-      console.error('Erro no upload do vídeo:',err.code,err.message);
-      statusEl.style.display='none';
-      saveBtn.disabled=false;
-      saveBtn.textContent=adEditId?'Salvar alterações':'Publicar anúncio';
-      if(err.code==='storage/unauthorized'){
-        errEl.textContent='Envio bloqueado pelas regras do Firebase Storage. Publique as regras de segurança do Storage no Console (peça o arquivo storage.rules) e tente novamente.';
-      }else if(err.code==='storage/unknown'||err.code==='storage/retry-limit-exceeded'){
-        errEl.textContent='Não foi possível conectar ao Firebase Storage. Confirme que o Storage está ativado no Console (Build → Storage → Get started) e tente de novo.';
-      }else{
-        errEl.textContent='Não foi possível enviar o vídeo ('+(err.code||err.message||'erro desconhecido')+'). Tente novamente.';
-      }
-      errEl.style.display='block';
-      stagedAdVideoUrl=null;
-    },
-    async()=>{
-      clearTimeout(timeoutId);
-      isUploadingAdVideo=false;
-      try{
-        stagedAdVideoUrl=await ref.getDownloadURL();
-        statusEl.style.color='var(--pos)';
-        statusEl.textContent='Vídeo enviado com sucesso ✓';
-        setTimeout(()=>{statusEl.style.display='none'},2000);
-      }catch(err){
-        errEl.textContent='O vídeo foi enviado, mas não consegui gerar o link. Tente novamente.';
-        errEl.style.display='block';
-        statusEl.style.display='none';
-      }
-      saveBtn.disabled=false;
-      saveBtn.textContent=adEditId?'Salvar alterações':'Publicar anúncio';
+  // progresso visual (não decide sucesso/erro — isso fica por conta da Promise abaixo, que é mais confiável)
+  task.on('state_changed',snapshot=>{
+    const pct=snapshot.totalBytes?Math.round((snapshot.bytesTransferred/snapshot.totalBytes)*100):0;
+    statusEl.textContent='Enviando vídeo... '+pct+'%';
+  });
+
+  task.then(async()=>{
+    clearTimeout(timeoutId);
+    stagedAdVideoUrl=await ref.getDownloadURL();
+    statusEl.style.color='var(--pos)';
+    statusEl.textContent='Vídeo enviado com sucesso ✓';
+    setTimeout(()=>{statusEl.style.display='none'},2000);
+    finishUploadUI();
+    toast('Vídeo enviado com sucesso · agora é só preencher o resto e publicar');
+  }).catch(err=>{
+    clearTimeout(timeoutId);
+    console.error('Erro no upload do vídeo:',err&&err.code,err&&err.message);
+    statusEl.style.display='none';
+    finishUploadUI();
+    if(err&&err.code==='storage/unauthorized'){
+      errEl.textContent='Envio bloqueado pelas regras do Firebase Storage. Publique as regras de segurança do Storage no Console (storage.rules) e tente novamente.';
+    }else if(err&&(err.code==='storage/unknown'||err.code==='storage/retry-limit-exceeded')){
+      errEl.textContent='Não foi possível conectar ao Firebase Storage. Confirme que o Storage está ativado no Console (Build → Storage → Get started) e tente de novo.';
+    }else{
+      errEl.textContent='Não foi possível enviar o vídeo ('+((err&&err.code)||(err&&err.message)||'erro desconhecido')+'). Tente novamente.';
     }
-  );
+    errEl.style.display='block';
+    toast('Falha ao enviar o vídeo — veja o aviso no formulário');
+    stagedAdVideoUrl=null;
+  });
 }
 function openAdModal(id){
   adEditId=id||null;
@@ -3142,19 +3145,26 @@ function closeAdModal(){$('#modalAdScrim').classList.remove('open')}
 async function saveAd(){
   const titulo=$('#adTitulo').value.trim();
   const errEl=$('#adError');
+  if(isUploadingAdVideo){
+    toast('Aguarde o vídeo terminar de enviar antes de publicar');
+    return;
+  }
   if(!titulo){
     errEl.textContent='Preencha o título do anúncio.';
     errEl.style.display='block';
+    toast('Preencha o título do anúncio');
     return;
   }
   if(adTipoAtual==='foto'&&!stagedAdPhoto){
     errEl.textContent='Escolha uma foto (800×450px) para o anúncio.';
     errEl.style.display='block';
+    toast('Escolha uma foto para o anúncio');
     return;
   }
   if(adTipoAtual==='video'&&!stagedAdVideoUrl){
     errEl.textContent='Escolha um vídeo (até 5 segundos) e aguarde o envio terminar.';
     errEl.style.display='block';
+    toast('Escolha um vídeo e aguarde o envio terminar');
     return;
   }
   const ctaDestino=$('#adCtaDestino').value;
@@ -3162,6 +3172,7 @@ async function saveAd(){
   if(ctaDestino==='externo'&&!ctaUrl){
     errEl.textContent='Cole o link externo para onde o botão deve levar.';
     errEl.style.display='block';
+    toast('Cole o link externo do botão');
     return;
   }
   errEl.style.display='none';
@@ -3173,10 +3184,21 @@ async function saveAd(){
     ctaDestino,ctaUrl:ctaDestino==='externo'?ctaUrl:'',
     status:$('#adStatus').value,
   };
-  if(adEditId)await db.collection('ads').doc(adEditId).update(obj);
-  else await db.collection('ads').add({...obj,visualizacoes:0,cliques:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-  closeAdModal();
-  toast('Anúncio "'+titulo+'" '+(adEditId?'atualizado':'publicado')+' com sucesso');
+  const saveBtn=$('#adModalSaveBtn');
+  saveBtn.disabled=true;
+  try{
+    if(adEditId)await db.collection('ads').doc(adEditId).update(obj);
+    else await db.collection('ads').add({...obj,visualizacoes:0,cliques:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    closeAdModal();
+    toast('Anúncio "'+titulo+'" '+(adEditId?'atualizado':'publicado')+' com sucesso');
+  }catch(err){
+    console.error('Erro ao salvar anúncio:',err);
+    errEl.textContent='Não foi possível salvar o anúncio no banco de dados. Confirme se as regras do Firestore foram publicadas e tente novamente.';
+    errEl.style.display='block';
+    toast('Erro ao salvar o anúncio — veja o aviso no formulário');
+  }finally{
+    saveBtn.disabled=false;
+  }
 }
 async function deleteAd(id){
   const ad=ADS.find(x=>x.id===id);

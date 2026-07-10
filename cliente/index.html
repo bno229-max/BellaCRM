@@ -477,10 +477,12 @@ a{color:inherit;text-decoration:none}
       <div id="cAuthModeLogin">
         <h1>Entrar</h1>
         <p class="auth-sub">Acesse sua conta para agendar e acompanhar sua fidelidade.</p>
-        <div class="field"><label>Email</label><input id="cLoginEmail" type="email" placeholder="voce@email.com" autocomplete="username"></div>
-        <div class="field"><label>Senha</label><input id="cLoginSenha" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLoginCliente()"></div>
-        <p id="cLoginError" class="auth-error" style="display:none"></p>
-        <button class="btn btn-primary btn-block" onclick="doLoginCliente()">Entrar</button>
+        <form onsubmit="event.preventDefault();doLoginCliente();return false">
+          <div class="field"><label>Email</label><input id="cLoginEmail" type="email" placeholder="voce@email.com" autocomplete="username"></div>
+          <div class="field"><label>Senha</label><input id="cLoginSenha" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+          <p id="cLoginError" class="auth-error" style="display:none"></p>
+          <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        </form>
         <div class="auth-links">
           <span class="auth-link" onclick="setClientAuthMode('forgot')">Esqueci minha senha</span>
           <span class="auth-link" onclick="setClientAuthMode('register')">1º Acesso</span>
@@ -490,21 +492,25 @@ a{color:inherit;text-decoration:none}
       <div id="cAuthModeForgot" style="display:none">
         <h1>Recuperar senha</h1>
         <p class="auth-sub">Informe seu email — vamos enviar um link para redefinir sua senha.</p>
-        <div class="field"><label>Email</label><input id="cForgotEmail" type="email" placeholder="voce@email.com"></div>
-        <p id="cForgotError" class="auth-error" style="display:none"></p>
-        <p id="cForgotSuccess" class="auth-success" style="display:none">Email enviado! Confira sua caixa de entrada.</p>
-        <button class="btn btn-primary btn-block" onclick="doForgotPasswordCliente()">Enviar link de recuperação</button>
+        <form onsubmit="event.preventDefault();doForgotPasswordCliente();return false">
+          <div class="field"><label>Email</label><input id="cForgotEmail" type="email" placeholder="voce@email.com" autocomplete="username"></div>
+          <p id="cForgotError" class="auth-error" style="display:none"></p>
+          <p id="cForgotSuccess" class="auth-success" style="display:none">Email enviado! Confira sua caixa de entrada.</p>
+          <button type="submit" class="btn btn-primary btn-block">Enviar link de recuperação</button>
+        </form>
         <div class="auth-links"><span class="auth-link" onclick="setClientAuthMode('login')">← Voltar ao login</span></div>
       </div>
 
       <div id="cAuthModeRegister" style="display:none">
         <h1>1º Acesso</h1>
         <p class="auth-sub">Crie sua conta para começar a agendar pelo app.</p>
-        <div class="field"><label>Email</label><input id="cRegisterEmail" type="email" placeholder="voce@email.com"></div>
-        <div class="field"><label>Crie uma senha</label><input id="cRegisterSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
-        <div class="field"><label>Confirme a senha</label><input id="cRegisterSenha2" type="password" placeholder="Repita a senha"></div>
-        <p id="cRegisterError" class="auth-error" style="display:none"></p>
-        <button class="btn btn-primary btn-block" onclick="doRegisterCliente()">1º Acesso</button>
+        <form onsubmit="event.preventDefault();doRegisterCliente();return false">
+          <div class="field"><label>Email</label><input id="cRegisterEmail" type="email" placeholder="voce@email.com" autocomplete="username"></div>
+          <div class="field"><label>Crie uma senha</label><input id="cRegisterSenha" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+          <div class="field"><label>Confirme a senha</label><input id="cRegisterSenha2" type="password" placeholder="Repita a senha" autocomplete="new-password"></div>
+          <p id="cRegisterError" class="auth-error" style="display:none"></p>
+          <button type="submit" class="btn btn-primary btn-block">1º Acesso</button>
+        </form>
         <div class="auth-links"><span class="auth-link" onclick="setClientAuthMode('login')">← Voltar ao login</span></div>
       </div>
     </div>
