@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beauty Agenda — Gestão inteligente para salões</title>
+<title>Beauty Agenda — Gestão Completa para salões</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -938,7 +938,8 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       </div>
 
       <div class="config-section fade-in">
-        <h3>Níveis do programa</h3>
+        <div class="panel-head" style="margin-bottom:2px"><div><h3 style="margin:0">Níveis do programa</h3></div>
+        <button class="btn btn-ghost" onclick="openTierModal()" style="padding:6px 10px;font-size:12px">+ Novo nível</button></div>
         <div class="cs-sub">Cada nível oferece benefícios exclusivos. Clique em "Editar" para ajustar nome, pontos e benefícios — atualiza direto no app do cliente.</div>
         <div class="tier-grid" id="tierGrid"></div>
       </div>
@@ -1242,7 +1243,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     </div>
     <div class="field-row">
       <div class="field"><label>Tempo de experiência</label><input id="stExp" placeholder="Ex: 5 anos"></div>
-      <div class="field"><label>Idade</label><input id="stIdade" type="number" min="16" placeholder="Ex: 28"></div>
+      <div class="field"><label>Data de nascimento</label><input id="stNasc" type="date"></div>
     </div>
     <div class="field-row">
       <div class="field"><label>Sexo</label><select id="stSexo"><option value="">Não informar</option><option>Feminino</option><option>Masculino</option><option>Outro</option></select></div>
@@ -1426,7 +1427,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <!-- ============ MODAL: NÍVEL DO PROGRAMA ============ -->
 <div class="modal-scrim" id="modalTierScrim" onclick="if(event.target===this)closeTierModal()">
   <div class="modal" role="dialog" aria-label="Nível do programa">
-    <h3>Editar nível do programa</h3>
+    <h3 id="tierModalTitle">Editar nível do programa</h3>
     <p class="m-sub">Esse nível aparece igual no app do cliente — o nome e a meta de pontos atualizam nos dois lugares.</p>
     <div class="field-row">
       <div class="field"><label>Ícone (emoji)</label><input id="tierIco" maxlength="4" placeholder="🥉"></div>
@@ -1534,10 +1535,10 @@ let SERVICES=[];
 let CLIENTS=[];
 
 const SEED_STAFF=[
-  {sid:'marina',nome:'Marina Costa',esp:['Colorista','Cabeleireira'],cor:'#C2366F',idade:29,sexo:'Feminino',exp:'6 anos',rating:4.9,atend30:87,foto:null},
-  {sid:'thiago',nome:'Thiago Lima',esp:['Cabeleireiro'],cor:'#2E5FBF',idade:34,sexo:'Masculino',exp:'9 anos',rating:4.7,atend30:64,foto:null},
-  {sid:'julia',nome:'Júlia Rocha',esp:['Manicure','Pedicure'],cor:'#178A63',idade:25,sexo:'Feminino',exp:'3 anos',rating:4.8,atend30:102,foto:null},
-  {sid:'rafa',nome:'Rafa Mendes',esp:['Barbeiro'],cor:'#A96A0B',idade:31,sexo:'Masculino',exp:'5 anos',rating:4.6,atend30:78,foto:null},
+  {sid:'marina',nome:'Marina Costa',esp:['Colorista','Cabeleireira'],cor:'#C2366F',nasc:'1996-08-14',sexo:'Feminino',exp:'6 anos',rating:4.9,atend30:87,foto:null},
+  {sid:'thiago',nome:'Thiago Lima',esp:['Cabeleireiro'],cor:'#2E5FBF',nasc:'1991-11-03',sexo:'Masculino',exp:'9 anos',rating:4.7,atend30:64,foto:null},
+  {sid:'julia',nome:'Júlia Rocha',esp:['Manicure','Pedicure'],cor:'#178A63',nasc:'2000-05-22',sexo:'Feminino',exp:'3 anos',rating:4.8,atend30:102,foto:null},
+  {sid:'rafa',nome:'Rafa Mendes',esp:['Barbeiro'],cor:'#A96A0B',nasc:'1994-02-10',sexo:'Masculino',exp:'5 anos',rating:4.6,atend30:78,foto:null},
 ];
 const SEED_SERVICES=[
  {n:'Corte feminino',v:90,d:60,cbType:'percent',cbValue:5,pontos:90},{n:'Corte masculino',v:55,d:30,cbType:'percent',cbValue:5,pontos:55},
@@ -2160,13 +2161,13 @@ function renderDayView(){
   }
   DAY_START=parseInt(cfg.open.split(':')[0]);
   DAY_HOURS=parseInt(cfg.close.split(':')[0])-DAY_START;
-  const dayAppts=appts.filter(a=>a.date===dateStr);
+  const dayAppts=appts.filter(a=>a.date===dateStr&&a.status!=='cancelado');
   g.style.gridTemplateColumns='56px repeat('+PROS.length+', minmax(190px,1fr))';
   let html=`<div class="ag-col-head" style="border-left:none"></div>`;
   PROS.forEach(p=>{
     const proAppts=dayAppts.filter(a=>a.pro===p.id);
     const count=proAppts.length;
-    const provisoria=proAppts.filter(a=>a.status!=='cancelado'&&a.status!=='concluido').reduce((s,a)=>s+(a.valor||0),0);
+    const provisoria=proAppts.filter(a=>a.status!=='concluido').reduce((s,a)=>s+(a.valor||0),0);
     html+=`<div class="ag-col-head"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:${p.cor}1f;color:${p.cor}">${initials(p.nome)}</div><div style="flex:1;min-width:0"><div class="p-n">${p.nome}</div><div class="p-s">${staffEspLabel(p)}</div><div class="p-prov" title="Soma dos agendamentos ainda não encerrados hoje">Receita prov.: <b class="num">${BRL(provisoria)}</b></div></div><span class="p-count num">${count}</span></div>`;
   });
   html+=`<div class="ag-body-time" style="height:${DAY_HOURS*HOUR_PX}px">`;
@@ -2292,7 +2293,7 @@ function renderWeekView(){
     const d=new Date(ws);d.setDate(d.getDate()+i);
     const dStr=fmtDate(d);
     const isToday=dStr===TODAY_STR;
-    const dayAppts=appts.filter(a=>a.date===dStr).sort((x,y)=>x.start-y.start);
+    const dayAppts=appts.filter(a=>a.date===dStr&&a.status!=='cancelado').sort((x,y)=>x.start-y.start);
     html+=`<div class="week-day ${isToday?'is-today':''}">
       <div class="week-day-head"><span class="wd-name">${WEEKDAY_SHORT[i]}</span><span class="wd-num num">${d.getDate()}</span></div>`;
     if(dayAppts.length){
@@ -2324,7 +2325,7 @@ function renderMonthView(){
     const dStr=fmtDate(d);
     const inMonth=d.getMonth()===m;
     const isToday=dStr===TODAY_STR;
-    const dayAppts=appts.filter(a=>a.date===dStr);
+    const dayAppts=appts.filter(a=>a.date===dStr&&a.status!=='cancelado');
     const statusCounts={};
     dayAppts.forEach(a=>statusCounts[a.status]=(statusCounts[a.status]||0)+1);
     const dots=Object.keys(statusCounts).slice(0,4).map(s=>`<span class="mc-dot" style="background:${STATUS[s].c}"></span>`).join('');
@@ -2692,15 +2693,27 @@ async function finalizeAppt(id){
   const pontos=computePontos(a);
   await db.collection('appointments').doc(id).update({status:'concluido',cashbackGerado:cashback,pontosGerados:pontos});
   sessionRevenueAdded+=(a.valor||0);
-  const cliente=CLIENTS.find(c=>c.nome===a.cliente);
-  if(cliente){
+  // prioriza o vínculo direto por ID (sempre confiável); só cai pro nome se o agendamento for antigo/sem clientId
+  let clientId=a.clientId;
+  if(!clientId){
+    const cliente=CLIENTS.find(c=>c.nome===a.cliente);
+    clientId=cliente&&cliente.id;
+  }
+  if(clientId){
     const patch={
       total:firebase.firestore.FieldValue.increment(a.valor||0),
       visitas:firebase.firestore.FieldValue.increment(1),
       ult:0,
     };
     if(pontos>0)patch.pontos=firebase.firestore.FieldValue.increment(pontos);
-    await db.collection('clients').doc(cliente.id).update(patch);
+    if(cashback>0)patch.cashback=firebase.firestore.FieldValue.increment(cashback);
+    try{
+      await db.collection('clients').doc(clientId).update(patch);
+    }catch(err){
+      console.error('Erro ao creditar pontos/cashback do cliente:',err);
+    }
+  }else{
+    console.warn('finalizeAppt: não encontrei o cliente para creditar pontos/cashback:',a.cliente);
   }
   notifyClient(a,`🎉 Atendimento de ${a.servico} concluído! ${BRL(cashback)} de cashback${pontos>0?' e '+pontos+' pontos':''} creditados na sua carteira.`);
   dashboardRefresh();
@@ -2805,19 +2818,28 @@ function renderTiers(){
     <div class="tier-icon">${t.ico}</div><div class="tier-name">${t.nome}</div><div class="tier-req">${req}</div>
     <div class="tier-benefits">${beneficios.join('<br>')}</div>
     <div class="tier-members">${memberCounts[i]} membro${memberCounts[i]===1?'':'s'}</div>
-    <div style="margin-top:10px"><span class="rule-edit" onclick="openTierModal('${t.id}')">Editar</span></div>
+    <div style="margin-top:10px;display:flex;gap:10px;justify-content:center"><span class="rule-edit" onclick="openTierModal('${t.id}')">Editar</span>${sorted.length>1?`<span class="rule-edit" style="color:var(--neg)" onclick="deleteTier('${t.id}')">Excluir</span>`:''}</div>
   </div>`;
   }).join('');
 }
 let tierEditId=null;
 function openTierModal(id){
-  tierEditId=id;
-  const t=TIERS_DATA.find(x=>x.id===id);
-  if(!t)return;
-  $('#tierIco').value=t.ico||'';
-  $('#tierNome').value=t.nome||'';
-  $('#tierMin').value=t.min||0;
-  $('#tierBeneficios').value=(t.beneficios||[]).join('\n');
+  tierEditId=id||null;
+  if(tierEditId){
+    const t=TIERS_DATA.find(x=>x.id===tierEditId);
+    if(!t)return;
+    $('#tierModalTitle')&&($('#tierModalTitle').textContent='Editar nível do programa');
+    $('#tierIco').value=t.ico||'';
+    $('#tierNome').value=t.nome||'';
+    $('#tierMin').value=t.min||0;
+    $('#tierBeneficios').value=(t.beneficios||[]).join('\n');
+  }else{
+    $('#tierModalTitle')&&($('#tierModalTitle').textContent='Novo nível do programa');
+    $('#tierIco').value='⭐';
+    $('#tierNome').value='';
+    $('#tierMin').value='';
+    $('#tierBeneficios').value='';
+  }
   $('#tierError').style.display='none';
   $('#modalTierScrim').classList.add('open');
 }
@@ -2828,9 +2850,20 @@ async function saveTier(){
   if(!nome||isNaN(min)){$('#tierError').style.display='block';return}
   const ico=$('#tierIco').value.trim()||'⭐';
   const beneficios=$('#tierBeneficios').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  await db.collection('loyaltyTiers').doc(tierEditId).update({nome,min,ico,beneficios});
+  if(tierEditId){
+    await db.collection('loyaltyTiers').doc(tierEditId).update({nome,min,ico,beneficios});
+    toast('Nível "'+nome+'" atualizado · já reflete no app do cliente');
+  }else{
+    await db.collection('loyaltyTiers').add({nome,min,ico,beneficios,bg:'var(--surface-2)'});
+    toast('Nível "'+nome+'" criado · já aparece no app do cliente');
+  }
   closeTierModal();
-  toast('Nível "'+nome+'" atualizado · já reflete no app do cliente');
+}
+async function deleteTier(id){
+  if(TIERS_DATA.length<=1){toast('Mantenha pelo menos um nível no programa');return}
+  const t=TIERS_DATA.find(x=>x.id===id);
+  await db.collection('loyaltyTiers').doc(id).delete();
+  toast('Nível "'+(t?t.nome:'')+'" removido');
 }
 function renderFidRanking(){
   const data=[
@@ -2923,7 +2956,7 @@ function renderStaff(){
     <div><span class="stars">${starsHtml(p.rating)}</span><span class="st-rating-n">${p.rating.toFixed(1)}</span></div>
     <div class="st-meta-row">
       <div><b class="num">${p.atend30}</b>Atend. 30d</div>
-      <div><b class="num">${p.idade||'—'}</b>Idade</div>
+      <div><b class="num">${computeAge(p.nasc)||'—'}</b>Idade</div>
       <div><b>${(p.sexo||'—')[0]}</b>Sexo</div>
     </div>
   </div>`).join('');
@@ -2938,7 +2971,7 @@ function openStaff(id){
       <div style="margin-top:7px"><span class="stars">${starsHtml(p.rating)}</span><span class="st-rating-n">${p.rating.toFixed(1)} de avaliação</span></div></div></div>
     <div class="d-stats">
       <div class="d-stat"><div class="v num">${p.atend30}</div><div class="l">Atend. 30 dias</div></div>
-      <div class="d-stat"><div class="v num">${p.idade||'—'}</div><div class="l">Idade</div></div>
+      <div class="d-stat"><div class="v num">${computeAge(p.nasc)||'—'}</div><div class="l">Idade</div></div>
       <div class="d-stat"><div class="v">${p.sexo||'—'}</div><div class="l">Sexo</div></div>
       <div class="d-stat"><div class="v num">${p.rating.toFixed(1)}</div><div class="l">Nota média</div></div>
     </div>`;
@@ -3020,6 +3053,15 @@ function staffEspLabel(p){
   if(Array.isArray(p.esp))return p.esp.join(' · ');
   return p.esp||'Profissional';
 }
+function computeAge(nascStr){
+  if(!nascStr)return null;
+  const bd=parseDate(nascStr);
+  const today=new Date();
+  let age=today.getFullYear()-bd.getFullYear();
+  const m=today.getMonth()-bd.getMonth();
+  if(m<0||(m===0&&today.getDate()<bd.getDate()))age--;
+  return age;
+}
 function openStaffModal(editId){
   staffEditId=editId||null;
   removeStaffPhoto();
@@ -3031,7 +3073,7 @@ function openStaffModal(editId){
     $('#stNome').value=p.nome;
     stagedStaffEsp=Array.isArray(p.esp)?[...p.esp]:(p.esp?[p.esp]:[]);
     $('#stExp').value=p.exp||'';
-    $('#stIdade').value=p.idade||'';
+    $('#stNasc').value=p.nasc||'';
     $('#stSexo').value=(p.sexo&&p.sexo!=='—')?p.sexo:'';
     $('#stDescricao').value=p.descricao||'';
     if(p.foto){
@@ -3043,7 +3085,7 @@ function openStaffModal(editId){
   }else{
     $('#staffModalTitle').textContent='Novo funcionário';
     $('#staffModalSaveBtn').textContent='Cadastrar funcionário';
-    ['stNome','stExp','stIdade'].forEach(id=>$('#'+id).value='');
+    ['stNome','stExp','stNasc'].forEach(id=>$('#'+id).value='');
     $('#stSexo').value='';
     $('#stDescricao').value='';
   }
@@ -3059,18 +3101,18 @@ async function saveStaff(){
   if($('#stEspInput').value.trim())addStaffEsp(); // aproveita o que ficou digitado sem apertar "+"
   const esp=stagedStaffEsp.length?stagedStaffEsp:['Profissional'];
   const exp=$('#stExp').value.trim()||'—';
-  const idade=parseInt($('#stIdade').value)||null;
+  const nasc=$('#stNasc').value||null;
   const sexo=$('#stSexo').value||'—';
   const descricao=$('#stDescricao').value.trim();
   try{
     if(staffEditId){
-      await db.collection('staff').doc(staffEditId).update({nome,esp,exp,idade,sexo,descricao,foto:stagedStaffPhoto});
+      await db.collection('staff').doc(staffEditId).update({nome,esp,exp,nasc,sexo,descricao,foto:stagedStaffPhoto});
       closeStaffModal();
       toast('Perfil de '+nome.split(' ')[0]+' atualizado com sucesso');
     }else{
       const palette=['#C2366F','#2E5FBF','#178A63','#A96A0B','#7A5FC2','#C25A2E','#0E8C8C'];
       await db.collection('staff').add({
-        nome,esp,exp,idade,sexo,descricao,
+        nome,esp,exp,nasc,sexo,descricao,
         cor:palette[PROS.length%palette.length],
         rating:5.0,atend30:0,
         foto:stagedStaffPhoto,

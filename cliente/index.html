@@ -219,7 +219,7 @@ a{color:inherit;text-decoration:none}
 :focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 
 /* ============ TOAST ============ */
-.toast{position:absolute; top:calc(var(--safe-t) + 14px); left:50%; transform:translate(-50%,-90px); background:var(--text); color:var(--bg); padding:13px 20px; border-radius:14px; font-size:13.5px; font-weight:600; z-index:300; transition:transform .3s cubic-bezier(.4,0,.2,1); box-shadow:var(--shadow-lg); max-width:86%; text-align:center; line-height:1.4; pointer-events:none}
+.toast{position:absolute; top:calc(var(--safe-t) + 14px); left:50%; transform:translate(-50%,-90px); background:var(--text); color:var(--bg); padding:13px 20px; border-radius:14px; font-size:13.5px; font-weight:600; z-index:500; transition:transform .3s cubic-bezier(.4,0,.2,1); box-shadow:var(--shadow-lg); max-width:86%; text-align:center; line-height:1.4; pointer-events:none}
 .toast.show{transform:translate(-50%,0)}
 
 /* ============ SHEET (bottom modal) ============ */
@@ -410,6 +410,19 @@ a{color:inherit;text-decoration:none}
 .segmented button{flex:1;padding:10px;border-radius:11px;font-size:13.5px;font-weight:700;color:var(--text-3)}
 .segmented button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
 .appt-card{margin:0 20px 12px;padding:16px;border-radius:var(--r-lg);border:1.5px solid var(--border);background:var(--surface)}
+
+/* ============ CARROSSEL DE PRÓXIMOS AGENDAMENTOS (2+) ============ */
+.horarios-carousel{margin:4px 0 4px}
+.horarios-track{
+  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.horarios-track::-webkit-scrollbar{display:none;width:0;height:0}
+.horarios-slide{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box}
+.horarios-slide .appt-card{margin-bottom:4px}
+.horarios-dots{display:flex;justify-content:center;gap:6px;margin-top:4px}
+.horarios-dot{width:6px;height:6px;border-radius:50%;background:var(--border-strong);transition:width .25s ease,background .25s ease}
+.horarios-dot.active{width:18px;background:var(--brand)}
 .appt-card.attention{border-color:var(--neg);background:var(--neg-soft);animation:pulseCard 1.4s ease-in-out infinite}
 @keyframes pulseCard{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 0 0 6px rgba(220,38,38,0)}}
 .appt-card .ac-top{display:flex;align-items:center;gap:12px}
@@ -686,15 +699,19 @@ a{color:inherit;text-decoration:none}
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const BRL=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+let toastCallId=0;
 function toast(msg){
   const t=$('#toast');
   if(!t)return;
+  const myId=++toastCallId;
   t.textContent=msg;
   clearTimeout(t._h);
   t.classList.remove('show');
   void t.offsetWidth; // força reflow para reiniciar a animação mesmo se já estava visível
   t.classList.add('show');
-  t._h=setTimeout(()=>t.classList.remove('show'),2400);
+  t._h=setTimeout(()=>{
+    if(myId===toastCallId)t.classList.remove('show'); // só esconde se nenhuma chamada mais nova tiver assumido
+  },2400);
 }
 function initials(n){return n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase()}
 function fmtDate(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
@@ -963,6 +980,15 @@ let ADS=[];
 function getTier(nome){return TIERS.find(t=>t.nome===nome)||TIERS[0]}
 function getNextTier(nome){const i=TIERS.findIndex(t=>t.nome===nome);return TIERS[i+1]||null}
 function proById(id){return PROS.find(p=>p.id===id)}
+function computeAge(nascStr){
+  if(!nascStr)return null;
+  const bd=parseDate(nascStr);
+  const today=new Date();
+  let age=today.getFullYear()-bd.getFullYear();
+  const m=today.getMonth()-bd.getMonth();
+  if(m<0||(m===0&&today.getDate()<bd.getDate()))age--;
+  return age;
+}
 function staffEspLabel(p){
   if(!p)return '';
   if(Array.isArray(p.esp))return p.esp.join(' · ');
@@ -1221,17 +1247,16 @@ function trackAdView(adId){
   viewedAdsThisSession.add(adId);
   db.collection('ads').doc(adId).update({visualizacoes:firebase.firestore.FieldValue.increment(1)}).catch(()=>{});
 }
-function renderHeroSlot(upcoming){
-  const apptHtml=renderApptCardInner(upcoming);
+function renderAdsCarousel(){
   const activeAds=ADS.filter(a=>a.status==='ativo');
   heroActiveAdIds=activeAds.map(a=>a.id);
-  if(!activeAds.length)return apptHtml; // sem ads publicados: mostra só o card de agendamento, sem carrossel
-  const slides=[apptHtml,...activeAds.map(renderAdSlide)];
+  if(!activeAds.length)return ''; // sem ads publicados: espaço some por completo da Início
+  const slides=activeAds.map(renderAdSlide);
   return `<div class="hero-carousel fade-in" id="heroCarousel">
     <div class="hero-track" id="heroTrack">
       ${slides.map(s=>`<div class="hero-slide-wrap">${s}</div>`).join('')}
     </div>
-    <div class="hero-dots" id="heroDots">${slides.map((_,i)=>`<div class="hero-dot ${i===0?'active':''}"></div>`).join('')}</div>
+    ${slides.length>1?`<div class="hero-dots" id="heroDots">${slides.map((_,i)=>`<div class="hero-dot ${i===0?'active':''}"></div>`).join('')}</div>`:''}
   </div>`;
 }
 let heroAutoTimer=null,heroPauseTimer=null;
@@ -1242,7 +1267,7 @@ function getCurrentHeroIndex(){
 }
 function updateHeroDots(i){
   document.querySelectorAll('#heroDots .hero-dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));
-  if(i>=1)trackAdView(heroActiveAdIds[i-1]); // índice 0 é sempre o card de agendamento
+  trackAdView(heroActiveAdIds[i]); // agora todo slide da Início é um ad, inclusive o índice 0
 }
 function scrollToHeroSlide(i){
   const track=$('#heroTrack');
@@ -1274,20 +1299,6 @@ function initHeroCarousel(){
   track.addEventListener('scroll',onHeroInteraction,{passive:true});
   updateHeroDots(0);
   startHeroAutoplay();
-  syncHeroSlideHeights();
-}
-function syncHeroSlideHeights(){
-  // o card de agendamento tem altura variável (depende do conteúdo); os ads precisam
-  // ficar com a MESMA altura real dele, então medimos depois do primeiro paint.
-  requestAnimationFrame(()=>{
-    const wraps=[...document.querySelectorAll('.hero-slide-wrap')];
-    if(wraps.length<2)return;
-    const firstCard=wraps[0].querySelector('.next-appt-card,.empty-appt-card');
-    if(!firstCard)return;
-    const h=firstCard.offsetHeight;
-    if(!h)return;
-    document.querySelectorAll('.ad-slide').forEach(el=>{el.style.height=h+'px'});
-  });
 }
 
 /* ================= OFERTAS (campanhas) ================= */
@@ -1324,7 +1335,6 @@ function closePromoSheet(){$('#promoScrim').classList.remove('open');$('#promoSh
 
 /* ================= INÍCIO ================= */
 function renderInicio(){
-  const upcoming=APPTS.filter(a=>a.status!=='concluido'&&a.status!=='cancelado').sort((a,b)=>a.date.localeCompare(b.date))[0];
   const pendingReview=APPTS.find(a=>a.status==='concluido'&&!a.rated);
   const hour=new Date().getHours();
   const greet=hour<12?'Bom dia':hour<18?'Boa tarde':'Boa noite';
@@ -1347,7 +1357,7 @@ function renderInicio(){
     </div>
   </div>`;
 
-  html+=renderHeroSlot(upcoming);
+  html+=renderAdsCarousel();
   html+=renderOfertas();
 
   html+=`<div class="quick-stats fade-in">
@@ -1406,47 +1416,67 @@ function renderHorarios(){
     return html;
   }
 
-  html+=list.map(a=>{
-    const pro=proById(a.pro)||{nome:'Profissional',cor:'#8E8A96'};
-    const d=parseDate(a.date);
-    const statusMap={pendente:{t:'Aguardando confirmação',c:'var(--warn)'},confirmado:{t:'Confirmado',c:'var(--pos)'},concluido:{t:'Concluído',c:'var(--text-3)'},cancelado:{t:'Cancelado',c:'var(--neg)'}};
-    const st=statusMap[a.status];
-    let extra='';
-    if(a.needsAttention&&horariosTab==='proximos'){
-      extra=`<div class="ac-confirm">
-        <div class="ac-confirm-q">⚠️ Confirma presença no seu horário?</div>
-        <div class="ac-confirm-btns">
-          <button class="btn btn-primary btn-sm" style="flex:1" onclick="confirmPresence('${a.id}')">Sim, vou comparecer</button>
-          <button class="btn btn-outline btn-sm" style="flex:1" onclick="cancelAppt('${a.id}')">Não vou poder</button>
-        </div>
-      </div>`;
-    }else if(horariosTab==='proximos'){
-      extra=`<div class="ac-actions">
-        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="startReschedule('${a.id}')">Reagendar</button>
-        <button class="btn btn-danger-ghost btn-sm" style="flex:1" onclick="cancelAppt('${a.id}')">Cancelar</button>
-      </div>`;
-    }else if(a.status==='concluido'&&!a.rated){
-      extra=`<div class="ac-actions"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openReviewSheet('${a.id}')">⭐ Avaliar atendimento</button></div>`;
-    }else if(a.status==='concluido'&&a.rated){
-      extra=`<div class="ac-actions"><span class="tag tag-ok">✓ Avaliado · obrigado!</span></div>`;
-    }
-    return `<div class="appt-card fade-in ${a.needsAttention?'attention':''}">
-      <div class="ac-top">
-        <div class="ac-date-box"><div class="dd num">${d.getDate()}</div><div class="mm">${MONTH_SHORT[d.getMonth()]}</div></div>
-        <div class="ac-info">
-          <div class="ac-svc">${a.servico}</div>
-          <div class="ac-meta">${a.hora} · com ${pro.nome} · <span style="color:${st.c};font-weight:700">${st.t}</span></div>
-        </div>
-        <div style="text-align:right;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif">${BRL(a.valor)}</div>
+  const cardsHtml=list.map(buildApptCard);
+
+  if(horariosTab==='proximos'&&list.length>=2){
+    // 2+ agendamentos futuros: carrossel horizontal, um card por vez
+    html+=`<div class="horarios-carousel fade-in" id="horariosCarousel">
+      <div class="horarios-track" id="horariosTrack">
+        ${cardsHtml.map(c=>`<div class="horarios-slide">${c}</div>`).join('')}
       </div>
-      ${extra}
+      <div class="horarios-dots" id="horariosDots">${cardsHtml.map((_,i)=>`<div class="horarios-dot ${i===0?'active':''}"></div>`).join('')}</div>
     </div>`;
-  }).join('');
+  }else{
+    html+=cardsHtml.join('');
+  }
 
   return html;
 }
+function buildApptCard(a){
+  const pro=proById(a.pro)||{nome:'Profissional',cor:'#8E8A96'};
+  const d=parseDate(a.date);
+  const statusMap={pendente:{t:'Aguardando confirmação',c:'var(--warn)'},confirmado:{t:'Confirmado',c:'var(--pos)'},concluido:{t:'Concluído',c:'var(--text-3)'},cancelado:{t:'Cancelado',c:'var(--neg)'}};
+  const st=statusMap[a.status];
+  let extra='';
+  if(a.needsAttention&&horariosTab==='proximos'){
+    extra=`<div class="ac-confirm">
+      <div class="ac-confirm-q">⚠️ Confirma presença no seu horário?</div>
+      <div class="ac-confirm-btns">
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="confirmPresence('${a.id}')">Sim, vou comparecer</button>
+        <button class="btn btn-outline btn-sm" style="flex:1" onclick="cancelAppt('${a.id}')">Não vou poder</button>
+      </div>
+    </div>`;
+  }else if(horariosTab==='proximos'){
+    extra=`<div class="ac-actions">
+      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="startReschedule('${a.id}')">Reagendar</button>
+      <button class="btn btn-danger-ghost btn-sm" style="flex:1" onclick="cancelAppt('${a.id}')">Cancelar</button>
+    </div>`;
+  }else if(a.status==='concluido'&&!a.rated){
+    extra=`<div class="ac-actions"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openReviewSheet('${a.id}')">⭐ Avaliar atendimento</button></div>`;
+  }else if(a.status==='concluido'&&a.rated){
+    extra=`<div class="ac-actions"><span class="tag tag-ok">✓ Avaliado · obrigado!</span></div>`;
+  }
+  return `<div class="appt-card fade-in ${a.needsAttention?'attention':''}">
+    <div class="ac-top">
+      <div class="ac-date-box"><div class="dd num">${d.getDate()}</div><div class="mm">${MONTH_SHORT[d.getMonth()]}</div></div>
+      <div class="ac-info">
+        <div class="ac-svc">${a.servico}</div>
+        <div class="ac-meta">${a.hora} · com ${pro.nome} · <span style="color:${st.c};font-weight:700">${st.t}</span></div>
+      </div>
+      <div style="text-align:right;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif">${BRL(a.valor)}</div>
+    </div>
+    ${extra}
+  </div>`;
+}
 function wireHorariosTabs(){
   $$('.segmented button').forEach(b=>b.addEventListener('click',()=>{horariosTab=b.dataset.tab;renderScreen()}));
+  const track=$('#horariosTrack');
+  if(track){
+    track.addEventListener('scroll',()=>{
+      const idx=Math.round(track.scrollLeft/track.clientWidth);
+      document.querySelectorAll('#horariosDots .horarios-dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+    },{passive:true});
+  }
 }
 async function confirmPresence(id){
   const a=APPTS.find(x=>x.id===id);if(!a)return;
@@ -1603,7 +1633,7 @@ function renderStaffProfile(){
 
       <div class="sp-stats">
         <div class="sp-stat"><div class="sp-stat-val num">${p.atend30||0}</div><div class="sp-stat-lbl">Atend. 30 dias</div></div>
-        <div class="sp-stat"><div class="sp-stat-val num">${p.idade||'—'}</div><div class="sp-stat-lbl">Idade</div></div>
+        <div class="sp-stat"><div class="sp-stat-val num">${computeAge(p.nasc)||'—'}</div><div class="sp-stat-lbl">Idade</div></div>
         <div class="sp-stat"><div class="sp-stat-val">${(p.sexo&&p.sexo!=='—')?p.sexo:'—'}</div><div class="sp-stat-lbl">Sexo</div></div>
         <div class="sp-stat"><div class="sp-stat-val num">${(p.rating||0).toFixed(1)}</div><div class="sp-stat-lbl">Nota média</div></div>
       </div>
@@ -1699,8 +1729,10 @@ function closeReviewSheet(){$('#reviewScrim').classList.remove('open');$('#revie
 async function submitReview(){
   const a=APPTS.find(x=>x.id===reviewApptId);
   if(a)await db.collection('appointments').doc(reviewApptId).update({rated:true,ratingPro:reviewProStars,ratingServico:reviewSvcStars});
+  const pro=a?(proById(a.pro)||{nome:'a equipe'}):{nome:'a equipe'};
+  if(a)pushNotification(`⭐ ${CLIENT.nome.split(' ')[0]} avaliou o atendimento com ${pro.nome}: ${reviewProStars}★ (profissional) · ${reviewSvcStars}★ (serviço)`);
   closeReviewSheet();
-  toast('Obrigado pela avaliação! ⭐ Isso ajuda '+(a?(proById(a.pro)||{nome:'a equipe'}).nome.split(' ')[0]:'a equipe')+' a melhorar cada vez mais');
+  toast('Obrigado pela avaliação! ⭐ Isso ajuda '+pro.nome.split(' ')[0]+' a melhorar cada vez mais');
 }
 
 /* ================= AGENDAR (WIZARD) ================= */
