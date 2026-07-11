@@ -284,13 +284,24 @@ a{color:inherit;text-decoration:none}
 .section-head .see-all{font-size:13px;font-weight:700;color:var(--brand)}
 
 /* ============ OFERTAS (compacto, 2 por vez) ============ */
-.promo-card{
-  flex:0 0 calc(50% - 6px);border-radius:var(--r-lg);padding:16px;position:relative;overflow:hidden;
-  color:var(--text);box-sizing:border-box;
+/* ============ CARROSSEL DE OFERTAS (auto-rotativo) ============ */
+.ofertas-carousel{margin:0 20px 4px}
+.ofertas-track{
+  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  border-radius:var(--r-lg);scrollbar-width:none;-ms-overflow-style:none;
 }
-.promo-card .pc-emoji{font-size:20px}
-.promo-card .pc-title{font-family:var(--font-display);font-weight:800;font-size:13.5px;margin-top:8px;letter-spacing:-.01em;line-height:1.25}
-.promo-card .pc-desc{font-size:11.5px;color:var(--text-2);line-height:1.4;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ofertas-track::-webkit-scrollbar{display:none;width:0;height:0}
+.ofertas-slide-wrap{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box}
+.promo-slide{
+  border-radius:var(--r-lg);padding:20px;position:relative;overflow:hidden;color:var(--text);
+  box-sizing:border-box;cursor:pointer;min-height:104px;
+}
+.promo-slide .pc-emoji{font-size:26px}
+.promo-slide .pc-title{font-family:var(--font-display);font-weight:800;font-size:15.5px;margin-top:9px;letter-spacing:-.01em;line-height:1.25}
+.promo-slide .pc-desc{font-size:12.5px;color:var(--text-2);line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ofertas-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.ofertas-dot{width:6px;height:6px;border-radius:50%;background:var(--border-strong);transition:width .25s ease,background .25s ease}
+.ofertas-dot.active{width:18px;background:var(--brand)}
 
 /* ============ CARROSSEL PRINCIPAL: Próximo Agendamento + Ads ============ */
 .hero-carousel{margin:14px 20px 4px}
@@ -350,6 +361,12 @@ a{color:inherit;text-decoration:none}
 .svc-card .svc-name{font-weight:700;font-size:15px}
 .svc-card .svc-meta{font-size:12.5px;color:var(--text-3);margin-top:2px}
 .svc-card .svc-price{font-family:var(--font-display);font-weight:800;font-size:15px}
+.svc-card .svc-reward{color:var(--pos);font-weight:700}
+.reward-preview{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--pos-soft);
+  border-radius:14px;padding:12px 16px;font-size:12.5px;color:var(--text-2);margin-bottom:14px;flex-wrap:wrap;
+}
+.reward-preview b{color:var(--pos);font-family:var(--font-display);font-size:13px}
 
 .pro-card{
   display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--r-lg);border:1.5px solid var(--border);
@@ -529,12 +546,12 @@ a{color:inherit;text-decoration:none}
     <div class="auth-card">
       <div class="auth-brand">
         <div class="auth-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.8 20 19M8.5 15.2 20 5"/></svg></div>
-        <div class="auth-brand-name">Studio Jardins</div>
+        <div class="auth-brand-name" id="authBrandName"></div>
       </div>
 
       <div id="cAuthModeLogin">
         <h1>Entrar</h1>
-        <p class="auth-sub">Acesse sua conta para agendar e acompanhar sua fidelidade.</p>
+        <p class="auth-sub">Acesse para Agendar e Acompanhar seu Horários.</p>
         <form onsubmit="event.preventDefault();doLoginCliente();return false">
           <div class="field"><label>Email</label><input id="cLoginEmail" type="email" placeholder="voce@email.com" autocomplete="username"></div>
           <div class="field"><label>Senha</label><input id="cLoginSenha" type="password" placeholder="••••••••" autocomplete="current-password"></div>
@@ -1147,9 +1164,11 @@ function afterRender(){
   if(currentView==='horarios')wireHorariosTabs();
   if(currentView==='inicio'){
     initHeroCarousel();
+    initOfertasCarousel();
     renderClientNotifList();
   }else{
     stopHeroAutoplay();
+    stopOfertasAutoplay();
   }
   if(currentView!=='agendar'&&bookingDayApptsUnsub){
     bookingDayApptsUnsub();
@@ -1304,10 +1323,56 @@ function initHeroCarousel(){
 /* ================= OFERTAS (campanhas) ================= */
 function renderOfertas(){
   if(!PROMOS.length)return '';
-  return `<div class="section-head fade-in"><h3>Ofertas para você</h3></div>
-  <div class="hscroll fade-in">${PROMOS.map((p,i)=>`<div class="promo-card card" style="background:${p.bg};cursor:pointer" onclick="openPromoSheet(${i})">
+  const slides=PROMOS.map((p,i)=>`<div class="promo-slide" style="background:${p.bg}" onclick="openPromoSheet(${i})">
     <div class="pc-emoji">${p.emoji}</div><div class="pc-title">${p.title}</div><div class="pc-desc">${p.desc}</div>
-  </div>`).join('')}</div>`;
+  </div>`);
+  return `<div class="section-head fade-in"><h3>Ofertas para você</h3></div>
+  <div class="ofertas-carousel fade-in" id="ofertasCarousel">
+    <div class="ofertas-track" id="ofertasTrack">
+      ${slides.map(s=>`<div class="ofertas-slide-wrap">${s}</div>`).join('')}
+    </div>
+    ${slides.length>1?`<div class="ofertas-dots" id="ofertasDots">${slides.map((_,i)=>`<div class="ofertas-dot ${i===0?'active':''}"></div>`).join('')}</div>`:''}
+  </div>`;
+}
+let ofertasAutoTimer=null,ofertasPauseTimer=null;
+function getCurrentOfertasIndex(){
+  const track=$('#ofertasTrack');
+  if(!track||!track.clientWidth)return 0;
+  return Math.round(track.scrollLeft/track.clientWidth);
+}
+function updateOfertasDots(i){
+  document.querySelectorAll('#ofertasDots .ofertas-dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));
+}
+function scrollToOfertasSlide(i){
+  const track=$('#ofertasTrack');
+  if(!track)return;
+  if(typeof track.scrollTo==='function'){track.scrollTo({left:i*track.clientWidth,behavior:'smooth'})}
+  else{track.scrollLeft=i*track.clientWidth}
+  updateOfertasDots(i);
+}
+function startOfertasAutoplay(){
+  stopOfertasAutoplay();
+  const track=$('#ofertasTrack');
+  const total=track?track.querySelectorAll('.ofertas-slide-wrap').length:0;
+  if(!track||total<2)return;
+  ofertasAutoTimer=setInterval(()=>{
+    const next=(getCurrentOfertasIndex()+1)%total;
+    scrollToOfertasSlide(next);
+  },4000);
+}
+function stopOfertasAutoplay(){if(ofertasAutoTimer){clearInterval(ofertasAutoTimer);ofertasAutoTimer=null}}
+function onOfertasInteraction(){
+  updateOfertasDots(getCurrentOfertasIndex());
+  stopOfertasAutoplay();
+  clearTimeout(ofertasPauseTimer);
+  ofertasPauseTimer=setTimeout(startOfertasAutoplay,5000);
+}
+function initOfertasCarousel(){
+  const track=$('#ofertasTrack');
+  if(!track)return;
+  track.addEventListener('scroll',onOfertasInteraction,{passive:true});
+  updateOfertasDots(0);
+  startOfertasAutoplay();
 }
 const PROMO_CTA_LABELS={agendar:'Agendar horário',fidelidade:'Ver recompensas',horarios:'Ver meus horários'};
 function openPromoSheet(i){
@@ -1800,12 +1865,27 @@ function renderBooking(){
     html+=`<div class="screen-pad fade-in"><p class="text-2" style="font-size:13.5px;margin-bottom:14px">Selecione um ou mais serviços</p></div>`;
     html+=`<div class="screen-pad">`+SERVICES.map(s=>{
       const sel=booking.services.includes(s.n);
+      const svcCashback=s.cbType==='percent'?s.v*((s.cbValue||0)/100):(s.cbType==='fixed'?(s.cbValue||0):0);
+      const svcPontos=s.pontos||0;
+      const rewardBits=[];
+      if(svcPontos>0)rewardBits.push('⭐ +'+svcPontos+' pts');
+      if(svcCashback>0)rewardBits.push('💰 +'+BRL(svcCashback));
       return `<div class="svc-card ${sel?'selected':''}" onclick="toggleBookingService('${s.n.replace(/'/g,"\\'")}')">
         <div class="svc-check">${sel?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>':''}</div>
-        <div class="svc-info"><div class="svc-name">${s.n}</div><div class="svc-meta">${s.d} min</div></div>
+        <div class="svc-info"><div class="svc-name">${s.n}</div><div class="svc-meta">${s.d} min${rewardBits.length?' · <span class="svc-reward">'+rewardBits.join(' · ')+'</span>':''}</div></div>
         <div class="svc-price num">${BRL(s.v)}</div>
       </div>`;
     }).join('')+`</div>`;
+    if(booking.services.length){
+      const totalPontos=booking.services.reduce((s,n)=>{const sv=svcByName(n);return s+(sv?sv.pontos||0:0)},0);
+      const totalCashback=booking.services.reduce((s,n)=>{const sv=svcByName(n);if(!sv)return s;const cb=sv.cbType==='percent'?sv.v*((sv.cbValue||0)/100):(sv.cbType==='fixed'?(sv.cbValue||0):0);return s+cb},0);
+      if(totalPontos>0||totalCashback>0){
+        html+=`<div class="screen-pad" style="padding-top:0"><div class="reward-preview">
+          <span>🎁 Você vai ganhar</span>
+          <b>${[totalPontos>0?totalPontos+' pontos':'',totalCashback>0?BRL(totalCashback)+' de cashback':''].filter(Boolean).join(' + ')}</b>
+        </div></div>`;
+      }
+    }
     html+=bookingCta(booking.services.length>0,`Continuar${booking.services.length?' · '+BRL(totalValor):''}`,'bookingNext()');
   }
 
@@ -2243,6 +2323,17 @@ async function handlePushToggleClick(){
   const el=$('#pushToggle');
   if(el)el.classList.toggle('on',ok);
 }
+
+// Busca o nome do salão ANTES do login (leitura pública liberada só pra esse documento),
+// pra tela de entrada já mostrar o nome certo em vez de um valor fixo genérico.
+db.collection('config').doc('business').get().then(doc=>{
+  if(doc.exists&&doc.data().salon&&doc.data().salon.nome){
+    const nome=doc.data().salon.nome;
+    const el=$('#authBrandName');
+    if(el)el.textContent=nome;
+    SALON.nome=nome;
+  }
+}).catch(()=>{});
 
 auth.onAuthStateChanged(async user=>{
   if(user){

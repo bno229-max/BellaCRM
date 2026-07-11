@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beauty Agenda — Gestão Completa para salões</title>
+<title>Beauty Agenda — Gestão inteligente para salões</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -1309,7 +1309,10 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
   <div class="modal" role="dialog" aria-label="Nova campanha">
     <h3 id="campaignModalTitle">Nova campanha (push)</h3>
     <p class="m-sub">Enviada como notificação push direto no app do cliente. Emojis são bem-vindos! 🎉</p>
-    <div class="field"><label>Nome da campanha *</label><input id="cpNome" placeholder="Ex: Sexta com desconto"></div>
+    <div class="field-row">
+      <div class="field" style="flex:0 0 90px"><label>Ícone</label><input id="cpIcone" maxlength="4" placeholder="📣"></div>
+      <div class="field"><label>Nome da campanha *</label><input id="cpNome" placeholder="Ex: Sexta com desconto"></div>
+    </div>
     <div class="field"><label>Segmento de clientes</label><select id="cpSegmento"></select></div>
     <div class="field"><label>Mensagem push *</label><textarea id="cpMensagem" rows="3" placeholder="Ex: 🎉 Sexta é dia de desconto! Agende até às 18h e ganhe 20% off ✨"></textarea></div>
     <div class="field"><label>Ação do botão no app do cliente</label><select id="cpCta">
@@ -3670,6 +3673,7 @@ function openCampaignModal(id){
     const c=CAMPAIGNS.find(x=>x.id===campaignEditId);
     $('#campaignModalTitle').textContent='Editar campanha';
     $('#campaignModalSaveBtn').textContent='Salvar alterações';
+    $('#cpIcone').value=c.ico||'📣';
     $('#cpNome').value=c.name;
     $('#cpMensagem').value=c.mensagem||'';
     $('#cpSegmento').value=c.desc&&c.desc.match(/"([^"]+)"/)?.[1]||SEGMENTS[0];
@@ -3679,6 +3683,7 @@ function openCampaignModal(id){
   }else{
     $('#campaignModalTitle').textContent='Nova campanha (push)';
     $('#campaignModalSaveBtn').textContent='Criar e agendar push';
+    $('#cpIcone').value='📣';
     $('#cpNome').value='';$('#cpMensagem').value='';
     $('#cpCta').value='agendar';
     $('#cpData').value=fmtDate(new Date());
@@ -3705,6 +3710,7 @@ async function notifyAllClients(text){
 async function saveCampaign(){
   const nome=$('#cpNome').value.trim(),msg=$('#cpMensagem').value.trim();
   if(!nome||!msg){$('#cpError').style.display='block';return}
+  const ico=$('#cpIcone').value.trim()||'📣';
   const segmento=$('#cpSegmento').value;
   const cta=$('#cpCta').value;
   const dataEnvio=$('#cpData').value,horaEnvio=$('#cpHora').value;
@@ -3712,13 +3718,13 @@ async function saveCampaign(){
   const status=(dataEnvio&&dataEnvio>hojeStr)?'Agendada':'Ativa';
   if(campaignEditId){
     await db.collection('campaigns').doc(campaignEditId).update({
-      name:nome,desc:'Push para "'+segmento+'": '+msg,mensagem:msg,cta,status,
+      ico,name:nome,desc:'Push para "'+segmento+'": '+msg,mensagem:msg,cta,status,
     });
     closeCampaignModal();
     toast('Campanha "'+nome+'" atualizada com sucesso');
   }else{
     const ref=await db.collection('campaigns').add({
-      ico:'📣',bg:'var(--info-soft)',name:nome,
+      ico,bg:'var(--info-soft)',name:nome,
       desc:'Push para "'+segmento+'": '+msg,
       mensagem:msg,cta,
       status,imp:0,clicks:0,
@@ -3726,7 +3732,7 @@ async function saveCampaign(){
     });
     closeCampaignModal();
     if(status==='Ativa'){
-      const notifiedCount=await notifyAllClients('📣 Nova oferta: '+nome+' — '+msg);
+      const notifiedCount=await notifyAllClients(ico+' Nova oferta: '+nome+' — '+msg);
       await ref.update({imp:notifiedCount||0});
       toast('Campanha "'+nome+'" criada · push enviado agora para '+(notifiedCount||0)+' cliente'+(notifiedCount===1?'':'s'));
     }else{
