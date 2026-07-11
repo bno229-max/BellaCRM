@@ -254,7 +254,8 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .ag-col-head .p-count{margin-left:auto;font-size:11px;font-weight:700;color:var(--text-3);background:var(--surface-2);padding:2px 8px;border-radius:99px}
 .ag-time-col{border-bottom:1px solid var(--border)}
 .ag-body-time{position:relative}
-.ag-hour{height:64px;font-size:10.5px;color:var(--text-3);text-align:right;padding:2px 8px 0 0;border-top:1px solid var(--border);font-weight:500}
+.ag-hour{font-size:10.5px;color:var(--text-3);text-align:right;padding:2px 8px 0 0;border-top:1px solid var(--border);font-weight:500;box-sizing:border-box}
+.ag-hour.half{color:var(--text-3);opacity:.6;font-size:9.5px;border-top-style:dashed}
 .ag-body-col{position:relative;border-left:1px solid var(--border)}
 .ag-slot-line{position:absolute;left:0;right:0;border-top:1px solid var(--border);pointer-events:none}
 .ag-slot-line.half{border-top-style:dashed;opacity:.5}
@@ -1246,6 +1247,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <div class="field-row">
       <div class="field"><label>Sexo</label><select id="stSexo"><option value="">Não informar</option><option>Feminino</option><option>Masculino</option><option>Outro</option></select></div>
     </div>
+    <div class="field"><label>Descrição / Bio (opcional)</label><textarea id="stDescricao" rows="3" placeholder="Ex: Apaixonada por transformar visual através da coloração. Especialista em técnicas de mechas e loiros."></textarea></div>
     <div class="field"><label>Foto de perfil</label>
       <div style="display:flex;align-items:center;gap:12px">
         <div id="stPhotoPreview" class="avatar" style="width:52px;height:52px;font-size:16px;background:var(--brand-soft);color:var(--brand)">?</div>
@@ -2168,7 +2170,10 @@ function renderDayView(){
     html+=`<div class="ag-col-head"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:${p.cor}1f;color:${p.cor}">${initials(p.nome)}</div><div style="flex:1;min-width:0"><div class="p-n">${p.nome}</div><div class="p-s">${staffEspLabel(p)}</div><div class="p-prov" title="Soma dos agendamentos ainda não encerrados hoje">Receita prov.: <b class="num">${BRL(provisoria)}</b></div></div><span class="p-count num">${count}</span></div>`;
   });
   html+=`<div class="ag-body-time" style="height:${DAY_HOURS*HOUR_PX}px">`;
-  for(let h=0;h<DAY_HOURS;h++)html+=`<div class="ag-hour num">${DAY_START+h}:00</div>`;
+  for(let h=0;h<DAY_HOURS;h++){
+    html+=`<div class="ag-hour num" style="height:${HOUR_PX/2}px">${String(DAY_START+h).padStart(2,'0')}:00</div>`;
+    html+=`<div class="ag-hour half num" style="height:${HOUR_PX/2}px">${String(DAY_START+h).padStart(2,'0')}:30</div>`;
+  }
   html+=`</div>`;
   PROS.forEach(p=>{
     html+=`<div class="ag-body-col" data-pro="${p.id}" style="height:${DAY_HOURS*HOUR_PX}px">`;
@@ -2598,6 +2603,10 @@ async function saveAppt(){
   const servico=selectedServiceNames.join(' + ');
   const valor=parseFloat($('#fValor').value)||0;
   const pro=$('#fPro').value,cliente=$('#fCliente').value;
+  const conflito=appts.find(a=>a.pro===pro&&a.date===date&&a.status!=='cancelado'&&a.id!==editingApptId&&start<(a.start+a.dur)&&(start+dur)>a.start);
+  if(conflito&&!confirm('Esse horário conflita com o agendamento de '+conflito.cliente+' ('+minToLabel(conflito.start)+'–'+minToLabel(conflito.start+conflito.dur)+'). Continuar mesmo assim?')){
+    return;
+  }
   const matchedClient=CLIENTS.find(c=>c.nome===cliente);
   const clientId=matchedClient?matchedClient.id:null;
   if(editingApptId){
@@ -2950,18 +2959,42 @@ function editStaffFromDrawer(){
   openStaffModal(id);
 }
 let stagedStaffPhoto=null;
-function handleStaffPhoto(e){
+function resizeImageToDataURL(file,maxDim,quality){
+  maxDim=maxDim||480;quality=quality||0.82;
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>h&&w>maxDim){h=Math.round(h*(maxDim/w));w=maxDim;}
+        else if(h>=w&&h>maxDim){w=Math.round(w*(maxDim/h));h=maxDim;}
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=()=>reject(new Error('Não foi possível ler essa imagem'));
+      img.src=ev.target.result;
+    };
+    reader.onerror=()=>reject(new Error('Não foi possível ler o arquivo'));
+    reader.readAsDataURL(file);
+  });
+}
+async function handleStaffPhoto(e){
   const file=e.target.files&&e.target.files[0];
   if(!file)return;
   if(!file.type.startsWith('image/')){toast('Selecione um arquivo de imagem');return}
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    stagedStaffPhoto=ev.target.result;
+  try{
+    stagedStaffPhoto=await resizeImageToDataURL(file,480,0.82);
     $('#stPhotoPreview').style.overflow='hidden';
     $('#stPhotoPreview').innerHTML=`<img src="${stagedStaffPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
     $('#stPhotoRemoveBtn').hidden=false;
-  };
-  reader.readAsDataURL(file);
+  }catch(err){
+    console.error('Erro ao processar foto do funcionário:',err);
+    toast('Não foi possível carregar essa foto. Tente outro arquivo.');
+  }
 }
 function removeStaffPhoto(){
   stagedStaffPhoto=null;
@@ -3000,6 +3033,7 @@ function openStaffModal(editId){
     $('#stExp').value=p.exp||'';
     $('#stIdade').value=p.idade||'';
     $('#stSexo').value=(p.sexo&&p.sexo!=='—')?p.sexo:'';
+    $('#stDescricao').value=p.descricao||'';
     if(p.foto){
       stagedStaffPhoto=p.foto;
       $('#stPhotoPreview').style.overflow='hidden';
@@ -3011,6 +3045,7 @@ function openStaffModal(editId){
     $('#staffModalSaveBtn').textContent='Cadastrar funcionário';
     ['stNome','stExp','stIdade'].forEach(id=>$('#'+id).value='');
     $('#stSexo').value='';
+    $('#stDescricao').value='';
   }
   $('#stEspInput').value='';
   renderStaffEspChips();
@@ -3026,20 +3061,26 @@ async function saveStaff(){
   const exp=$('#stExp').value.trim()||'—';
   const idade=parseInt($('#stIdade').value)||null;
   const sexo=$('#stSexo').value||'—';
-  if(staffEditId){
-    await db.collection('staff').doc(staffEditId).update({nome,esp,exp,idade,sexo,foto:stagedStaffPhoto});
-    closeStaffModal();
-    toast('Perfil de '+nome.split(' ')[0]+' atualizado com sucesso');
-  }else{
-    const palette=['#C2366F','#2E5FBF','#178A63','#A96A0B','#7A5FC2','#C25A2E','#0E8C8C'];
-    await db.collection('staff').add({
-      nome,esp,exp,idade,sexo,
-      cor:palette[PROS.length%palette.length],
-      rating:5.0,atend30:0,
-      foto:stagedStaffPhoto,
-    });
-    closeStaffModal();
-    toast('Funcionário '+nome.split(' ')[0]+' cadastrado com sucesso');
+  const descricao=$('#stDescricao').value.trim();
+  try{
+    if(staffEditId){
+      await db.collection('staff').doc(staffEditId).update({nome,esp,exp,idade,sexo,descricao,foto:stagedStaffPhoto});
+      closeStaffModal();
+      toast('Perfil de '+nome.split(' ')[0]+' atualizado com sucesso');
+    }else{
+      const palette=['#C2366F','#2E5FBF','#178A63','#A96A0B','#7A5FC2','#C25A2E','#0E8C8C'];
+      await db.collection('staff').add({
+        nome,esp,exp,idade,sexo,descricao,
+        cor:palette[PROS.length%palette.length],
+        rating:5.0,atend30:0,
+        foto:stagedStaffPhoto,
+      });
+      closeStaffModal();
+      toast('Funcionário '+nome.split(' ')[0]+' cadastrado com sucesso');
+    }
+  }catch(err){
+    console.error('Erro ao salvar funcionário:',err);
+    toast('Não foi possível salvar. Verifique a conexão e tente novamente.');
   }
 }
 
@@ -3891,16 +3932,18 @@ function applyLogo(dataUrl,persist){
   if(removeBtn)removeBtn.hidden=false;
   if(persist!==false)persistBusinessConfig({logo:dataUrl});
 }
-function handleLogoUpload(e){
+async function handleLogoUpload(e){
   const file=e.target.files&&e.target.files[0];
   if(!file)return;
   if(!file.type.startsWith('image/')){toast('Selecione um arquivo de imagem');return}
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    applyLogo(ev.target.result);
+  try{
+    const dataUrl=await resizeImageToDataURL(file,480,0.85);
+    applyLogo(dataUrl);
     toast('Logotipo atualizado com sucesso');
-  };
-  reader.readAsDataURL(file);
+  }catch(err){
+    console.error('Erro ao processar o logotipo:',err);
+    toast('Não foi possível carregar essa imagem. Tente outro arquivo.');
+  }
 }
 function removeLogo(){
   const preview=$('#logoPreview');

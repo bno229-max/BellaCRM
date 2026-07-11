@@ -38,7 +38,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-const CACHE_NAME = 'hairos-cliente-v1';
+const CACHE_NAME = 'hairos-cliente-v2';
 const APP_SHELL = [
   '/cliente/',
   '/cliente/manifest.json',
