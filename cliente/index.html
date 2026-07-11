@@ -284,24 +284,14 @@ a{color:inherit;text-decoration:none}
 .section-head .see-all{font-size:13px;font-weight:700;color:var(--brand)}
 
 /* ============ OFERTAS (compacto, 2 por vez) ============ */
-/* ============ CARROSSEL DE OFERTAS (auto-rotativo) ============ */
-.ofertas-carousel{margin:0 20px 4px}
-.ofertas-track{
-  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
-  border-radius:var(--r-lg);scrollbar-width:none;-ms-overflow-style:none;
+/* ============ OFERTAS (manual, tamanho igual aos cards de Pontos/Cashback) ============ */
+.promo-card{
+  flex:0 0 calc(50% - 6px);border-radius:var(--r-lg);padding:16px;position:relative;overflow:hidden;
+  color:var(--text);box-sizing:border-box;cursor:pointer;
 }
-.ofertas-track::-webkit-scrollbar{display:none;width:0;height:0}
-.ofertas-slide-wrap{flex:0 0 100%;scroll-snap-align:start;box-sizing:border-box}
-.promo-slide{
-  border-radius:var(--r-lg);padding:20px;position:relative;overflow:hidden;color:var(--text);
-  box-sizing:border-box;cursor:pointer;min-height:104px;
-}
-.promo-slide .pc-emoji{font-size:26px}
-.promo-slide .pc-title{font-family:var(--font-display);font-weight:800;font-size:15.5px;margin-top:9px;letter-spacing:-.01em;line-height:1.25}
-.promo-slide .pc-desc{font-size:12.5px;color:var(--text-2);line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.ofertas-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
-.ofertas-dot{width:6px;height:6px;border-radius:50%;background:var(--border-strong);transition:width .25s ease,background .25s ease}
-.ofertas-dot.active{width:18px;background:var(--brand)}
+.promo-card .pc-emoji{font-size:20px}
+.promo-card .pc-title{font-family:var(--font-display);font-weight:800;font-size:13.5px;margin-top:8px;letter-spacing:-.01em;line-height:1.25}
+.promo-card .pc-desc{font-size:11.5px;color:var(--text-2);line-height:1.4;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* ============ CARROSSEL PRINCIPAL: Próximo Agendamento + Ads ============ */
 .hero-carousel{margin:14px 20px 4px}
@@ -453,6 +443,8 @@ a{color:inherit;text-decoration:none}
 .appt-card .ac-confirm-q{font-size:13.5px;font-weight:700;margin-bottom:10px}
 .appt-card .ac-confirm-btns{display:flex;gap:8px}
 .appt-card .ac-actions{display:flex;gap:8px;margin-top:12px}
+.appt-card .ac-cancel-reason{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-2);line-height:1.5}
+.appt-card .ac-cancel-reason b{color:var(--text);font-weight:700}
 
 /* ============ FIDELIDADE ============ */
 .tier-hero{margin:16px 20px 0;padding:22px;border-radius:var(--r-xl);position:relative;overflow:hidden;color:#fff}
@@ -632,6 +624,19 @@ a{color:inherit;text-decoration:none}
     <div class="sheet-head"><h3>Avaliar atendimento</h3></div>
     <div class="sheet-body" id="reviewBody"></div>
     <div class="sheet-foot"><button class="btn btn-primary btn-block" onclick="submitReview()">Enviar avaliação</button></div>
+  </div>
+
+  <!-- ============ SHEET: CANCELAMENTO ============ -->
+  <div class="sheet-scrim" id="cancelScrim" onclick="closeCancelSheet()"></div>
+  <div class="sheet" id="cancelSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h3>Cancelar agendamento</h3></div>
+    <div class="sheet-body">
+      <p class="text-2" style="font-size:13.5px;margin-bottom:12px">Conta pra gente o motivo do cancelamento — isso nos ajuda a melhorar.</p>
+      <div class="field"><label>Motivo *</label><textarea id="cancelReasonInput" rows="3" placeholder="Ex: Imprevisto, mudei de horário, etc."></textarea></div>
+      <p id="cancelReasonError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:-6px">Escreva o motivo do cancelamento antes de continuar.</p>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-danger-ghost btn-block" onclick="confirmCancelWithReason()">Confirmar cancelamento</button></div>
   </div>
 
   <!-- ============ SHEET: RESGATE ============ -->
@@ -1164,11 +1169,9 @@ function afterRender(){
   if(currentView==='horarios')wireHorariosTabs();
   if(currentView==='inicio'){
     initHeroCarousel();
-    initOfertasCarousel();
     renderClientNotifList();
   }else{
     stopHeroAutoplay();
-    stopOfertasAutoplay();
   }
   if(currentView!=='agendar'&&bookingDayApptsUnsub){
     bookingDayApptsUnsub();
@@ -1323,56 +1326,10 @@ function initHeroCarousel(){
 /* ================= OFERTAS (campanhas) ================= */
 function renderOfertas(){
   if(!PROMOS.length)return '';
-  const slides=PROMOS.map((p,i)=>`<div class="promo-slide" style="background:${p.bg}" onclick="openPromoSheet(${i})">
-    <div class="pc-emoji">${p.emoji}</div><div class="pc-title">${p.title}</div><div class="pc-desc">${p.desc}</div>
-  </div>`);
   return `<div class="section-head fade-in"><h3>Ofertas para você</h3></div>
-  <div class="ofertas-carousel fade-in" id="ofertasCarousel">
-    <div class="ofertas-track" id="ofertasTrack">
-      ${slides.map(s=>`<div class="ofertas-slide-wrap">${s}</div>`).join('')}
-    </div>
-    ${slides.length>1?`<div class="ofertas-dots" id="ofertasDots">${slides.map((_,i)=>`<div class="ofertas-dot ${i===0?'active':''}"></div>`).join('')}</div>`:''}
-  </div>`;
-}
-let ofertasAutoTimer=null,ofertasPauseTimer=null;
-function getCurrentOfertasIndex(){
-  const track=$('#ofertasTrack');
-  if(!track||!track.clientWidth)return 0;
-  return Math.round(track.scrollLeft/track.clientWidth);
-}
-function updateOfertasDots(i){
-  document.querySelectorAll('#ofertasDots .ofertas-dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));
-}
-function scrollToOfertasSlide(i){
-  const track=$('#ofertasTrack');
-  if(!track)return;
-  if(typeof track.scrollTo==='function'){track.scrollTo({left:i*track.clientWidth,behavior:'smooth'})}
-  else{track.scrollLeft=i*track.clientWidth}
-  updateOfertasDots(i);
-}
-function startOfertasAutoplay(){
-  stopOfertasAutoplay();
-  const track=$('#ofertasTrack');
-  const total=track?track.querySelectorAll('.ofertas-slide-wrap').length:0;
-  if(!track||total<2)return;
-  ofertasAutoTimer=setInterval(()=>{
-    const next=(getCurrentOfertasIndex()+1)%total;
-    scrollToOfertasSlide(next);
-  },4000);
-}
-function stopOfertasAutoplay(){if(ofertasAutoTimer){clearInterval(ofertasAutoTimer);ofertasAutoTimer=null}}
-function onOfertasInteraction(){
-  updateOfertasDots(getCurrentOfertasIndex());
-  stopOfertasAutoplay();
-  clearTimeout(ofertasPauseTimer);
-  ofertasPauseTimer=setTimeout(startOfertasAutoplay,5000);
-}
-function initOfertasCarousel(){
-  const track=$('#ofertasTrack');
-  if(!track)return;
-  track.addEventListener('scroll',onOfertasInteraction,{passive:true});
-  updateOfertasDots(0);
-  startOfertasAutoplay();
+  <div class="hscroll fade-in">${PROMOS.map((p,i)=>`<div class="promo-card card" style="background:${p.bg};cursor:pointer" onclick="openPromoSheet(${i})">
+    <div class="pc-emoji">${p.emoji}</div><div class="pc-title">${p.title}</div><div class="pc-desc">${p.desc}</div>
+  </div>`).join('')}</div>`;
 }
 const PROMO_CTA_LABELS={agendar:'Agendar horário',fidelidade:'Ver recompensas',horarios:'Ver meus horários'};
 function openPromoSheet(i){
@@ -1521,6 +1478,9 @@ function buildApptCard(a){
   }else if(a.status==='concluido'&&a.rated){
     extra=`<div class="ac-actions"><span class="tag tag-ok">✓ Avaliado · obrigado!</span></div>`;
   }
+  if(a.status==='cancelado'&&a.motivoCancelamento){
+    extra+=`<div class="ac-cancel-reason"><b>Motivo do cancelamento:</b> ${a.motivoCancelamento}</div>`;
+  }
   return `<div class="appt-card fade-in ${a.needsAttention?'attention':''}">
     <div class="ac-top">
       <div class="ac-date-box"><div class="dd num">${d.getDate()}</div><div class="mm">${MONTH_SHORT[d.getMonth()]}</div></div>
@@ -1548,10 +1508,24 @@ async function confirmPresence(id){
   await db.collection('appointments').doc(id).update({needsAttention:false,status:'confirmado',reminderConfirmed:true});
   toast('Presença confirmada! Te esperamos ✨');
 }
-async function cancelAppt(id){
+let cancelApptId=null;
+function cancelAppt(id){
+  cancelApptId=id;
+  closeAllSheets();
+  $('#cancelReasonInput').value='';
+  $('#cancelReasonError').style.display='none';
+  $('#cancelScrim').classList.add('open');
+  $('#cancelSheet').classList.add('open');
+}
+function closeCancelSheet(){$('#cancelScrim').classList.remove('open');$('#cancelSheet').classList.remove('open')}
+async function confirmCancelWithReason(){
+  const motivo=$('#cancelReasonInput').value.trim();
+  if(!motivo){$('#cancelReasonError').style.display='block';return}
+  const id=cancelApptId;
   const a=APPTS.find(x=>x.id===id);if(!a)return;
-  await db.collection('appointments').doc(id).update({status:'cancelado'});
-  pushNotification(`❌ ${CLIENT.nome.split(' ')[0]} cancelou ${a.servico} do dia ${parseDate(a.date).toLocaleDateString('pt-BR')}`);
+  await db.collection('appointments').doc(id).update({status:'cancelado',motivoCancelamento:motivo,canceladoPor:'cliente'});
+  pushNotification(`❌ ${CLIENT.nome.split(' ')[0]} cancelou ${a.servico} do dia ${parseDate(a.date).toLocaleDateString('pt-BR')} · Motivo: ${motivo}`);
+  closeCancelSheet();
   toast('Agendamento cancelado. Sentiremos sua falta!');
 }
 
@@ -1623,7 +1597,7 @@ function renderFidelidade(){
   return html;
 }
 function closeAllSheets(){
-  ['#reviewScrim','#reviewSheet','#redeemScrim','#redeemSheet','#profileScrim','#profileSheet','#addressScrim','#addressSheet','#promoScrim','#promoSheet'].forEach(sel=>{
+  ['#reviewScrim','#reviewSheet','#redeemScrim','#redeemSheet','#profileScrim','#profileSheet','#addressScrim','#addressSheet','#promoScrim','#promoSheet','#cancelScrim','#cancelSheet'].forEach(sel=>{
     const el=$(sel);if(el)el.classList.remove('open');
   });
 }

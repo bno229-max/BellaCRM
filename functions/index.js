@@ -1,4 +1,5 @@
 const {onDocumentCreated} = require('firebase-functions/v2/firestore');
+const {onSchedule} = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
@@ -59,3 +60,36 @@ exports.sendClientPush = onDocumentCreated('clientNotifications/{notifId}', asyn
     }
   }
 });
+
+// Roda automaticamente à meia-noite do dia 1º de cada mês (horário de São Paulo):
+// zera o saldo de cashback de todos os clientes, já que o cashback só vale até o
+// início do mês seguinte a quando foi ganho. Isso é o que garante a expiração
+// funcionar sozinha, mesmo que ninguém abra o app do salão naquele dia.
+exports.expireCashbackMonthly = onSchedule(
+  { schedule: '0 0 1 * *', timeZone: 'America/Sao_Paulo' },
+  async () => {
+    const snap = await admin.firestore().collection('clients').get();
+    const batches = [];
+    let batch = admin.firestore().batch();
+    let opsInBatch = 0;
+    let totalExpirados = 0;
+
+    snap.forEach(doc => {
+      const cashback = doc.data().cashback || 0;
+      if (cashback > 0) {
+        batch.update(doc.ref, { cashback: 0, cashbackExpiradoEm: admin.firestore.FieldValue.serverTimestamp() });
+        opsInBatch++;
+        totalExpirados++;
+        if (opsInBatch >= 400) { // limite de segurança bem abaixo do máximo de 500 por batch
+          batches.push(batch.commit());
+          batch = admin.firestore().batch();
+          opsInBatch = 0;
+        }
+      }
+    });
+    if (opsInBatch > 0) batches.push(batch.commit());
+
+    await Promise.all(batches);
+    console.log('Cashback mensal expirado para', totalExpirados, 'cliente(s).');
+  }
+);
