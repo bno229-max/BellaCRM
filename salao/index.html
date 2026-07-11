@@ -424,9 +424,9 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .toggle.on{background:var(--brand)}
 .toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
 .toggle.on::after{transform:translateX(18px)}
-.tier-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
-@media(max-width:1200px){.tier-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:640px){.tier-grid{grid-template-columns:1fr}}
+.tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+@media(max-width:1100px){.tier-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.tier-grid{grid-template-columns:1fr}}
 .tier-card{padding:16px;text-align:center;position:relative;overflow:hidden}
 .tier-icon{font-size:28px;margin-bottom:8px}
 .tier-name{font-family:var(--font-display);font-weight:800;font-size:15px;margin-bottom:2px}
@@ -971,7 +971,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <section id="view-cashback" hidden>
       <div class="page-head fade-in">
         <div><h2>Cashback & Giftback</h2><p>Configure regras de cashback, giftback e acompanhe a carteira digital dos clientes.</p></div>
-        <button class="btn btn-primary" onclick="toast('Regras salvas com sucesso')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg> Salvar alterações</button>
       </div>
       <div class="mod-grid fade-in">
         <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Cashback emitido (mês)</div><div class="sc-icon" style="background:var(--pos-soft);color:var(--pos)">$</div></div><div class="sc-val num">R$ 5.430</div><div class="sc-lbl"><span class="delta up">↑ 21,7%</span> vs mês anterior</div></div>
@@ -983,14 +982,14 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       <div class="grid-2b fade-in">
         <div class="card panel">
           <div class="panel-head"><div><h3>Regras de Cashback</h3><div class="sub">Configurações ativas · o cliente vê o cashback no app</div></div>
-          <button class="btn btn-ghost" onclick="toast('Nova regra: integrado ao backend na fase 2')" style="padding:6px 10px;font-size:12px">+ Nova regra</button></div>
-          <table class="rule-table" id="cashRules"><thead><tr><th>Aplicação</th><th>Tipo</th><th>Valor</th><th>Validade</th><th>Status</th><th></th></tr></thead>
+          <button class="btn btn-ghost" onclick="openCashRuleModal()" style="padding:6px 10px;font-size:12px">+ Nova regra</button></div>
+          <table class="rule-table" id="cashRulesTable"><thead><tr><th>Aplicação</th><th>Tipo</th><th>Valor</th><th>Validade</th><th>Status</th><th></th></tr></thead>
           <tbody></tbody></table>
         </div>
         <div class="card panel">
           <div class="panel-head"><div><h3>Regras de Giftback</h3><div class="sub">Recompensas-surpresa configuráveis</div></div>
-          <button class="btn btn-ghost" onclick="toast('Nova regra: integrado ao backend na fase 2')" style="padding:6px 10px;font-size:12px">+ Nova regra</button></div>
-          <table class="rule-table" id="giftRules"><thead><tr><th>Gatilho</th><th>Recompensa</th><th>Condição</th><th>Status</th><th></th></tr></thead>
+          <button class="btn btn-ghost" onclick="openGiftRuleModal()" style="padding:6px 10px;font-size:12px">+ Nova regra</button></div>
+          <table class="rule-table" id="giftRulesTable"><thead><tr><th>Gatilho</th><th>Recompensa</th><th>Condição</th><th>Status</th><th></th></tr></thead>
           <tbody></tbody></table>
         </div>
       </div>
@@ -1454,6 +1453,43 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     </div>
   </div>
 </div>
+
+<!-- ============ MODAL: REGRA DE CASHBACK ============ -->
+<div class="modal-scrim" id="modalCashRuleScrim" onclick="if(event.target===this)closeCashRuleModal()">
+  <div class="modal" role="dialog" aria-label="Regra de cashback">
+    <h3 id="cashRuleTitle">Nova regra de cashback</h3>
+    <p class="m-sub">Define quanto o cliente recebe de volta na carteira ao usar o serviço.</p>
+    <div class="field"><label>Aplicação</label><input id="crAplicacao" placeholder="Ex: Todos os serviços, Coloração, Clientes Ouro..."></div>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label><select id="crTipo" onchange="updateCashRuleValorLabel()"><option value="percent">Percentual (%)</option><option value="fixed">Valor fixo (R$)</option></select></div>
+      <div class="field"><label id="crValorLabel">Valor (%)</label><input id="crValor" type="number" min="0" step="0.01" placeholder="5"></div>
+    </div>
+    <div class="field"><label>Validade do saldo</label><input id="crValidade" placeholder="Ex: 90 dias, Sem expiração"></div>
+    <div class="field"><label>Status</label><select id="crStatus"><option value="ativo">Ativo</option><option value="pausado">Pausado</option></select></div>
+    <p id="crError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:-6px;margin-bottom:12px">Preencha a aplicação e o valor da regra.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeCashRuleModal()">Cancelar</button>
+      <button class="btn btn-primary" id="cashRuleSaveBtn" onclick="saveCashRule()">Salvar regra</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: REGRA DE GIFTBACK ============ -->
+<div class="modal-scrim" id="modalGiftRuleScrim" onclick="if(event.target===this)closeGiftRuleModal()">
+  <div class="modal" role="dialog" aria-label="Regra de giftback">
+    <h3 id="giftRuleTitle">Nova regra de giftback</h3>
+    <p class="m-sub">Recompensas-surpresa liberadas automaticamente quando o cliente atinge o gatilho.</p>
+    <div class="field"><label>Gatilho</label><input id="grGatilho" placeholder="Ex: Aniversário do cliente, 10ª visita, 60 dias sem vir..."></div>
+    <div class="field"><label>Recompensa</label><input id="grRecompensa" placeholder="Ex: Hidratação grátis, R$ 20 de giftback..."></div>
+    <div class="field"><label>Condição</label><input id="grCondicao" placeholder="Ex: 1x por cliente, válido por 15 dias..."></div>
+    <div class="field"><label>Status</label><select id="grStatus"><option value="ativo">Ativo</option><option value="pausado">Pausado</option></select></div>
+    <p id="grError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:-6px;margin-bottom:12px">Preencha o gatilho e a recompensa.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeGiftRuleModal()">Cancelar</button>
+      <button class="btn btn-primary" id="giftRuleSaveBtn" onclick="saveGiftRule()">Salvar regra</button>
+    </div>
+  </div>
+</div>
 <script>
 /* ================= HELPERS ================= */
 const $=s=>document.querySelector(s);
@@ -1625,6 +1661,17 @@ async function seedFirestoreIfEmpty(){
     {ico:'💎',nome:'Platinum',min:4000,bg:'#C2366F1A',beneficios:['Tudo do Ouro','Cashback 10% em serviços','Giftback mensal surpresa','Atendimento prioritário e concierge']},
   ];
   tiersSeed.forEach(t=>batch.set(db.collection('loyaltyTiers').doc(),t));
+  const cashRulesSeed=[
+    {aplicacao:'Todos os serviços',tipo:'percent',valor:5,validade:'90 dias',status:'ativo'},
+    {aplicacao:'Coloração e Mechas',tipo:'percent',valor:8,validade:'90 dias',status:'ativo'},
+  ];
+  cashRulesSeed.forEach(r=>batch.set(db.collection('cashbackRules').doc(),r));
+  const giftRulesSeed=[
+    {gatilho:'Aniversário do cliente',recompensa:'Hidratação grátis',condicao:'Válido no mês do aniversário',status:'ativo'},
+    {gatilho:'10ª visita concluída',recompensa:'R$ 20 de giftback na carteira',condicao:'1x por cliente a cada 10 visitas',status:'ativo'},
+  ];
+  giftRulesSeed.forEach(r=>batch.set(db.collection('giftbackRules').doc(),r));
+  batch.set(db.collection('config').doc('cashGiftMigrated'),{done:true,ts:firebase.firestore.FieldValue.serverTimestamp()});
   batch.set(db.collection('config').doc('seeded'),{done:true,ts:firebase.firestore.FieldValue.serverTimestamp()});
   await batch.commit();
 }
@@ -1669,6 +1716,17 @@ function initFirestoreListeners(){
     FID_REWARDS=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(typeof renderFidRewards==='function')renderFidRewards();
   });
+  db.collection('cashbackRules').onSnapshot(snap=>{
+    CASH_RULES=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(typeof renderCashRules==='function')renderCashRules();
+  },err=>console.error('cashbackRules listener:',err));
+  db.collection('giftbackRules').onSnapshot(snap=>{
+    GIFT_RULES=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(typeof renderGiftRules==='function')renderGiftRules();
+  },err=>console.error('giftbackRules listener:',err));
+  db.collection('config').doc('cashGiftMigrated').get().then(doc=>{
+    if(!doc.exists)migrateDefaultCashGiftRules();
+  }).catch(()=>{});
   db.collection('products').onSnapshot(snap=>{
     PRODUCTS=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(typeof renderEstoque==='function')renderEstoque();
@@ -2790,12 +2848,26 @@ function waLinkIcon(){
 }
 function renderWaitlist(){
   $('#waitlistTable tbody').innerHTML=WAITLIST.length?WAITLIST.map(w=>`<tr>
-    <td><div class="t-client"><div class="avatar" style="width:28px;height:28px;font-size:10.5px">${initials(w.nome)}</div>${w.nome}</div></td>
+    <td><div class="t-client" style="cursor:pointer" onclick="openApptFromWaitlist('${w.id}')" title="Clique para agendar"><div class="avatar" style="width:28px;height:28px;font-size:10.5px">${initials(w.nome)}</div><span style="text-decoration:underline;text-decoration-color:var(--border-strong)">${w.nome}</span></div></td>
     <td><div style="display:flex;align-items:center;gap:7px">${w.tel}<button title="Chamar no WhatsApp" onclick="openWaitlistWhatsApp('${w.id}')" style="width:22px;height:22px;border-radius:50%;background:#25D36622;color:#178A63;display:grid;place-items:center;border:none;cursor:pointer;flex-shrink:0">${waLinkIcon()}</button></div></td>
     <td>${w.horario||'—'}</td>
     <td style="font-size:12.5px;color:var(--text-2);max-width:260px">${w.obs||'—'}</td>
     <td><span class="rule-edit" style="color:var(--neg)" onclick="removeWaitlist('${w.id}')">Remover</span></td></tr>`).join('')
     :'<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:32px">Nenhum cliente na lista de espera no momento.</td></tr>';
+}
+function openApptFromWaitlist(id){
+  const w=WAITLIST.find(x=>x.id===id);
+  if(!w)return;
+  openModal(null);
+  const sel=$('#fCliente');
+  const exists=[...sel.options].some(o=>o.value===w.nome);
+  if(!exists){
+    const opt=document.createElement('option');
+    opt.textContent=w.nome+' (novo cliente)';opt.value=w.nome;
+    sel.insertBefore(opt,sel.firstChild);
+  }
+  sel.value=w.nome;
+  toast('Preenchendo agendamento para '+w.nome.split(' ')[0]+' — confira os dados e confirme');
 }
 function openWaitlistModal(){
   $('#wlNome').value='';$('#wlTel').value='';$('#wlHorario').value='';$('#wlObs').value='';
@@ -3052,33 +3124,125 @@ async function saveFidReward(){
 }
 async function deleteFidReward(id){await db.collection('loyaltyRewards').doc(id).delete();toast('Recompensa removida')}
 
-/* ================= CASHBACK ================= */
-function renderCashback(){
-  const rules=[
-    {app:'Todos os serviços',tipo:'Percentual',val:'5%',valid:'30 dias',on:true},
-    {app:'Coloração',tipo:'Valor fixo',val:'R$ 25',valid:'15 dias',on:true},
-    {app:'Produtos home care',tipo:'Percentual',val:'3%',valid:'60 dias',on:true},
-    {app:'Sexta-feira 14h–16h',tipo:'Percentual',val:'10%',valid:'7 dias',on:true},
-    {app:'Indicação convertida',tipo:'Valor fixo',val:'R$ 30',valid:'30 dias',on:true},
-    {app:'Progressiva',tipo:'Percentual',val:'8%',valid:'45 dias',on:false},
-  ];
-  $('#cashRules tbody').innerHTML=rules.map(r=>`<tr>
-    <td>${r.app}</td><td>${r.tipo}</td><td class="num"><b>${r.val}</b></td><td>${r.valid}</td>
-    <td><span class="tag ${r.on?'tag-ok':'tag-risk'}">${r.on?'Ativo':'Pausado'}</span></td>
-    <td><span class="rule-edit" onclick="toast('Editor de regra')">Editar</span></td></tr>`).join('');
-
-  const gRules=[
-    {gatilho:'5ª visita no mês',recomp:'Hidratação grátis',cond:'Qualquer serviço',on:true},
-    {gatilho:'Aniversário do cliente',recomp:'30% desconto no serviço',cond:'Válido na semana do aniversário',on:true},
-    {gatilho:'3 indicações convertidas',recomp:'Corte grátis',cond:'Indicados devem ter completado 1ª visita',on:true},
-    {gatilho:'Gastos > R$ 500 no mês',recomp:'Produto surpresa',cond:'Sorteio automático do produto',on:false},
-  ];
-  $('#giftRules tbody').innerHTML=gRules.map(r=>`<tr>
-    <td>${r.gatilho}</td><td>${r.recomp}</td><td style="font-size:12px;color:var(--text-2)">${r.cond}</td>
-    <td><span class="tag ${r.on?'tag-ok':'tag-risk'}">${r.on?'Ativo':'Pausado'}</span></td>
-    <td><span class="rule-edit" onclick="toast('Editor de regra')">Editar</span></td></tr>`).join('');
+/* ================= REGRAS DE CASHBACK ================= */
+let CASH_RULES=[];
+async function migrateDefaultCashGiftRules(){
+  const flagRef=db.collection('config').doc('cashGiftMigrated');
+  const snap=await db.collection('cashbackRules').get();
+  if(snap.empty){
+    const batch=db.batch();
+    const cashRulesSeed=[
+      {aplicacao:'Todos os serviços',tipo:'percent',valor:5,validade:'90 dias',status:'ativo'},
+      {aplicacao:'Coloração e Mechas',tipo:'percent',valor:8,validade:'90 dias',status:'ativo'},
+    ];
+    cashRulesSeed.forEach(r=>batch.set(db.collection('cashbackRules').doc(),r));
+    const giftRulesSeed=[
+      {gatilho:'Aniversário do cliente',recompensa:'Hidratação grátis',condicao:'Válido no mês do aniversário',status:'ativo'},
+      {gatilho:'10ª visita concluída',recompensa:'R$ 20 de giftback na carteira',condicao:'1x por cliente a cada 10 visitas',status:'ativo'},
+    ];
+    giftRulesSeed.forEach(r=>batch.set(db.collection('giftbackRules').doc(),r));
+    await batch.commit();
+  }
+  await flagRef.set({done:true,ts:firebase.firestore.FieldValue.serverTimestamp()});
+}
+function renderCashRules(){
+  const el=$('#cashRulesTable');
+  if(!el)return;
+  const tbody=el.querySelector('tbody');
+  tbody.innerHTML=CASH_RULES.length?CASH_RULES.map(r=>{
+    const valorFmt=r.tipo==='percent'?r.valor+'%':BRL(r.valor);
+    return `<tr>
+      <td>${r.aplicacao}</td><td>${r.tipo==='percent'?'Percentual':'Valor fixo'}</td><td class="num">${valorFmt}</td><td>${r.validade||'—'}</td>
+      <td><span class="tag ${r.status==='ativo'?'tag-ok':'tag-risk'}">${r.status==='ativo'?'Ativo':'Pausado'}</span></td>
+      <td style="white-space:nowrap"><span class="rule-edit" onclick="openCashRuleModal('${r.id}')">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteCashRule('${r.id}')">Excluir</span></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px">Nenhuma regra de cashback ainda. Clique em "+ Nova regra" para criar a primeira.</td></tr>';
+}
+let cashRuleEditId=null;
+function updateCashRuleValorLabel(){
+  const t=$('#crTipo').value;
+  $('#crValorLabel').textContent=t==='percent'?'Valor (%)':'Valor (R$)';
+}
+function openCashRuleModal(id){
+  cashRuleEditId=id||null;
+  if(cashRuleEditId){
+    const r=CASH_RULES.find(x=>x.id===cashRuleEditId);
+    $('#cashRuleTitle').textContent='Editar regra de cashback';
+    $('#cashRuleSaveBtn').textContent='Salvar alterações';
+    $('#crAplicacao').value=r.aplicacao;$('#crTipo').value=r.tipo;$('#crValor').value=r.valor;
+    $('#crValidade').value=r.validade||'';$('#crStatus').value=r.status||'ativo';
+  }else{
+    $('#cashRuleTitle').textContent='Nova regra de cashback';
+    $('#cashRuleSaveBtn').textContent='Salvar regra';
+    $('#crAplicacao').value='';$('#crTipo').value='percent';$('#crValor').value='';
+    $('#crValidade').value='';$('#crStatus').value='ativo';
+  }
+  updateCashRuleValorLabel();
+  $('#crError').style.display='none';
+  $('#modalCashRuleScrim').classList.add('open');
+}
+function closeCashRuleModal(){$('#modalCashRuleScrim').classList.remove('open')}
+async function saveCashRule(){
+  const aplicacao=$('#crAplicacao').value.trim();
+  const valor=parseFloat($('#crValor').value);
+  if(!aplicacao||isNaN(valor)){$('#crError').style.display='block';return}
+  const obj={aplicacao,tipo:$('#crTipo').value,valor,validade:$('#crValidade').value.trim(),status:$('#crStatus').value};
+  if(cashRuleEditId)await db.collection('cashbackRules').doc(cashRuleEditId).update(obj);
+  else await db.collection('cashbackRules').add(obj);
+  closeCashRuleModal();
+  toast('Regra de cashback salva com sucesso');
+}
+async function deleteCashRule(id){
+  await db.collection('cashbackRules').doc(id).delete();
+  toast('Regra de cashback removida');
 }
 
+/* ================= REGRAS DE GIFTBACK ================= */
+let GIFT_RULES=[];
+function renderGiftRules(){
+  const el=$('#giftRulesTable');
+  if(!el)return;
+  const tbody=el.querySelector('tbody');
+  tbody.innerHTML=GIFT_RULES.length?GIFT_RULES.map(r=>`<tr>
+    <td>${r.gatilho}</td><td>${r.recompensa}</td><td>${r.condicao||'—'}</td>
+    <td><span class="tag ${r.status==='ativo'?'tag-ok':'tag-risk'}">${r.status==='ativo'?'Ativo':'Pausado'}</span></td>
+    <td style="white-space:nowrap"><span class="rule-edit" onclick="openGiftRuleModal('${r.id}')">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteGiftRule('${r.id}')">Excluir</span></td>
+  </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:24px">Nenhuma regra de giftback ainda. Clique em "+ Nova regra" para criar a primeira.</td></tr>';
+}
+let giftRuleEditId=null;
+function openGiftRuleModal(id){
+  giftRuleEditId=id||null;
+  if(giftRuleEditId){
+    const r=GIFT_RULES.find(x=>x.id===giftRuleEditId);
+    $('#giftRuleTitle').textContent='Editar regra de giftback';
+    $('#giftRuleSaveBtn').textContent='Salvar alterações';
+    $('#grGatilho').value=r.gatilho;$('#grRecompensa').value=r.recompensa;
+    $('#grCondicao').value=r.condicao||'';$('#grStatus').value=r.status||'ativo';
+  }else{
+    $('#giftRuleTitle').textContent='Nova regra de giftback';
+    $('#giftRuleSaveBtn').textContent='Salvar regra';
+    $('#grGatilho').value='';$('#grRecompensa').value='';$('#grCondicao').value='';$('#grStatus').value='ativo';
+  }
+  $('#grError').style.display='none';
+  $('#modalGiftRuleScrim').classList.add('open');
+}
+function closeGiftRuleModal(){$('#modalGiftRuleScrim').classList.remove('open')}
+async function saveGiftRule(){
+  const gatilho=$('#grGatilho').value.trim();
+  const recompensa=$('#grRecompensa').value.trim();
+  if(!gatilho||!recompensa){$('#grError').style.display='block';return}
+  const obj={gatilho,recompensa,condicao:$('#grCondicao').value.trim(),status:$('#grStatus').value};
+  if(giftRuleEditId)await db.collection('giftbackRules').doc(giftRuleEditId).update(obj);
+  else await db.collection('giftbackRules').add(obj);
+  closeGiftRuleModal();
+  toast('Regra de giftback salva com sucesso');
+}
+async function deleteGiftRule(id){
+  await db.collection('giftbackRules').doc(id).delete();
+  toast('Regra de giftback removida');
+}
+
+/* ================= CASHBACK ================= */
 /* ================= MARKETING ================= */
 const SEGMENTS=['Sexo','Faixa etária','Cidade / Bairro','Cliente novo','Cliente recorrente','Cliente inativo','Aniversariante','Faixa de gasto','Ticket médio','Cashback disponível','Giftback disponível','Pontuação fidelidade','Nível (Bronze→Diamond)','Serviço favorito','Profissional favorito','Frequência de visitas','Última visita','Horário preferido','Dias preferidos','Risco de abandono (IA)'];
 let CAMPAIGNS=[];
@@ -3885,7 +4049,7 @@ function startAppAfterLogin(user){
   if(avEl)avEl.textContent=displayName.slice(0,2).toUpperCase();
 
   renderKpis();renderRanking();renderAgenda();renderClients();renderWaitlist();renderStaff();
-  renderTiers();renderFidRanking();renderFidRules();renderCashback();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();
+  renderTiers();renderFidRanking();renderFidRules();renderCashRules();renderGiftRules();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();
   initBrandColor();initLogo();initReminderConfig();
   buildCharts();
   renderNotifList();
