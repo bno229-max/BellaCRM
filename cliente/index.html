@@ -1043,7 +1043,7 @@ async function establishClientIdentity(user){
       nome:nomeInicial,tel:'',email:user.email||'',nasc:'',sexo:'',
       ult:0,visitas:0,total:0,vip:false,aniver:false,fav:'—',pro:'—',dia:'—',intervalo:0,produtos:false,
       pontos:0,tier:'Bronze',cashback:0,desde:new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'}),
-      authUid:user.uid,
+      authUid:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp(),
     });
     CLIENT.id=ref.id;
   }
@@ -1058,7 +1058,7 @@ function initFirestoreListeners(){
     if(currentView==='agendar')renderScreen();
   });
   db.collection('loyaltyRewards').onSnapshot(snap=>{
-    REWARDS=snap.docs.map(d=>({id:d.id,nome:d.data().nome,custo:d.data().custo,icon:'🎁'}));
+    REWARDS=snap.docs.map(d=>({id:d.id,nome:d.data().nome,custo:d.data().custo,tipo:d.data().tipo||'outro',valor:d.data().valor||0,icon:d.data().tipo==='dinheiro'?'💵':'🎁'}));
     if(currentView==='fidelidade')renderScreen();
   });
   db.collection('loyaltyTiers').orderBy('min').onSnapshot(snap=>{
@@ -1383,7 +1383,8 @@ function renderInicio(){
   html+=renderAdsCarousel(upcoming);
   html+=renderOfertas();
 
-  html+=`<div class="quick-stats fade-in">
+  html+=`<div class="section-head fade-in"><h3>Saldo de Fidelidade</h3></div>
+  <div class="quick-stats fade-in">
     <div class="qs-card card" style="background:var(--gold-soft)" onclick="setView('fidelidade')">
       <div class="qs-ico">${getTier(CLIENT.tier).ico}</div>
       <div class="qs-val num">${CLIENT.pontos.toLocaleString('pt-BR')}</div>
@@ -1635,9 +1636,21 @@ async function confirmRedeem(){
   const nome=$('#redeemConfirmBtn').dataset.reward;
   const r=REWARDS.find(x=>x.nome===nome);
   if(!r||!CLIENT.id)return;
-  await db.collection('clients').doc(CLIENT.id).update({pontos:firebase.firestore.FieldValue.increment(-r.custo)});
+  // os pontos NUNCA são descontados no resgate — eles só servem pra evolução de nível (Bronze/Prata/Ouro/Platinum).
+  // a única coisa "gasta" de fato é a recompensa em si, que ao ser resgatada:
+  const patch={};
+  if(r.tipo==='dinheiro'&&r.valor>0){
+    // vira saldo de cashback disponível pro cliente usar num próximo agendamento
+    patch.cashback=firebase.firestore.FieldValue.increment(r.valor);
+  }
+  if(Object.keys(patch).length)await db.collection('clients').doc(CLIENT.id).update(patch);
+  await db.collection('loyaltyRewards').doc(r.id).update({resg:firebase.firestore.FieldValue.increment(1)});
+  pushNotification(`🎁 ${CLIENT.nome.split(' ')[0]} resgatou a recompensa "${r.nome}"${r.tipo==='dinheiro'?' ('+BRL(r.valor)+' de cashback creditado)':' — combine com o cliente no próximo atendimento'}`);
   closeRedeemSheet();
-  notifySelf(`🎁 Você resgatou "${r.nome}" por ${r.custo.toLocaleString('pt-BR')} pontos. Aproveite!`);
+  const msg=r.tipo==='dinheiro'&&r.valor>0
+    ? `🎁 Você resgatou "${r.nome}"! ${BRL(r.valor)} foram creditados na sua carteira de cashback — use no seu próximo agendamento.`
+    : `🎁 Você resgatou "${r.nome}"! O salão já foi avisado, é só combinar quando usar.`;
+  notifySelf(msg);
   triggerRedeemCelebration('Resgatado: '+r.nome);
 }
 
@@ -1648,16 +1661,32 @@ function avatarInnerClient(){
 }
 /* ================= PERFIL DO PROFISSIONAL ================= */
 let selectedStaffProfileId=null;
-function openStaffProfile(id){
+let staffProfileLiveStats=null;
+async function openStaffProfile(id){
   selectedStaffProfileId=id;
+  staffProfileLiveStats=null;
   setView('staffProfile');
+  try{
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);cutoff.setHours(0,0,0,0);
+    const snap=await db.collection('appointments').where('pro','==',id).get();
+    const proAppts=snap.docs.map(d=>d.data());
+    const atend30=proAppts.filter(a=>a.status==='concluido'&&parseDate(a.date)>=cutoff).length;
+    const avaliacoes=proAppts.filter(a=>typeof a.ratingPro==='number');
+    const p=proById(id);
+    const rating=avaliacoes.length?avaliacoes.reduce((s,a)=>s+a.ratingPro,0)/avaliacoes.length:(p?p.rating||5:5);
+    staffProfileLiveStats={atend30,rating,totalAvaliacoes:avaliacoes.length};
+  }catch(err){
+    console.error('Erro ao buscar estatísticas do profissional:',err);
+  }
+  if(currentView==='staffProfile')renderScreen();
 }
 function renderStaffProfile(){
   const p=proById(selectedStaffProfileId);
   if(!p){
     return `<div class="screen-pad fade-in"><p class="text-3">Profissional não encontrado.</p><button class="btn btn-ghost" onclick="setView('inicio')">← Voltar</button></div>`;
   }
-  const stars=Math.round(p.rating||0);
+  const liveStats=staffProfileLiveStats||{atend30:p.atend30||0,rating:p.rating||0,totalAvaliacoes:null};
+  const stars=Math.round(liveStats.rating||0);
   const starRow=Array.from({length:5},(_,i)=>`<svg width="15" height="15" viewBox="0 0 24 24" fill="${i<stars?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>`).join('');
   return `<div class="fade-in">
     <div class="sp-header">
@@ -1669,13 +1698,13 @@ function renderStaffProfile(){
     <div class="screen-pad" style="padding-top:16px">
       <h2 class="sp-name">${p.nome}</h2>
       <p class="sp-sub">${staffEspLabel(p)}${p.exp&&p.exp!=='—'?' · '+p.exp+' de experiência':''}</p>
-      <div class="sp-stars">${starRow}<span>${(p.rating||0).toFixed(1)} de avaliação</span></div>
+      <div class="sp-stars">${starRow}<span>${(liveStats.rating||0).toFixed(1)} de avaliação${liveStats.totalAvaliacoes?' · '+liveStats.totalAvaliacoes+' avaliaç'+(liveStats.totalAvaliacoes===1?'ão':'ões'):''}</span></div>
 
       <div class="sp-stats">
-        <div class="sp-stat"><div class="sp-stat-val num">${p.atend30||0}</div><div class="sp-stat-lbl">Atend. 30 dias</div></div>
+        <div class="sp-stat"><div class="sp-stat-val num">${liveStats.atend30||0}</div><div class="sp-stat-lbl">Atend. 30 dias</div></div>
         <div class="sp-stat"><div class="sp-stat-val num">${computeAge(p.nasc)||'—'}</div><div class="sp-stat-lbl">Idade</div></div>
         <div class="sp-stat"><div class="sp-stat-val">${(p.sexo&&p.sexo!=='—')?p.sexo:'—'}</div><div class="sp-stat-lbl">Sexo</div></div>
-        <div class="sp-stat"><div class="sp-stat-val num">${(p.rating||0).toFixed(1)}</div><div class="sp-stat-lbl">Nota média</div></div>
+        <div class="sp-stat"><div class="sp-stat-val num">${(liveStats.rating||0).toFixed(1)}</div><div class="sp-stat-lbl">Nota média</div></div>
       </div>
 
       ${p.descricao?`<div class="sp-section"><h3>Sobre</h3><p>${p.descricao}</p></div>`:''}
@@ -1777,10 +1806,9 @@ async function submitReview(){
 
 /* ================= AGENDAR (WIZARD) ================= */
 let booking={step:1,services:[],pro:null,date:null,time:null,payment:'pix',desconto:'nenhum',obs:'',rescheduleId:null};
-const POINTS_TO_BRL_RATE=10; // 10 pontos = R$1 de desconto
+const TIER_POINT_MULTIPLIERS={Bronze:0.5,Prata:0.75,Ouro:1.0,Platinum:1.5}; // pontos ganhos por R$1 gasto, conforme o nível atual
 function computeBookingDiscount(totalValor){
   if(booking.desconto==='cashback')return Math.min(CLIENT.cashback||0,totalValor);
-  if(booking.desconto==='pontos')return Math.min((CLIENT.pontos||0)/POINTS_TO_BRL_RATE,totalValor);
   return 0;
 }
 function startBooking(proId){
@@ -1838,10 +1866,11 @@ function renderBooking(){
 
   if(booking.step===1){
     html+=`<div class="screen-pad fade-in"><p class="text-2" style="font-size:13.5px;margin-bottom:14px">Selecione um ou mais serviços</p></div>`;
+    const pontosMultiplicador=TIER_POINT_MULTIPLIERS[CLIENT.tier]??0.5;
     html+=`<div class="screen-pad">`+SERVICES.map(s=>{
       const sel=booking.services.includes(s.n);
       const svcCashback=s.cbType==='percent'?s.v*((s.cbValue||0)/100):(s.cbType==='fixed'?(s.cbValue||0):0);
-      const svcPontos=s.pontos||0;
+      const svcPontos=Math.round(s.v*pontosMultiplicador);
       const rewardBits=[];
       if(svcPontos>0)rewardBits.push('⭐ +'+svcPontos+' pts');
       if(svcCashback>0)rewardBits.push('💰 +'+BRL(svcCashback));
@@ -1852,7 +1881,7 @@ function renderBooking(){
       </div>`;
     }).join('')+`</div>`;
     if(booking.services.length){
-      const totalPontos=booking.services.reduce((s,n)=>{const sv=svcByName(n);return s+(sv?sv.pontos||0:0)},0);
+      const totalPontos=Math.round(totalValor*pontosMultiplicador);
       const totalCashback=booking.services.reduce((s,n)=>{const sv=svcByName(n);if(!sv)return s;const cb=sv.cbType==='percent'?sv.v*((sv.cbValue||0)/100):(sv.cbType==='fixed'?(sv.cbValue||0):0);return s+cb},0);
       if(totalPontos>0||totalCashback>0){
         html+=`<div class="screen-pad" style="padding-top:0"><div class="reward-preview">
@@ -1913,15 +1942,14 @@ function renderBooking(){
       ${payOption('credito','💳','Cartão de crédito')}
       ${payOption('debito','💳','Cartão de débito')}
 
-      <label style="display:block;font-weight:700;font-size:13.5px;margin:18px 0 10px">Usar cashback ou pontos? (opcional)</label>
-      ${discOption('nenhum','—','Sem desconto',false)}
-      ${discOption('cashback','💰',`Cashback disponível · ${BRL(CLIENT.cashback||0)}`,!(CLIENT.cashback>0))}
-      ${discOption('pontos','⭐',`Pontos disponíveis · ${(CLIENT.pontos||0).toLocaleString('pt-BR')} pts (≈ ${BRL((CLIENT.pontos||0)/POINTS_TO_BRL_RATE)})`,!(CLIENT.pontos>=POINTS_TO_BRL_RATE))}
-      <p class="text-3" style="font-size:11.5px;margin:-2px 0 16px">Não é possível combinar cashback e pontos no mesmo agendamento — escolha um dos dois. O valor restante é pago na forma selecionada acima.</p>
+      <label style="display:block;font-weight:700;font-size:13.5px;margin:18px 0 10px">Usar cashback?</label>
+      ${discOption('nenhum','—','Não utilizar cashback',false)}
+      ${discOption('cashback','💰',`Utilizar cashback · ${BRL(CLIENT.cashback||0)} disponível`,!(CLIENT.cashback>0))}
+      <p class="text-3" style="font-size:11.5px;margin:-2px 0 16px">O valor restante é pago na forma selecionada acima.</p>
 
       <div class="card card-pad">
         <div class="summary-row"><span class="sr-label">Subtotal</span><span class="sr-value">${BRL(totalValor)}</span></div>
-        ${desconto>0?`<div class="summary-row"><span class="sr-label" style="color:var(--pos)">Desconto (${booking.desconto==='cashback'?'cashback':'pontos'})</span><span class="sr-value" style="color:var(--pos)">-${BRL(desconto)}</span></div>`:''}
+        ${desconto>0?`<div class="summary-row"><span class="sr-label" style="color:var(--pos)">Desconto (cashback)</span><span class="sr-value" style="color:var(--pos)">-${BRL(desconto)}</span></div>`:''}
         <div class="summary-row"><span class="sr-label" style="font-weight:700;color:var(--text)">Total a pagar</span><span class="sr-value" style="font-size:17px;color:var(--brand)">${BRL(totalFinal)}</span></div>
       </div>
 
@@ -2022,20 +2050,17 @@ async function confirmBooking(){
     origemCampanha:booking.origemCampanha||null,
   });
 
-  if(desconto>0&&CLIENT.id){
-    const patch={};
-    if(booking.desconto==='cashback')patch.cashback=firebase.firestore.FieldValue.increment(-desconto);
-    else if(booking.desconto==='pontos')patch.pontos=firebase.firestore.FieldValue.increment(-Math.round(desconto*POINTS_TO_BRL_RATE));
-    await db.collection('clients').doc(CLIENT.id).update(patch);
+  if(desconto>0&&CLIENT.id&&booking.desconto==='cashback'){
+    await db.collection('clients').doc(CLIENT.id).update({cashback:firebase.firestore.FieldValue.increment(-desconto)});
   }
 
-  pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time}${desconto>0?' · usou '+(booking.desconto==='cashback'?'cashback':'pontos'):''}`);
+  pushNotification(`📅 ${CLIENT.nome.split(' ')[0]} agendou ${servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time}${desconto>0?' · usou cashback':''}`);
   notifySelf(`📅 Seu agendamento de ${servico} para ${parseDate(booking.date).toLocaleDateString('pt-BR')} às ${booking.time} foi enviado! Aguardando confirmação do salão.`);
   const isNewBooking=!booking.rescheduleId;
   booking.step=5;
   renderScreen();
   if(desconto>0){
-    triggerRedeemCelebration((booking.desconto==='cashback'?'Cashback':'Pontos')+' usado: -'+BRL(desconto));
+    triggerRedeemCelebration('Cashback usado: -'+BRL(desconto));
     if(isNewBooking)setTimeout(()=>triggerConfettiCelebration(),1700);
   }else if(isNewBooking){
     triggerConfettiCelebration();

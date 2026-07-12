@@ -84,6 +84,10 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .nav-item.active{background:var(--brand-soft);color:var(--brand);font-weight:600}
 .nav-item svg{flex-shrink:0}
 .nav-item .soon{margin-left:auto;font-size:10px;font-weight:600;color:var(--text-3);border:1px solid var(--border);padding:1px 6px;border-radius:99px}
+.pro-lock-badge{
+  margin-left:auto;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;
+  background:linear-gradient(135deg,#F5C518,#D4941E);color:#4A3200;font-size:9.5px;font-weight:800;letter-spacing:.03em;
+}
 .sub-banner{
   margin:10px 14px 0;padding:11px 13px;border-radius:12px;font-size:11.5px;font-weight:700;cursor:pointer;
   display:flex;align-items:center;gap:8px;line-height:1.4;transition:transform .1s;
@@ -499,6 +503,13 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .fin-tx .ft-val.income{color:var(--pos)}
 .fin-tx .ft-val.expense{color:var(--neg)}
 .stock-bar{display:flex;align-items:center;gap:8px}
+.stock-step-btn{
+  width:22px;height:22px;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface);
+  color:var(--text-2);font-weight:800;font-size:14px;line-height:1;display:grid;place-items:center;cursor:pointer;
+  flex-shrink:0;transition:background .1s,transform .1s;
+}
+.stock-step-btn:hover:not(:disabled){background:var(--surface-2);transform:scale(1.08)}
+.stock-step-btn:disabled{opacity:.35;cursor:not-allowed}
 .stock-bar .sb-track{flex:1;height:6px;border-radius:99px;background:var(--surface-2)}
 .stock-bar .sb-fill{height:100%;border-radius:99px;transition:width .3s}
 .stock-bar .sb-label{font-size:11px;font-weight:600;width:42px;text-align:right}
@@ -745,7 +756,11 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
   <button class="nav-item" data-view="marketing" onclick="setView('marketing')">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z"/><path d="M16 9.5a4 4 0 0 1 0 5M18.5 7a8 8 0 0 1 0 10"/></svg>
     Marketing
-    <svg id="marketingLockIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;color:var(--text-3);display:none"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+    <span id="marketingLockBadge" class="pro-lock-badge" style="display:none">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+      PRO
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+    </span>
   </button>
 
   <div class="nav-label">Operação</div>
@@ -1387,7 +1402,17 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       <div class="field" style="flex:0 0 90px"><label>Ícone</label><input id="cpIcone" maxlength="4" placeholder="📣"></div>
       <div class="field"><label>Nome da campanha *</label><input id="cpNome" placeholder="Ex: Sexta com desconto"></div>
     </div>
-    <div class="field"><label>Segmento de clientes</label><select id="cpSegmento"></select></div>
+    <div class="field"><label>Segmento de clientes</label>
+      <select id="cpSegmentoTipo" onchange="updateSegmentoExtraFields()"></select>
+    </div>
+    <div id="segmentoIdadeFields" style="display:none">
+      <div class="field-row">
+        <div class="field"><label>Idade mínima</label><input id="cpIdadeMin" type="number" min="0" placeholder="25" oninput="updateSegmentoPreview()"></div>
+        <div class="field"><label>Idade máxima</label><input id="cpIdadeMax" type="number" min="0" placeholder="45" oninput="updateSegmentoPreview()"></div>
+      </div>
+      <div class="field"><label>Sexo (opcional)</label><select id="cpSexo" onchange="updateSegmentoPreview()"><option value="">Todos</option><option>Feminino</option><option>Masculino</option><option>Outro</option></select></div>
+    </div>
+    <p id="segmentoPreview" class="text-2" style="font-size:12px;margin-top:-6px;margin-bottom:12px"></p>
     <div class="field"><label>Mensagem push *</label><textarea id="cpMensagem" rows="3" placeholder="Ex: 🎉 Sexta é dia de desconto! Agende até às 18h e ganhe 20% off ✨"></textarea></div>
     <div class="field"><label>Ação do botão no app do cliente</label><select id="cpCta">
       <option value="agendar">Agendar horário</option>
@@ -1524,9 +1549,14 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <div class="modal-scrim" id="modalFidRewardScrim" onclick="if(event.target===this)closeFidRewardModal()">
   <div class="modal" role="dialog" aria-label="Recompensa">
     <h3 id="fidRewardTitle">Nova recompensa</h3>
-    <p class="m-sub">Prêmios que o cliente pode resgatar com os pontos acumulados.</p>
-    <div class="field"><label>Nome da recompensa</label><input id="frwNome" placeholder="Ex: Corte grátis"></div>
-    <div class="field"><label>Custo em pontos</label><input id="frwCusto" type="number" min="0" placeholder="0"></div>
+    <p class="m-sub">Prêmios que o cliente pode resgatar ao atingir os pontos necessários. Os pontos nunca são descontados — servem só para evolução de nível.</p>
+    <div class="field"><label>Nome da recompensa</label><input id="frwNome" placeholder="Ex: Corte grátis ou R$ 20 de desconto"></div>
+    <div class="field"><label>Custo em pontos (necessário para desbloquear)</label><input id="frwCusto" type="number" min="0" placeholder="0"></div>
+    <div class="field"><label>Tipo de recompensa</label><select id="frwTipo" onchange="updateFrwTipoField()">
+      <option value="outro">Outro (serviço grátis, brinde — combinado no salão)</option>
+      <option value="dinheiro">Desconto em dinheiro (R$) — vai pra carteira de cashback do cliente</option>
+    </select></div>
+    <div class="field" id="frwValorField" style="display:none"><label>Valor do desconto (R$)</label><input id="frwValor" type="number" min="0" step="0.01" placeholder="20.00"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeFidRewardModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveFidReward()">Salvar recompensa</button>
@@ -1780,7 +1810,11 @@ function initFirestoreListeners(){
     if(typeof syncRewardsFromServices==='function')syncRewardsFromServices(true);
   });
   db.collection('clients').onSnapshot(snap=>{
-    CLIENTS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    CLIENTS=snap.docs.map(d=>{
+      const data=d.data();
+      const createdAtMs=data.createdAt&&typeof data.createdAt.toMillis==='function'?data.createdAt.toMillis():null;
+      return {id:d.id,...data,createdAtMs};
+    });
     if(typeof renderClients==='function')renderClients();
     if(typeof renderRanking==='function')renderRanking();
     if(typeof renderFidRanking==='function')renderFidRanking();
@@ -1790,6 +1824,8 @@ function initFirestoreListeners(){
     if(typeof renderAgenda==='function')renderAgenda();
     if(typeof dashboardRefresh==='function')dashboardRefresh();
     if(typeof renderCampaignList==='function'&&!$('#view-marketing').hidden)renderCampaignList();
+    if(typeof renderStaff==='function'&&!$('#view-equipe').hidden)renderStaff();
+    if(typeof openStaff==='function'&&currentDrawerStaffId)openStaff(currentDrawerStaffId);
   },err=>console.error('appointments listener:',err));
   db.collection('waitlist').onSnapshot(snap=>{
     WAITLIST=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1898,8 +1934,8 @@ function hasMarketingAccess(){
 }
 function updateMarketingAccess(){
   const allowed=hasMarketingAccess();
-  const lockIcon=$('#marketingLockIcon');
-  if(lockIcon)lockIcon.style.display=allowed?'none':'';
+  const badge=$('#marketingLockBadge');
+  if(badge)badge.style.display=allowed?'none':'';
   if(!allowed&&!$('#view-marketing').hidden)setView('dashboard');
 }
 function applySubscriptionState(){
@@ -2801,6 +2837,7 @@ async function saveClient(){
     nome,tel,email,
     nasc:$('#ncNasc').value,sexo:$('#ncSexo').value,
     ult:0,visitas:0,total:0,vip:false,aniver:false,fav:'—',pro:'—',dia:'—',intervalo:0,produtos:false,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
   };
   if(authUid)novo.authUid=authUid;
   await db.collection('clients').add(novo);
@@ -2983,28 +3020,38 @@ function computeCashback(a){
   }
   return (a.valor||0)*0.05; // fallback: 5% for legacy/unmatched service labels
 }
-function computePontos(a){
-  const names=a.servico.split(' + ');
-  const matched=SERVICES.filter(s=>names.includes(s.n));
-  return matched.reduce((sum,s)=>sum+(s.pontos||0),0);
+const TIER_POINT_MULTIPLIERS={Bronze:0.5,Prata:0.75,Ouro:1.0,Platinum:1.5};
+function getClientTierName(pontos){
+  const sorted=[...TIERS_DATA].sort((a,b)=>a.min-b.min);
+  if(!sorted.length)return 'Bronze';
+  let result=sorted[0];
+  sorted.forEach(t=>{if((pontos||0)>=t.min)result=t;});
+  return result.nome;
 }
 async function finalizeAppt(id){
   const a=appts.find(x=>x.id===id);if(!a)return;
   const cashback=computeCashback(a);
-  const pontos=computePontos(a);
-  await db.collection('appointments').doc(id).update({status:'concluido',cashbackGerado:cashback,pontosGerados:pontos});
-  sessionRevenueAdded+=(a.valor||0);
   // prioriza o vínculo direto por ID (sempre confiável); só cai pro nome se o agendamento for antigo/sem clientId
   let clientId=a.clientId;
+  let cliente=clientId?CLIENTS.find(c=>c.id===clientId):null;
   if(!clientId){
-    const cliente=CLIENTS.find(c=>c.nome===a.cliente);
+    cliente=CLIENTS.find(c=>c.nome===a.cliente);
     clientId=cliente&&cliente.id;
   }
+  // pontos ganhos seguem o multiplicador do nível ATUAL do cliente (Bronze 0,5 · Prata 0,75 · Ouro 1 · Platinum 1,5 por R$1)
+  const pontosAtuais=cliente?cliente.pontos||0:0;
+  const tierAtual=getClientTierName(pontosAtuais);
+  const multiplicador=TIER_POINT_MULTIPLIERS[tierAtual]??0.5;
+  const pontos=Math.round((a.valor||0)*multiplicador);
+  await db.collection('appointments').doc(id).update({status:'concluido',cashbackGerado:cashback,pontosGerados:pontos});
+  sessionRevenueAdded+=(a.valor||0);
   if(clientId){
+    const novoTier=getClientTierName(pontosAtuais+pontos);
     const patch={
       total:firebase.firestore.FieldValue.increment(a.valor||0),
       visitas:firebase.firestore.FieldValue.increment(1),
       ult:0,
+      tier:novoTier, // reavalia o nível a cada atendimento — antes ficava travado em Bronze pra sempre
     };
     if(pontos>0)patch.pontos=firebase.firestore.FieldValue.increment(pontos);
     if(cashback>0)patch.cashback=firebase.firestore.FieldValue.increment(cashback);
@@ -3256,36 +3303,49 @@ function avatarInner(p,size){
   if(p.foto)return `<img src="${p.foto}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
   return initials(p.nome);
 }
+function computeStaffStats(proId){
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);cutoff.setHours(0,0,0,0);
+  const atend30=appts.filter(a=>a.pro===proId&&a.status==='concluido'&&parseDate(a.date)>=cutoff).length;
+  const avaliacoes=appts.filter(a=>a.pro===proId&&typeof a.ratingPro==='number');
+  const totalAvaliacoes=avaliacoes.length;
+  const p=PROS.find(x=>x.id===proId);
+  const rating=totalAvaliacoes?avaliacoes.reduce((s,a)=>s+a.ratingPro,0)/totalAvaliacoes:(p?p.rating||5:5);
+  return {atend30,totalAvaliacoes,rating};
+}
 function renderStaff(){
-  $('#staffGrid').innerHTML=PROS.map(p=>`<div class="card staff-card" onclick="openStaff('${p.id}')">
+  $('#staffGrid').innerHTML=PROS.map(p=>{
+    const stats=computeStaffStats(p.id);
+    return `<div class="card staff-card" onclick="openStaff('${p.id}')">
     <div class="avatar" style="background:${p.cor}1f;color:${p.cor};overflow:hidden">${avatarInner(p)}</div>
     <div class="st-name">${p.nome}</div>
     <div class="st-esp">${staffEspLabel(p)} · ${p.exp}</div>
-    <div><span class="stars">${starsHtml(p.rating)}</span><span class="st-rating-n">${p.rating.toFixed(1)}</span></div>
+    <div><span class="stars">${starsHtml(stats.rating)}</span><span class="st-rating-n">${stats.rating.toFixed(1)}</span></div>
     <div class="st-meta-row">
-      <div><b class="num">${p.atend30}</b>Atend. 30d</div>
+      <div><b class="num">${stats.atend30}</b>Atend. 30d</div>
       <div><b class="num">${computeAge(p.nasc)||'—'}</b>Idade</div>
       <div><b>${(p.sexo||'—')[0]}</b>Sexo</div>
     </div>
-  </div>`).join('');
+  </div>`;
+  }).join('');
 }
 let currentDrawerStaffId=null;
 function openStaff(id){
   currentDrawerStaffId=id;
   const p=PROS.find(x=>x.id===id);
+  const stats=computeStaffStats(id);
   $('#staffDrawerHead').innerHTML=`<div class="d-profile">
       <div class="avatar" style="background:${p.cor}1f;color:${p.cor};overflow:hidden">${avatarInner(p)}</div>
       <div><h3>${p.nome}</h3><div class="d-contact">${staffEspLabel(p)} · ${p.exp} de experiência</div>
-      <div style="margin-top:7px"><span class="stars">${starsHtml(p.rating)}</span><span class="st-rating-n">${p.rating.toFixed(1)} de avaliação</span></div></div></div>
+      <div style="margin-top:7px"><span class="stars">${starsHtml(stats.rating)}</span><span class="st-rating-n">${stats.rating.toFixed(1)} de avaliação · ${stats.totalAvaliacoes} avaliaç${stats.totalAvaliacoes===1?'ão':'ões'}</span></div></div></div>
     <div class="d-stats">
-      <div class="d-stat"><div class="v num">${p.atend30}</div><div class="l">Atend. 30 dias</div></div>
+      <div class="d-stat"><div class="v num">${stats.atend30}</div><div class="l">Atend. 30 dias</div></div>
       <div class="d-stat"><div class="v num">${computeAge(p.nasc)||'—'}</div><div class="l">Idade</div></div>
       <div class="d-stat"><div class="v">${p.sexo||'—'}</div><div class="l">Sexo</div></div>
-      <div class="d-stat"><div class="v num">${p.rating.toFixed(1)}</div><div class="l">Nota média</div></div>
+      <div class="d-stat"><div class="v num">${stats.rating.toFixed(1)}</div><div class="l">Nota média</div></div>
     </div>`;
   $('#staffDrawerBody').innerHTML=`
     <div class="d-section">Visível no app do cliente</div>
-    <div class="insight"><div class="i-ico" style="background:var(--brand-soft);color:var(--brand);font-size:13px">📱</div><div><b>Avaliação e atendimentos são públicos</b><span>Clientes veem a nota (${p.rating.toFixed(1)} ★) e o total de atendimentos dos últimos 30 dias (${p.atend30}) ao escolher este profissional no agendamento.</span></div></div>
+    <div class="insight"><div class="i-ico" style="background:var(--brand-soft);color:var(--brand);font-size:13px">📱</div><div><b>Avaliação e atendimentos são públicos</b><span>Clientes veem a nota (${stats.rating.toFixed(1)} ★) e o total de atendimentos dos últimos 30 dias (${stats.atend30}) ao escolher este profissional no agendamento.</span></div></div>
     <div class="d-section">Agenda de hoje</div>
     <div id="staffTodayAppts"></div>`;
   const todayAppts=appts.filter(a=>a.pro===id&&a.date===TODAY_STR).sort((x,y)=>x.start-y.start);
@@ -3498,18 +3558,27 @@ function openFidRewardModal(id){
     const r=FID_REWARDS.find(x=>x.id===fidRewardEditId);
     $('#fidRewardTitle').textContent='Editar recompensa';
     $('#frwNome').value=r.nome;$('#frwCusto').value=r.custo;
+    $('#frwTipo').value=r.tipo||'outro';
+    $('#frwValor').value=r.valor||'';
   }else{
     $('#fidRewardTitle').textContent='Nova recompensa';
     $('#frwNome').value='';$('#frwCusto').value='';
+    $('#frwTipo').value='outro';$('#frwValor').value='';
   }
+  updateFrwTipoField();
   $('#modalFidRewardScrim').classList.add('open');
+}
+function updateFrwTipoField(){
+  $('#frwValorField').style.display=$('#frwTipo').value==='dinheiro'?'':'none';
 }
 function closeFidRewardModal(){$('#modalFidRewardScrim').classList.remove('open')}
 async function saveFidReward(){
   const nome=$('#frwNome').value.trim(),custo=parseInt($('#frwCusto').value)||0;
   if(!nome){toast('Informe o nome da recompensa');return}
-  if(fidRewardEditId)await db.collection('loyaltyRewards').doc(fidRewardEditId).update({nome,custo});
-  else await db.collection('loyaltyRewards').add({nome,custo,resg:0});
+  const tipo=$('#frwTipo').value;
+  const valor=tipo==='dinheiro'?(parseFloat($('#frwValor').value)||0):0;
+  if(fidRewardEditId)await db.collection('loyaltyRewards').doc(fidRewardEditId).update({nome,custo,tipo,valor});
+  else await db.collection('loyaltyRewards').add({nome,custo,tipo,valor,resg:0});
   closeFidRewardModal();
   toast('Recompensa salva com sucesso');
 }
@@ -3635,7 +3704,6 @@ async function deleteGiftRule(id){
 
 /* ================= CASHBACK ================= */
 /* ================= MARKETING ================= */
-const SEGMENTS=['Sexo','Faixa etária','Cidade / Bairro','Cliente novo','Cliente recorrente','Cliente inativo','Aniversariante','Faixa de gasto','Ticket médio','Cashback disponível','Giftback disponível','Pontuação fidelidade','Nível (Bronze→Diamond)','Serviço favorito','Profissional favorito','Frequência de visitas','Última visita','Horário preferido','Dias preferidos','Risco de abandono (IA)'];
 let CAMPAIGNS=[];
 function renderCampaignList(){
   $('#campaignList').innerHTML=CAMPAIGNS.map(c=>{
@@ -3665,7 +3733,7 @@ function renderCampaignList(){
 function renderMarketing(){
   renderCampaignList();
   renderAdsList();
-  $('#segmentList').innerHTML=SEGMENTS.map(s=>`<span class="chip">${s}</span>`).join('');
+  $('#segmentList').innerHTML=Object.values(SEGMENT_TYPES).map(s=>`<span class="chip">${s.label}</span>`).join('');
 }
 function setMarketingTab(tab){
   $('#mktTabCampanhas').classList.toggle('active',tab==='campanhas');
@@ -3971,9 +4039,80 @@ async function deleteAd(id){
   toast('Anúncio "'+(ad?ad.titulo:'')+'" removido');
 }
 let campaignEditId=null;
+/* ================= SEGMENTAÇÃO DE CAMPANHAS (dinâmica, calculada dos dados reais) ================= */
+const SEGMENT_TYPES={
+  todos:{label:'Todos os clientes'},
+  faixa_etaria:{label:'Faixa etária'},
+  novo:{label:'Cliente novo (cadastro há até 14 dias)'},
+  recorrente:{label:'Cliente recorrente (4+ serviços em 30 dias)'},
+  inativo:{label:'Cliente inativo (30–60 dias sem serviço)'},
+  aniversariante:{label:'Aniversariantes do mês'},
+  risco:{label:'Em risco de abandono (60+ dias sem serviço)'},
+};
+function lastServiceDateOf(clientName){
+  const done=appts.filter(a=>a.cliente===clientName&&a.status==='concluido').sort((a,b)=>b.date.localeCompare(a.date));
+  return done.length?parseDate(done[0].date):null;
+}
+function servicesInLastNDays(clientName,days){
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);cutoff.setHours(0,0,0,0);
+  return appts.filter(a=>a.cliente===clientName&&a.status==='concluido'&&parseDate(a.date)>=cutoff).length;
+}
+function isBirthdayThisMonth(c){
+  if(!c.nasc)return false;
+  try{return parseDate(c.nasc).getMonth()===new Date().getMonth()}catch(e){return false}
+}
+function computeSegmentClients(type,params){
+  params=params||{};
+  const now=new Date();
+  if(type==='todos'||!type)return CLIENTS.slice();
+  return CLIENTS.filter(c=>{
+    if(type==='faixa_etaria'){
+      const age=computeAge(c.nasc);
+      if(age===null)return false;
+      if(params.idadeMin!=null&&!isNaN(params.idadeMin)&&age<params.idadeMin)return false;
+      if(params.idadeMax!=null&&!isNaN(params.idadeMax)&&age>params.idadeMax)return false;
+      if(params.sexo&&c.sexo!==params.sexo)return false;
+      return true;
+    }
+    if(type==='novo'){
+      if(!c.createdAtMs)return false;
+      return (Date.now()-c.createdAtMs)<=14*86400000;
+    }
+    if(type==='recorrente')return servicesInLastNDays(c.nome,30)>=4;
+    if(type==='inativo'){
+      const last=lastServiceDateOf(c.nome);
+      if(!last)return false;
+      const dias=(now-last)/86400000;
+      return dias>30&&dias<=60;
+    }
+    if(type==='aniversariante')return isBirthdayThisMonth(c);
+    if(type==='risco'){
+      const last=lastServiceDateOf(c.nome);
+      if(!last)return false;
+      return (now-last)/86400000>60;
+    }
+    return false;
+  });
+}
+function updateSegmentoExtraFields(){
+  const tipo=$('#cpSegmentoTipo').value;
+  $('#segmentoIdadeFields').style.display=tipo==='faixa_etaria'?'':'none';
+  updateSegmentoPreview();
+}
+function updateSegmentoPreview(){
+  const tipo=$('#cpSegmentoTipo').value;
+  const params={
+    idadeMin:parseInt($('#cpIdadeMin').value),
+    idadeMax:parseInt($('#cpIdadeMax').value),
+    sexo:$('#cpSexo').value,
+  };
+  const matched=computeSegmentClients(tipo,params);
+  $('#segmentoPreview').textContent=matched.length+' cliente'+(matched.length===1?'':'s')+' recebe'+(matched.length===1?'':'m')+' esse push';
+}
+
 function openCampaignModal(id){
   campaignEditId=id||null;
-  $('#cpSegmento').innerHTML=SEGMENTS.map(s=>`<option>${s}</option>`).join('');
+  $('#cpSegmentoTipo').innerHTML=Object.entries(SEGMENT_TYPES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
   if(campaignEditId){
     const c=CAMPAIGNS.find(x=>x.id===campaignEditId);
     $('#campaignModalTitle').textContent='Editar campanha';
@@ -3981,7 +4120,10 @@ function openCampaignModal(id){
     $('#cpIcone').value=c.ico||'📣';
     $('#cpNome').value=c.name;
     $('#cpMensagem').value=c.mensagem||'';
-    $('#cpSegmento').value=c.desc&&c.desc.match(/"([^"]+)"/)?.[1]||SEGMENTS[0];
+    $('#cpSegmentoTipo').value=c.segmentoTipo||'todos';
+    $('#cpIdadeMin').value=c.segmentoParams?.idadeMin??'';
+    $('#cpIdadeMax').value=c.segmentoParams?.idadeMax??'';
+    $('#cpSexo').value=c.segmentoParams?.sexo||'';
     $('#cpCta').value=c.cta||'agendar';
     $('#cpData').value=fmtDate(new Date());
     $('#cpHora').value='09:00';
@@ -3990,18 +4132,21 @@ function openCampaignModal(id){
     $('#campaignModalSaveBtn').textContent='Criar e agendar push';
     $('#cpIcone').value='📣';
     $('#cpNome').value='';$('#cpMensagem').value='';
+    $('#cpSegmentoTipo').value='todos';
+    $('#cpIdadeMin').value='';$('#cpIdadeMax').value='';$('#cpSexo').value='';
     $('#cpCta').value='agendar';
     $('#cpData').value=fmtDate(new Date());
     $('#cpHora').value='09:00';
   }
+  updateSegmentoExtraFields();
   $('#cpError').style.display='none';
   $('#modalCampaignScrim').classList.add('open');
 }
 function closeCampaignModal(){$('#modalCampaignScrim').classList.remove('open')}
-async function notifyAllClients(text){
-  if(!CLIENTS.length)return 0;
+async function notifyClientList(clientList,text){
+  if(!clientList.length)return 0;
   const chunks=[];
-  for(let i=0;i<CLIENTS.length;i+=400)chunks.push(CLIENTS.slice(i,i+400));
+  for(let i=0;i<clientList.length;i+=400)chunks.push(clientList.slice(i,i+400));
   for(const chunk of chunks){
     const batch=db.batch();
     chunk.forEach(c=>{
@@ -4010,36 +4155,46 @@ async function notifyAllClients(text){
     });
     await batch.commit();
   }
-  return CLIENTS.length;
+  return clientList.length;
+}
+async function notifyAllClients(text){
+  return notifyClientList(CLIENTS,text);
 }
 async function saveCampaign(){
   const nome=$('#cpNome').value.trim(),msg=$('#cpMensagem').value.trim();
   if(!nome||!msg){$('#cpError').style.display='block';return}
   const ico=$('#cpIcone').value.trim()||'📣';
-  const segmento=$('#cpSegmento').value;
+  const segmentoTipo=$('#cpSegmentoTipo').value;
+  const segmentoParams={
+    idadeMin:$('#cpIdadeMin').value?parseInt($('#cpIdadeMin').value):null,
+    idadeMax:$('#cpIdadeMax').value?parseInt($('#cpIdadeMax').value):null,
+    sexo:$('#cpSexo').value||null,
+  };
+  const segmentoLabel=SEGMENT_TYPES[segmentoTipo]?.label||'Todos os clientes';
   const cta=$('#cpCta').value;
   const dataEnvio=$('#cpData').value,horaEnvio=$('#cpHora').value;
   const hojeStr=fmtDate(new Date());
   const status=(dataEnvio&&dataEnvio>hojeStr)?'Agendada':'Ativa';
   if(campaignEditId){
     await db.collection('campaigns').doc(campaignEditId).update({
-      ico,name:nome,desc:'Push para "'+segmento+'": '+msg,mensagem:msg,cta,status,
+      ico,name:nome,desc:'Push para "'+segmentoLabel+'": '+msg,mensagem:msg,cta,status,segmentoTipo,segmentoParams,
     });
     closeCampaignModal();
     toast('Campanha "'+nome+'" atualizada com sucesso');
   }else{
     const ref=await db.collection('campaigns').add({
       ico,bg:'var(--info-soft)',name:nome,
-      desc:'Push para "'+segmento+'": '+msg,
-      mensagem:msg,cta,
+      desc:'Push para "'+segmentoLabel+'": '+msg,
+      mensagem:msg,cta,segmentoTipo,segmentoParams,
       status,imp:0,clicks:0,
       createdAt:firebase.firestore.FieldValue.serverTimestamp(),
     });
     closeCampaignModal();
     if(status==='Ativa'){
-      const notifiedCount=await notifyAllClients(ico+' Nova oferta: '+nome+' — '+msg);
+      const matched=computeSegmentClients(segmentoTipo,segmentoParams);
+      const notifiedCount=await notifyClientList(matched,ico+' Nova oferta: '+nome+' — '+msg);
       await ref.update({imp:notifiedCount||0});
-      toast('Campanha "'+nome+'" criada · push enviado agora para '+(notifiedCount||0)+' cliente'+(notifiedCount===1?'':'s'));
+      toast('Campanha "'+nome+'" criada · push enviado agora para '+(notifiedCount||0)+' cliente'+(notifiedCount===1?'':'s')+' ('+segmentoLabel+')');
     }else{
       toast('Campanha "'+nome+'" agendada para '+new Date(dataEnvio+'T00:00:00').toLocaleDateString('pt-BR')+' às '+horaEnvio);
     }
@@ -4089,12 +4244,29 @@ function renderEstoque(){
     const vencLabel=p.venc?new Date(p.venc+'T00:00:00').toLocaleDateString('pt-BR'):'—';
     return `<tr>
       <td><b>${p.nome}</b></td>
-      <td class="num">${p.estoque} un</td>
+      <td class="num">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="stock-step-btn" title="Remover 1 unidade" onclick="adjustStock('${p.id}',-1)" ${p.estoque<=0?'disabled':''}>−</button>
+          <span style="min-width:28px;text-align:center">${p.estoque} un</span>
+          <button class="stock-step-btn" title="Adicionar 1 unidade" onclick="adjustStock('${p.id}',1)">+</button>
+        </div>
+      </td>
       <td><div class="stock-bar"><div class="sb-track"><div class="sb-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div><span class="sb-label" style="color:${barColor}">${low?'Baixo':'OK'}</span></div></td>
       <td class="num">${BRL(p.custo)}</td>
       <td style="${venc?'color:var(--warn);font-weight:700':''}">${vencLabel}${venc?' ⚠':''}</td>
       <td style="white-space:nowrap"><span class="rule-edit" onclick="openProductModal('${p.id}')">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteProduct('${p.id}')">Excluir</span></td></tr>`;
   }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px">Nenhum produto encontrado.</td></tr>';
+}
+async function adjustStock(id,delta){
+  const p=PRODUCTS.find(x=>x.id===id);
+  if(!p)return;
+  if(delta<0&&p.estoque<=0)return;
+  try{
+    await db.collection('products').doc(id).update({estoque:firebase.firestore.FieldValue.increment(delta)});
+  }catch(err){
+    console.error('Erro ao ajustar estoque:',err);
+    toast('Não foi possível ajustar o estoque agora');
+  }
 }
 let productEditId=null;
 function openProductModal(id){
