@@ -1269,10 +1269,10 @@ function trackAdView(adId){
   viewedAdsThisSession.add(adId);
   db.collection('ads').doc(adId).update({visualizacoes:firebase.firestore.FieldValue.increment(1)}).catch(()=>{});
 }
-function renderAdsCarousel(){
+function renderAdsCarousel(upcoming){
   const activeAds=ADS.filter(a=>a.status==='ativo');
   heroActiveAdIds=activeAds.map(a=>a.id);
-  if(!activeAds.length)return ''; // sem ads publicados: espaço some por completo da Início
+  if(!activeAds.length)return renderApptCardInner(upcoming); // sem ads publicados: mostra o card de agendamento no lugar
   const slides=activeAds.map(renderAdSlide);
   return `<div class="hero-carousel fade-in" id="heroCarousel">
     <div class="hero-track" id="heroTrack">
@@ -1357,6 +1357,7 @@ function closePromoSheet(){$('#promoScrim').classList.remove('open');$('#promoSh
 
 /* ================= INÍCIO ================= */
 function renderInicio(){
+  const upcoming=APPTS.filter(a=>a.status!=='concluido'&&a.status!=='cancelado').sort((a,b)=>a.date.localeCompare(b.date))[0];
   const pendingReview=APPTS.find(a=>a.status==='concluido'&&!a.rated);
   const hour=new Date().getHours();
   const greet=hour<12?'Bom dia':hour<18?'Boa tarde':'Boa noite';
@@ -1379,7 +1380,7 @@ function renderInicio(){
     </div>
   </div>`;
 
-  html+=renderAdsCarousel();
+  html+=renderAdsCarousel(upcoming);
   html+=renderOfertas();
 
   html+=`<div class="quick-stats fade-in">

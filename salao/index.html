@@ -84,7 +84,27 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .nav-item.active{background:var(--brand-soft);color:var(--brand);font-weight:600}
 .nav-item svg{flex-shrink:0}
 .nav-item .soon{margin-left:auto;font-size:10px;font-weight:600;color:var(--text-3);border:1px solid var(--border);padding:1px 6px;border-radius:99px}
+.sub-banner{
+  margin:10px 14px 0;padding:11px 13px;border-radius:12px;font-size:11.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:8px;line-height:1.4;transition:transform .1s;
+}
+.sub-banner:hover{transform:translateY(-1px)}
+.sub-banner.trial{background:var(--info-soft);color:var(--info)}
+.sub-banner.renewal{background:var(--warn-soft);color:var(--warn)}
+.sub-banner.blocked{background:var(--neg-soft);color:var(--neg)}
 .sidebar-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--border)}
+
+.plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:560px){.plan-grid{grid-template-columns:1fr}}
+.plan-card{border:1.5px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column}
+.plan-card.current{border-color:var(--brand);background:var(--brand-soft)}
+.plan-name{font-family:var(--font-display);font-weight:800;font-size:17px}
+.plan-price{font-size:22px;font-weight:800;margin:6px 0 14px;color:var(--brand)}
+.plan-features{list-style:none;margin:0 0 18px;padding:0;flex:1}
+.plan-features li{font-size:12.5px;color:var(--text-2);padding:6px 0;border-top:1px solid var(--border);display:flex;align-items:flex-start;gap:7px}
+.plan-features li:first-child{border-top:none}
+.plan-features li::before{content:'✓';color:var(--pos);font-weight:800;flex-shrink:0}
+.plan-current-badge{text-align:center;padding:10px;border-radius:10px;background:var(--pos-soft);color:var(--pos);font-weight:700;font-size:13px}
 .theme-toggle{
   display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
   font-size:13px;font-weight:500;color:var(--text-2);border:1px solid var(--border);
@@ -691,12 +711,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <div class="logo-name"><span style="color:#000">Beauty</span> <em>Agenda</em></div>
   </div>
 
-  <button class="unit-switch" onclick="toast('Multiempresa: troca de unidade disponível no plano Pro')">
-    <span class="u-dot"></span>
-    <span class="u-name">Studio Jardins<span class="u-sub">3 unidades · São Paulo</span></span>
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3)"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></svg>
-  </button>
-
   <div class="nav-label">Principal</div>
   <button class="nav-item active" data-view="dashboard" onclick="setView('dashboard')">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
@@ -731,6 +745,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
   <button class="nav-item" data-view="marketing" onclick="setView('marketing')">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z"/><path d="M16 9.5a4 4 0 0 1 0 5M18.5 7a8 8 0 0 1 0 10"/></svg>
     Marketing
+    <svg id="marketingLockIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;color:var(--text-3);display:none"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
   </button>
 
   <div class="nav-label">Operação</div>
@@ -742,6 +757,8 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.06-.4.1-.8.1-1.2z"/></svg>
     Configurações
   </button>
+
+  <div class="sub-banner" id="subBanner" style="display:none" onclick="openPlanModal()"></div>
 
   <div class="sidebar-foot">
     <div class="sidebar-salon" id="sidebarSalon">
@@ -1095,6 +1112,11 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <button class="btn btn-primary" onclick="saveAllConfig()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg> Salvar tudo</button>
       </div>
 
+      <div class="config-section fade-in">
+        <h3>Assinatura</h3>
+        <div class="card panel" id="myPlanCard"></div>
+      </div>
+
       <div class="config-row fade-in" style="margin-bottom:18px">
         <div class="card config-card">
           <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M6 21v-1a6 6 0 0 1 12 0v1"/></svg> Dados do salão</h4>
@@ -1297,6 +1319,13 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 </div>
 
 <!-- ============ MODAL: REGRA DE ACÚMULO ============ -->
+
+<!-- ============ MODAL: PLANO / ASSINATURA ============ -->
+<div class="modal-scrim" id="modalPlanScrim" style="z-index:900" onclick="if(event.target===this&&planModalDismissable)closePlanModal()">
+  <div class="modal" role="dialog" aria-label="Plano da assinatura" style="max-width:620px">
+    <div id="planModalBody"></div>
+  </div>
+</div>
 
 <!-- ============ MODAL: CANCELAR AGENDAMENTO ============ -->
 <div class="modal-scrim" id="modalCancelScrim" onclick="if(event.target===this)closeCancelModal()">
@@ -1668,6 +1697,15 @@ async function seedFirestoreIfEmpty(){
     ],
     reminder:{minutos:15,mensagem:'Oi {cliente}! 👋 Seu horário de {servico} é às {horario}. Você vai comparecer? Toque para confirmar ✅'},
     salon:{nome:'Studio Jardins',endereco:'R. Augusta, 2140 · Jardins · São Paulo, SP',telefone:'(11) 3045-8800'},
+    subscription:{
+      status:'trial', // 'trial' | 'active' | 'past_due' | 'canceled'
+      plan:null, // 'starter' | 'pro' — definido quando escolhe um plano
+      trialStart:Date.now(),
+      trialEnd:Date.now()+7*86400000,
+      currentPeriodEnd:null,
+      stripeCustomerId:null,
+      stripeSubscriptionId:null,
+    },
   });
   const loyaltyRules=[
     {acao:'Cada R$ 1 gasto',pontos:1,cond:'Todos os serviços'},
@@ -1809,6 +1847,16 @@ function initFirestoreListeners(){
       if(typeof renderSalonDataForm==='function')renderSalonDataForm();
       if(typeof updateGreetingName==='function')updateGreetingName();
     }
+    if(cfg.subscription){
+      SUBSCRIPTION=cfg.subscription;
+      if(typeof applySubscriptionState==='function')applySubscriptionState();
+    }else{
+      // conta criada antes da assinatura existir — dá um trial novo de 7 dias, uma única vez
+      db.collection('config').doc('business').set({subscription:{
+        status:'trial',plan:null,trialStart:Date.now(),trialEnd:Date.now()+7*86400000,
+        currentPeriodEnd:null,stripeCustomerId:null,stripeSubscriptionId:null,
+      }},{merge:true}).catch(()=>{});
+    }
   });
   db.collection('notifications').orderBy('ts','desc').limit(50).onSnapshot(snap=>{
     CLIENT_NOTIFS=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
@@ -1820,6 +1868,10 @@ function initFirestoreListeners(){
 const TITLES={dashboard:'Dashboard',agenda:'Agenda',clientes:'Clientes',espera:'Lista de Espera',equipe:'Equipe',fidelidade:'Programa de Fidelidade',cashback:'Cashback & Giftback',marketing:'Marketing',estoque:'Estoque',config:'Configurações'};
 const ALL_VIEWS=['dashboard','agenda','clientes','espera','equipe','fidelidade','cashback','marketing','estoque','config'];
 function setView(v){
+  if(v==='marketing'&&typeof hasMarketingAccess==='function'&&!hasMarketingAccess()){
+    renderPlanModal('marketing-locked');
+    return;
+  }
   ALL_VIEWS.forEach(x=>$('#view-'+x).hidden=x!==v);
   document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
   $('#topTitle').textContent=TITLES[v];
@@ -1830,6 +1882,146 @@ function setView(v){
     if(typeof rebuildCharts==='function')rebuildCharts();
     if(typeof renderRanking==='function')renderRanking();
   }
+}
+
+/* ================= ASSINATURA (trial, planos, bloqueio) ================= */
+let planModalDismissable=true;
+function daysUntil(ts){
+  if(!ts)return null;
+  return Math.ceil((ts-Date.now())/86400000);
+}
+function hasMarketingAccess(){
+  // durante o teste grátis (ainda dentro do prazo) libera tudo, inclusive Marketing,
+  // pra pessoa conhecer o valor do Pro. Depois de expirar, só libera com plano Pro de verdade.
+  const trialActive=SUBSCRIPTION.status==='trial'&&daysUntil(SUBSCRIPTION.trialEnd)>0;
+  return trialActive||SUBSCRIPTION.plan==='pro';
+}
+function updateMarketingAccess(){
+  const allowed=hasMarketingAccess();
+  const lockIcon=$('#marketingLockIcon');
+  if(lockIcon)lockIcon.style.display=allowed?'none':'';
+  if(!allowed&&!$('#view-marketing').hidden)setView('dashboard');
+}
+function applySubscriptionState(){
+  const s=SUBSCRIPTION;
+  const banner=$('#subBanner');
+  if(!banner)return;
+  updateMarketingAccess();
+  if(typeof renderPlanCard==='function')renderPlanCard();
+
+  const trialDaysLeft=daysUntil(s.trialEnd);
+  const renewalDaysLeft=daysUntil(s.currentPeriodEnd);
+
+  if(s.status==='trial'&&trialDaysLeft!==null&&trialDaysLeft>0){
+    banner.style.display='flex';
+    if(trialDaysLeft<=3){
+      banner.className='sub-banner renewal';
+      banner.innerHTML=trialDaysLeft===1
+        ? '⚠️ Último dia do seu teste grátis — escolha um plano'
+        : '⚠️ Faltam '+trialDaysLeft+' dias pro fim do teste grátis — escolha um plano';
+    }else{
+      banner.className='sub-banner trial';
+      banner.innerHTML='⏳ Teste grátis: faltam '+trialDaysLeft+' dias · toque para ver os planos';
+    }
+    closePlanModal(true);
+    return;
+  }
+  if(s.status==='trial'&&(trialDaysLeft===null||trialDaysLeft<=0)){
+    banner.style.display='flex';banner.className='sub-banner blocked';
+    banner.innerHTML='🔒 Teste grátis encerrado — escolha um plano';
+    renderPlanModal('blocked-trial');
+    return;
+  }
+  if(s.status==='past_due'){
+    banner.style.display='flex';banner.className='sub-banner blocked';
+    banner.innerHTML='⚠️ Problema no pagamento — sistema bloqueado';
+    renderPlanModal('blocked-payment');
+    return;
+  }
+  if(s.status==='active'&&renewalDaysLeft!==null&&renewalDaysLeft<=3&&renewalDaysLeft>=0){
+    banner.style.display='flex';banner.className='sub-banner renewal';
+    banner.innerHTML='🔔 Sua renovação é em '+renewalDaysLeft+' dia'+(renewalDaysLeft===1?'':'s');
+    closePlanModal(true);
+    return;
+  }
+  banner.style.display='none';
+  closePlanModal(true);
+}
+function renderPlanModal(mode){
+  planModalDismissable=(mode==='voluntary'||mode==='marketing-locked');
+  let header='';
+  if(mode==='blocked-trial'){
+    header=`<div style="text-align:center;margin-bottom:22px">
+      <div style="font-size:32px;margin-bottom:8px">⏳</div>
+      <h2 style="margin-bottom:6px">Seu teste grátis terminou</h2>
+      <p class="text-2" style="font-size:13.5px">Escolha um plano pra continuar usando o Beauty Agenda sem interrupções.</p>
+    </div>`;
+  }else if(mode==='blocked-payment'){
+    header=`<div style="text-align:center;margin-bottom:22px">
+      <div style="font-size:32px;margin-bottom:8px">⚠️</div>
+      <h2 style="margin-bottom:6px;color:var(--neg)">Problema no pagamento</h2>
+      <p class="text-2" style="font-size:13.5px">Não conseguimos confirmar o pagamento da sua mensalidade. O sistema fica bloqueado até a renovação ser concluída.</p>
+      <p style="font-size:13px;margin-top:10px">Dúvidas? Fale com o suporte: <b>${SUPPORT_PHONE}</b></p>
+    </div>`;
+  }else if(mode==='marketing-locked'){
+    header=`<div style="text-align:center;margin-bottom:22px">
+      <div style="font-size:32px;margin-bottom:8px">🔒</div>
+      <h2 style="margin-bottom:6px">A aba Marketing é exclusiva do plano Pro</h2>
+      <p class="text-2" style="font-size:13.5px">Para criar campanhas push e anúncios no app do cliente, assine o plano Pro.</p>
+    </div>`;
+  }else{
+    header=`<div style="margin-bottom:22px"><h2>Meu plano</h2><p class="text-2" style="font-size:13.5px">Veja seu plano atual ou mude quando quiser — sem multa, a qualquer momento.</p></div>`;
+  }
+  const plansHtml=Object.entries(PLANS).map(([key,p])=>{
+    const isCurrent=SUBSCRIPTION.plan===key&&SUBSCRIPTION.status==='active';
+    return `<div class="plan-card ${isCurrent?'current':''}">
+      <div class="plan-name">${p.nome}</div>
+      <div class="plan-price">${p.preco}</div>
+      <ul class="plan-features">${p.features.map(f=>`<li>${f}</li>`).join('')}</ul>
+      ${isCurrent?'<div class="plan-current-badge">✓ Plano atual</div>':`<button class="btn btn-primary btn-block" onclick="selectPlan('${key}')">Escolher ${p.nome}</button>`}
+    </div>`;
+  }).join('');
+  const closeBtn=(mode==='voluntary'||mode==='marketing-locked')?`<button class="icon-btn-sm" onclick="closePlanModal()" style="position:absolute;top:-6px;right:-6px" aria-label="Fechar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`:'';
+  $('#planModalBody').innerHTML=`<div style="position:relative">${closeBtn}${header}<div class="plan-grid">${plansHtml}</div></div>`;
+  $('#modalPlanScrim').classList.add('open');
+}
+function openPlanModal(){renderPlanModal('voluntary')}
+function closePlanModal(force){
+  if(!planModalDismissable&&!force)return;
+  $('#modalPlanScrim').classList.remove('open');
+}
+async function selectPlan(key){
+  // OBS: quando o Stripe estiver conectado, este passo deve redirecionar pro Stripe Checkout
+  // em vez de marcar a assinatura como ativa direto — a confirmação de pagamento de verdade
+  // vem de um webhook do Stripe, não do clique no botão.
+  await db.collection('config').doc('business').set({subscription:{
+    status:'active',plan:key,
+    trialStart:SUBSCRIPTION.trialStart||null,trialEnd:SUBSCRIPTION.trialEnd||null,
+    currentPeriodEnd:Date.now()+30*86400000,
+    stripeCustomerId:SUBSCRIPTION.stripeCustomerId||null,stripeSubscriptionId:SUBSCRIPTION.stripeSubscriptionId||null,
+  }},{merge:true});
+  toast('Plano '+PLANS[key].nome+' ativado com sucesso');
+  closePlanModal(true);
+}
+function renderPlanCard(){
+  const el=$('#myPlanCard');
+  if(!el)return;
+  const s=SUBSCRIPTION;
+  const planInfo=s.plan?PLANS[s.plan]:null;
+  const statusLabel={trial:'Em teste grátis',active:'Ativo',past_due:'Pagamento pendente',canceled:'Cancelado'}[s.status]||s.status;
+  const renewalDaysLeft=daysUntil(s.currentPeriodEnd);
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:3px">Plano atual</div>
+        <div style="font-size:18px;font-weight:800;font-family:var(--font-display)">${planInfo?planInfo.nome:'Nenhum (teste grátis)'}</div>
+        <div style="font-size:12.5px;color:var(--text-2);margin-top:4px">
+          <span class="tag ${s.status==='active'?'tag-ok':s.status==='past_due'?'tag-risk':'tag-new'}">${statusLabel}</span>
+          ${s.status==='active'&&renewalDaysLeft!==null?' · renova em '+renewalDaysLeft+' dia'+(renewalDaysLeft===1?'':'s'):''}
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="openPlanModal()">Mudar de plano</button>
+    </div>`;
 }
 
 /* ================= DASHBOARD ================= */
@@ -2128,6 +2320,12 @@ function buildCharts(){
 const HOUR_PX=110;let DAY_START=8,DAY_HOURS=12; // recalculated per day from BUSINESS_HOURS
 const WEEKDAY_LABELS=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 let SALON_CONFIG={nome:'Studio Jardins',proprietario:'',endereco:'R. Augusta, 2140 · Jardins · São Paulo, SP',telefone:'(11) 3045-8800',cnpj:'',instagram:'',site:''};
+let SUBSCRIPTION={status:'trial',plan:null,trialStart:null,trialEnd:null,currentPeriodEnd:null};
+const SUPPORT_PHONE='(11) 91234-5678'; // telefone de suporte exibido em bloqueios/dúvidas de cobrança
+const PLANS={
+  starter:{nome:'Starter',preco:'R$ 79/mês',features:['Agenda e clientes ilimitados','App do cliente com agendamento','Fidelidade, cashback e giftback','Notificações push']},
+  pro:{nome:'Pro',preco:'R$ 149/mês',features:['Tudo do Starter','Marketing: campanhas push','Marketing: anúncios (Ads) no app do cliente']},
+};
 let BUSINESS_HOURS=[
   {open:'09:00',close:'20:00',active:true}, // Segunda
   {open:'09:00',close:'20:00',active:true}, // Terça
@@ -2270,9 +2468,11 @@ function placeAppt(a){
   const cbNote=(a.status==='concluido'&&a.cashbackGerado)?` · ${BRL(a.cashbackGerado)} cashback`:'';
   const attentionNote=a.needsAttention?' · ⚠ sem confirmação':'';
   const appNote=isFromApp?' · 📲 agendado pelo app':'';
+  const payLabels={pix:'Pix',credito:'Cartão de crédito',debito:'Cartão de débito'};
+  const payNote=a.pagamento?`<div class="ap-s">💳 ${payLabels[a.pagamento]||a.pagamento}</div>`:'';
   const waBtn=hasPhone?`<button class="ap-wa-btn" title="Falar com cliente no WhatsApp" onclick="event.stopPropagation();openWhatsAppById('${a.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.05 2zm5.8 14.13c-.24.68-1.4 1.3-1.93 1.36-.5.06-1.11.09-1.79-.11-.41-.13-.94-.3-1.61-.6-2.85-1.23-4.7-4.1-4.84-4.29-.14-.19-1.16-1.54-1.16-2.94s.73-2.09.99-2.37c.26-.29.57-.36.76-.36.19 0 .38 0 .55.01.18.01.41-.07.64.49.24.58.81 2 .88 2.14.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.52 1.9 1.05.94 1.93 1.23 2.21 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.18-.28.37-.23.61-.14.25.09 1.58.75 1.85.88.28.14.46.21.53.32.07.12.07.68-.17 1.36z"/></svg> Falar com Cliente</button>`:'';
   const expandBtn=isCompact?`<button class="ap-expand-btn" title="Expandir detalhes" onclick="event.stopPropagation();toggleApptExpand('${a.id}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>`:'';
-  el.innerHTML=`<div class="ap-c"><span class="status-dot" style="background:${STATUS[a.status].c}"></span>${a.cliente}${expandBtn}</div><div class="ap-s">${a.servico} · ${BRL(a.valor||0)}</div><div class="ap-t num">${minToLabel(a.start)} – ${minToLabel(a.start+a.dur)}</div><div class="ap-status" style="color:${a.needsAttention?'var(--neg)':isPending?'var(--info)':STATUS[a.status].c}">${STATUS[a.status].t}${cbNote}${attentionNote}${appNote}</div>${waBtn}${apptActionsHtml(a)}`;
+  el.innerHTML=`<div class="ap-c"><span class="status-dot" style="background:${STATUS[a.status].c}"></span>${a.cliente}${expandBtn}</div><div class="ap-s">${a.servico} · ${BRL(a.valor||0)}</div>${payNote}<div class="ap-t num">${minToLabel(a.start)} – ${minToLabel(a.start+a.dur)}</div><div class="ap-status" style="color:${a.needsAttention?'var(--neg)':isPending?'var(--info)':STATUS[a.status].c}">${STATUS[a.status].t}${cbNote}${attentionNote}${appNote}</div>${waBtn}${apptActionsHtml(a)}`;
   attachDrag(el,a);
   col.appendChild(el);
 }
