@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beauty Agenda — Gestão inteligente para salões</title>
+<title>Beauty Agenda — Gestão para salões</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -306,9 +306,9 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 }
 .ap-wa-btn:hover{background:#25D36638}
 .appt.compact:not(.expanded) .ap-wa-btn{display:none}
-/* agendamentos curtos (≤30min): a caixa é pequena de verdade, então escondemos as linhas
-   secundárias em vez de forçar uma altura mínima — isso evitava que o card "vazasse"
-   e sobrepusesse o próximo horário. */
+/* todo agendamento começa recolhido (só nome + status) — a seta no canto expande pra mostrar
+   serviço, forma de pagamento, horário, WhatsApp e os botões de ação. Isso evita que qualquer
+   duração de atendimento fique pequena demais pra caber tudo. */
 .appt.compact{padding:6px 10px}
 .appt.compact .ap-c{font-size:12px}
 .appt.compact .ap-s,.appt.compact .ap-t{display:none}
@@ -1000,12 +1000,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 
       <div class="grid-2b fade-in">
         <div class="card panel">
-          <div class="panel-head"><div><h3>Regras de acúmulo</h3><div class="sub">Como os clientes ganham pontos</div></div>
-          <button class="btn btn-ghost" onclick="openFidRuleModal()" style="padding:6px 10px;font-size:12px">+ Adicionar regra</button></div>
-          <table class="rule-table"><thead><tr><th>Ação</th><th>Pontos</th><th>Condição</th><th></th></tr></thead>
-          <tbody id="fidRulesBody"></tbody></table>
-        </div>
-        <div class="card panel">
           <div class="panel-head"><div><h3>Recompensas disponíveis</h3><div class="sub">Prêmios que o cliente pode resgatar · calculados a partir dos preços em Configurações</div></div>
           <div style="display:flex;gap:6px">
             <button class="btn btn-ghost" onclick="syncRewardsFromServices()" style="padding:6px 10px;font-size:12px">↻ Sincronizar</button>
@@ -1014,12 +1008,11 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
           <table class="rule-table"><thead><tr><th>Recompensa</th><th>Custo</th><th>Resgatados</th><th></th></tr></thead>
           <tbody id="fidRewardsBody"></tbody></table>
         </div>
-      </div>
-
-      <div class="card panel fade-in">
-        <div class="panel-head"><div><h3>Ranking de membros</h3><div class="sub">Top 5 por pontuação acumulada</div></div></div>
-        <table class="table"><thead><tr><th></th><th>Cliente</th><th>Nível</th><th>Pontos</th><th>Resgates</th><th style="text-align:right">Desde</th></tr></thead>
-        <tbody id="fidRanking"></tbody></table>
+        <div class="card panel">
+          <div class="panel-head"><div><h3>Ranking de membros</h3><div class="sub">Top 5 por pontuação acumulada</div></div></div>
+          <table class="table"><thead><tr><th></th><th>Cliente</th><th>Nível</th><th>Pontos</th><th>Resgates</th><th style="text-align:right">Desde</th></tr></thead>
+          <tbody id="fidRanking"></tbody></table>
+        </div>
       </div>
     </section>
 
@@ -1195,20 +1188,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
             <button class="btn btn-ghost" onclick="openServiceModal()" style="padding:6px 10px;font-size:12px">+ Novo tipo de serviço</button></div>
           <table class="rule-table"><thead><tr><th>Serviço</th><th>Preço</th><th>Duração</th><th title="Varia por nível">Cashback (por nível)</th><th title="Varia por nível">Pontos (por nível)</th><th></th></tr></thead>
           <tbody id="serviceTypesBody"></tbody></table>
-        </div>
-      </div>
-
-      <div class="config-section fade-in">
-        <h3>Dados de demonstração</h3>
-        <div class="cs-sub">O sistema veio com 12 clientes fictícios pra você explorar as telas antes de usar de verdade. Quando estiver pronto pra operar com clientes reais, remova esses dados de exemplo.</div>
-        <div class="card" style="padding:18px;border:1.5px solid var(--neg);background:var(--neg-soft)">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-            <div>
-              <div style="font-weight:700;font-size:14px;margin-bottom:4px">Remover clientes e agendamentos de demonstração</div>
-              <div style="font-size:12.5px;color:var(--text-2)">Apaga só os 12 clientes de exemplo (Ana Beatriz, Carla Menezes, etc.) e os agendamentos ligados a eles. Clientes reais cadastrados por você não são afetados.</div>
-            </div>
-            <button class="btn btn-danger" onclick="clearDemoData()" style="white-space:nowrap">Remover dados de exemplo</button>
-          </div>
         </div>
       </div>
     </section>
@@ -1523,22 +1502,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 </div>
 
 <!-- ============ MODAL: REGRA DE ACÚMULO ============ -->
-<div class="modal-scrim" id="modalFidRuleScrim" onclick="if(event.target===this)closeFidRuleModal()">
-  <div class="modal" role="dialog" aria-label="Regra de acúmulo">
-    <h3 id="fidRuleTitle">Nova regra de acúmulo</h3>
-    <p class="m-sub">Defina como os clientes ganham pontos no programa de fidelidade.</p>
-    <div class="field"><label>Ação</label><input id="frAcao" placeholder="Ex: Cada R$ 1 gasto"></div>
-    <div class="field-row">
-      <div class="field"><label>Pontos concedidos</label><input id="frPontos" type="number" min="0" placeholder="0"></div>
-      <div class="field"><label>Condição</label><input id="frCond" placeholder="Ex: 1x por visita"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeFidRuleModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveFidRule()">Salvar regra</button>
-    </div>
-  </div>
-</div>
-
 <!-- ============ MODAL: NÍVEL DO PROGRAMA ============ -->
 <div class="modal-scrim" id="modalTierScrim" onclick="if(event.target===this)closeTierModal()">
   <div class="modal" role="dialog" aria-label="Nível do programa">
@@ -1759,14 +1722,6 @@ async function seedFirestoreIfEmpty(){
       stripeSubscriptionId:null,
     },
   });
-  const loyaltyRules=[
-    {acao:'Cada R$ 1 gasto',pontos:1,cond:'Todos os serviços'},
-    {acao:'Check-in pelo app',pontos:5,cond:'1x por visita'},
-    {acao:'Indicar um amigo',pontos:50,cond:'Quando o indicado comparece'},
-    {acao:'Avaliação no app',pontos:10,cond:'1x por visita'},
-    {acao:'Aniversário do cliente',pontos:100,cond:'Bônus anual automático'},
-  ];
-  loyaltyRules.forEach(r=>batch.set(db.collection('loyaltyRules').doc(),r));
   const waitlistSeed=[
     {nome:'Renata Alves',tel:'(11) 98123-4455',horario:'Sábado de manhã',obs:'Quer fazer luzes + hidratação, prefere com a Marina'},
     {nome:'Diego Farias',tel:'(11) 97788-2210',horario:'Terças após 18h',obs:'Corte + barba, cliente antigo que mudou de bairro'},
@@ -1852,10 +1807,6 @@ function initFirestoreListeners(){
   db.collection('waitlist').onSnapshot(snap=>{
     WAITLIST=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(typeof renderWaitlist==='function')renderWaitlist();
-  });
-  db.collection('loyaltyRules').onSnapshot(snap=>{
-    FID_RULES=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(typeof renderFidRules==='function')renderFidRules();
   });
   db.collection('loyaltyTiers').orderBy('min').onSnapshot(snap=>{
     TIERS_DATA=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -2510,7 +2461,7 @@ function placeAppt(a){
   if(!pro)return;
   const isPending=a.status==='pendente'; // pulsa até o profissional confirmar, não importa quem criou
   const isFromApp=a.origem==='app';
-  const isCompact=a.dur<=30;
+  const isCompact=true; // todo card começa recolhido e usa a seta pra revelar detalhes/botões — evita cortar conteúdo em qualquer duração
   const el=document.createElement('div');
   el.className='appt'+(a.needsAttention?' needs-attention':'')+(isPending?' new-from-app':'')+(isCompact?' compact':'');el.dataset.id=a.id;
   const naturalHeight=(a.dur/60*HOUR_PX-6);
@@ -3545,39 +3496,12 @@ async function syncRewardsFromServices(silent){
   await batch.commit();
   if(!silent)toast('Recompensas sincronizadas com os preços cadastrados em Configurações');
 }
-function renderFidRules(){
-  $('#fidRulesBody').innerHTML=FID_RULES.map(r=>`<tr>
-    <td>${r.acao}</td><td class="num"><b>${r.pontos} pt${r.pontos===1?'':'s'}</b></td><td>${r.cond}</td>
-    <td style="white-space:nowrap"><span class="rule-edit" onclick="openFidRuleModal('${r.id}')">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteFidRule('${r.id}')">Excluir</span></td></tr>`).join('');
-}
 function renderFidRewards(){
   $('#fidRewardsBody').innerHTML=FID_REWARDS.map(r=>`<tr>
     <td>${r.nome}</td><td class="num"><b>${r.custo} pts</b></td><td class="num">${r.resg}</td>
     <td style="white-space:nowrap"><span class="rule-edit" onclick="openFidRewardModal('${r.id}')">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteFidReward('${r.id}')">Excluir</span></td></tr>`).join('');
 }
-let fidRuleEditId=null, fidRewardEditId=null;
-function openFidRuleModal(id){
-  fidRuleEditId=id||null;
-  if(fidRuleEditId){
-    const r=FID_RULES.find(x=>x.id===fidRuleEditId);
-    $('#fidRuleTitle').textContent='Editar regra de acúmulo';
-    $('#frAcao').value=r.acao;$('#frPontos').value=r.pontos;$('#frCond').value=r.cond;
-  }else{
-    $('#fidRuleTitle').textContent='Nova regra de acúmulo';
-    $('#frAcao').value='';$('#frPontos').value='';$('#frCond').value='';
-  }
-  $('#modalFidRuleScrim').classList.add('open');
-}
-function closeFidRuleModal(){$('#modalFidRuleScrim').classList.remove('open')}
-async function saveFidRule(){
-  const acao=$('#frAcao').value.trim(),pontos=parseInt($('#frPontos').value)||0,cond=$('#frCond').value.trim();
-  if(!acao){toast('Informe a ação da regra');return}
-  if(fidRuleEditId)await db.collection('loyaltyRules').doc(fidRuleEditId).update({acao,pontos,cond});
-  else await db.collection('loyaltyRules').add({acao,pontos,cond});
-  closeFidRuleModal();
-  toast('Regra de acúmulo salva com sucesso');
-}
-async function deleteFidRule(id){await db.collection('loyaltyRules').doc(id).delete();toast('Regra removida')}
+let fidRewardEditId=null;
 
 function openFidRewardModal(id){
   fidRewardEditId=id||null;
@@ -4384,28 +4308,7 @@ function renderSalonDataForm(){
     if(el&&document.activeElement!==el)el.value=SALON_CONFIG[key]||'';
   });
 }
-const DEMO_CLIENT_NAMES=['Ana Beatriz Souza','Carla Menezes','Pedro Henrique Alves','Fernanda Oliveira','Juliana Castro','Marcos Vinícius','Beatriz Nunes','Luana Ferreira','Rodrigo Santana','Patrícia Gomes','Camila Duarte','Gabriel Martins'];
-async function clearDemoData(){
-  const demoClients=CLIENTS.filter(c=>DEMO_CLIENT_NAMES.includes(c.nome));
-  if(!demoClients.length){toast('Nenhum dado de demonstração encontrado — já está tudo limpo');return}
-  const demoApptsCount=appts.filter(a=>DEMO_CLIENT_NAMES.includes(a.cliente)).length;
-  if(!confirm(`Remover ${demoClients.length} cliente(s) de demonstração e ${demoApptsCount} agendamento(s) ligados a eles? Essa ação não pode ser desfeita.`))return;
-  try{
-    const idsToDelete=[
-      ...demoClients.map(c=>({col:'clients',id:c.id})),
-      ...appts.filter(a=>DEMO_CLIENT_NAMES.includes(a.cliente)).map(a=>({col:'appointments',id:a.id})),
-    ];
-    for(let i=0;i<idsToDelete.length;i+=400){
-      const batch=db.batch();
-      idsToDelete.slice(i,i+400).forEach(({col,id})=>batch.delete(db.collection(col).doc(id)));
-      await batch.commit();
-    }
-    toast('Dados de demonstração removidos · '+demoClients.length+' clientes e '+demoApptsCount+' agendamentos apagados');
-  }catch(err){
-    console.error('Erro ao limpar dados de demonstração:',err);
-    toast('Não foi possível remover tudo. Tente novamente.');
-  }
-}
+
 async function saveSalonData(){
   const salon={
     nome:$('#cfgSalonNome').value.trim()||'Studio Jardins',
@@ -4726,7 +4629,7 @@ function startAppAfterLogin(user){
   if(avEl)avEl.textContent=displayName.slice(0,2).toUpperCase();
 
   renderKpis();renderRanking();renderAgenda();renderClients();renderWaitlist();renderStaff();
-  renderTiers();renderFidRanking();renderFidRules();renderCashRules();renderGiftRules();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();
+  renderTiers();renderFidRanking();renderCashRules();renderGiftRules();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();
   initBrandColor();initLogo();initReminderConfig();
   buildCharts();
   renderNotifList();

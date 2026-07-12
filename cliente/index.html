@@ -961,6 +961,12 @@ function isSlotAvailable(timeStr,durMin){
 
 /* ================= FIRESTORE: DADOS EM TEMPO REAL ================= */
 let SALON={nome:'Studio Jardins',endereco:'R. Augusta, 2140 · Jardins · São Paulo, SP'};
+let SALON_SUBSCRIPTION={status:'trial',plan:null};
+function salonHasMarketingFeatures(){
+  // durante o teste grátis o salão pode usar Marketing pra experimentar o Pro, então o app
+  // do cliente também mostra ads/campanhas nesse período. Fora do trial, só no plano Pro.
+  return SALON_SUBSCRIPTION.status==='trial'||SALON_SUBSCRIPTION.plan==='pro';
+}
 
 let CLIENT={
   id:null,nome:'Ana Beatriz Souza',tel:'',email:'',nasc:'',sexo:'',avatarCor:'#C2366F',foto:null,
@@ -1139,6 +1145,7 @@ function initFirestoreListeners(){
     if(cfg.businessHours)BUSINESS_HOURS=cfg.businessHours;
     if(cfg.brandColor)applyClientBrandColor(cfg.brandColor);
     if(cfg.salon){SALON=cfg.salon;const sn=$('#splashSalonName');if(sn)sn.textContent=SALON.nome||'Studio Jardins';}
+    if(cfg.subscription){SALON_SUBSCRIPTION=cfg.subscription;}
     if(currentView==='perfil'||currentView==='inicio')renderScreen();
   });
   if(CLIENT.id){
@@ -1318,6 +1325,12 @@ function trackAdView(adId){
   db.collection('ads').doc(adId).update({visualizacoes:firebase.firestore.FieldValue.increment(1)}).catch(()=>{});
 }
 function renderAdsCarousel(upcoming){
+  if(!salonHasMarketingFeatures()){
+    // plano Starter (ou fora do trial sem Pro): nunca mostra ads/campanhas aqui — mostra os
+    // próprios agendamentos do cliente, em carrossel automático quando há mais de um
+    heroActiveAdIds=[];
+    return renderUpcomingApptsSlot();
+  }
   const activeAds=ADS.filter(a=>a.status==='ativo');
   heroActiveAdIds=activeAds.map(a=>a.id);
   if(!activeAds.length)return renderApptCardInner(upcoming); // sem ads publicados: mostra o card de agendamento no lugar
@@ -1327,6 +1340,17 @@ function renderAdsCarousel(upcoming){
       ${slides.map(s=>`<div class="hero-slide-wrap">${s}</div>`).join('')}
     </div>
     ${slides.length>1?`<div class="hero-dots" id="heroDots">${slides.map((_,i)=>`<div class="hero-dot ${i===0?'active':''}"></div>`).join('')}</div>`:''}
+  </div>`;
+}
+function renderUpcomingApptsSlot(){
+  const upcomingList=APPTS.filter(a=>a.status!=='concluido'&&a.status!=='cancelado').sort((a,b)=>a.date.localeCompare(b.date));
+  if(upcomingList.length<=1)return renderApptCardInner(upcomingList[0]||null);
+  const slides=upcomingList.map(a=>renderApptCardInner(a));
+  return `<div class="hero-carousel fade-in" id="heroCarousel">
+    <div class="hero-track" id="heroTrack">
+      ${slides.map(s=>`<div class="hero-slide-wrap">${s}</div>`).join('')}
+    </div>
+    <div class="hero-dots" id="heroDots">${slides.map((_,i)=>`<div class="hero-dot ${i===0?'active':''}"></div>`).join('')}</div>
   </div>`;
 }
 let heroAutoTimer=null,heroPauseTimer=null;
