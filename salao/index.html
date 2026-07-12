@@ -271,7 +271,12 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .appt .ap-s{opacity:.85;margin-top:1px}
 .appt .ap-t{opacity:.7;font-size:11.5px;margin-top:2px}
 .appt .ap-status{font-size:11px;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.appt .ap-wa{opacity:.9;color:#25D366;font-weight:700;display:inline-flex;align-items:center;gap:3px}
+.ap-wa-btn{
+  display:flex;align-items:center;gap:5px;margin-top:6px;padding:5px 9px;border-radius:8px;border:none;
+  background:#25D36622;color:#178A63;font-weight:700;font-size:10.5px;cursor:pointer;width:fit-content;
+}
+.ap-wa-btn:hover{background:#25D36638}
+.appt.compact:not(.expanded) .ap-wa-btn{display:none}
 /* agendamentos curtos (≤30min): a caixa é pequena de verdade, então escondemos as linhas
    secundárias em vez de forçar uma altura mínima — isso evitava que o card "vazasse"
    e sobrepusesse o próximo horário. */
@@ -281,6 +286,17 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .appt.compact .ap-status{margin-top:2px;font-size:10px}
 .appt.compact .appt-actions{bottom:4px;right:4px;gap:3px}
 .appt.compact .ap-act{width:20px;height:20px;font-size:11px}
+.ap-expand-btn{
+  width:16px;height:16px;border-radius:50%;border:none;background:rgba(0,0,0,.08);color:inherit;
+  display:inline-grid;place-items:center;flex-shrink:0;margin-left:auto;cursor:pointer;padding:0;
+}
+.ap-expand-btn svg{transition:transform .15s ease}
+.appt.compact.expanded{padding:9px 12px;box-shadow:var(--shadow-lg);border-width:1.5px}
+.appt.compact.expanded .ap-c{font-size:13.5px}
+.appt.compact.expanded .ap-s,.appt.compact.expanded .ap-t{display:block}
+.appt.compact.expanded .ap-status{margin-top:4px;font-size:11px}
+.appt.compact.expanded .appt-actions{position:static;margin-top:8px;justify-content:flex-end}
+.appt.compact.expanded .ap-act{width:25px;height:25px;font-size:13px}
 
 /* week view */
 .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
@@ -1139,6 +1155,20 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
           <tbody id="serviceTypesBody"></tbody></table>
         </div>
       </div>
+
+      <div class="config-section fade-in">
+        <h3>Dados de demonstração</h3>
+        <div class="cs-sub">O sistema veio com 12 clientes fictícios pra você explorar as telas antes de usar de verdade. Quando estiver pronto pra operar com clientes reais, remova esses dados de exemplo.</div>
+        <div class="card" style="padding:18px;border:1.5px solid var(--neg);background:var(--neg-soft)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div>
+              <div style="font-weight:700;font-size:14px;margin-bottom:4px">Remover clientes e agendamentos de demonstração</div>
+              <div style="font-size:12.5px;color:var(--text-2)">Apaga só os 12 clientes de exemplo (Ana Beatriz, Carla Menezes, etc.) e os agendamentos ligados a eles. Clientes reais cadastrados por você não são afetados.</div>
+            </div>
+            <button class="btn btn-danger" onclick="clearDemoData()" style="white-space:nowrap">Remover dados de exemplo</button>
+          </div>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -1624,8 +1654,10 @@ async function seedFirestoreIfEmpty(){
   const batch=db.batch();
   SEED_STAFF.forEach(s=>batch.set(db.collection('staff').doc(s.sid),s));
   SEED_SERVICES.forEach(s=>batch.set(db.collection('services').doc(),s));
-  SEED_CLIENTS.forEach(c=>batch.set(db.collection('clients').doc(),c));
-  SEED_APPTS.forEach(a=>batch.set(db.collection('appointments').doc(),a));
+  // OBS: propositalmente NÃO semeamos clientes/agendamentos fictícios — uma conta nova
+  // começa com a agenda e a lista de clientes vazias, prontas pra dados reais desde o
+  // primeiro dia. Equipe e serviços continuam sendo semeados como ponto de partida
+  // configurável (o dono edita/apaga como quiser em Equipe e Configurações).
   batch.set(db.collection('config').doc('business'),{
     brandColor:'#C2366F',logo:null,
     businessHours:[
@@ -1713,6 +1745,7 @@ function initFirestoreListeners(){
     CLIENTS=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(typeof renderClients==='function')renderClients();
     if(typeof renderRanking==='function')renderRanking();
+    if(typeof renderFidRanking==='function')renderFidRanking();
   });
   db.collection('appointments').onSnapshot(snap=>{
     appts=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1991,7 +2024,7 @@ function renderRanking(){
     <td><div class="t-client"><div class="avatar" style="width:28px;height:28px;font-size:10.5px">${initials(c.nome)}</div>${c.nome}</div></td>
     <td class="num">${c.visitas}</td>
     <td class="num">${BRL(ticketMedio(c))}</td>
-    <td class="num" style="text-align:right;font-weight:700">${BRL(c.total)}</td></tr>`).join('');
+    <td class="num" style="text-align:right;font-weight:700">${BRL(c.total||0)}</td></tr>`).join('');
 }
 </script>
 <script>
@@ -2224,8 +2257,10 @@ function placeAppt(a){
   const isCompact=a.dur<=30;
   const el=document.createElement('div');
   el.className='appt'+(a.needsAttention?' needs-attention':'')+(isPending?' new-from-app':'')+(isCompact?' compact':'');el.dataset.id=a.id;
+  const naturalHeight=(a.dur/60*HOUR_PX-6);
   el.style.top=(a.start/60*HOUR_PX)+'px';
-  el.style.height=(a.dur/60*HOUR_PX-6)+'px';
+  el.style.height=naturalHeight+'px';
+  el.dataset.naturalHeight=naturalHeight;
   if(!a.needsAttention&&!isPending){
     el.style.background=pro.cor+(document.documentElement.dataset.theme==='dark'?'26':'14');
     el.style.borderColor=pro.cor+'55';
@@ -2235,11 +2270,28 @@ function placeAppt(a){
   const cbNote=(a.status==='concluido'&&a.cashbackGerado)?` · ${BRL(a.cashbackGerado)} cashback`:'';
   const attentionNote=a.needsAttention?' · ⚠ sem confirmação':'';
   const appNote=isFromApp?' · 📲 agendado pelo app':'';
-  const waNote=hasPhone?` <span class="ap-wa"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1.5px"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.05 2zm5.8 14.13c-.24.68-1.4 1.3-1.93 1.36-.5.06-1.11.09-1.79-.11-.41-.13-.94-.3-1.61-.6-2.85-1.23-4.7-4.1-4.84-4.29-.14-.19-1.16-1.54-1.16-2.94s.73-2.09.99-2.37c.26-.29.57-.36.76-.36.19 0 .38 0 .55.01.18.01.41-.07.64.49.24.58.81 2 .88 2.14.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.52 1.9 1.05.94 1.93 1.23 2.21 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.18-.28.37-.23.61-.14.25.09 1.58.75 1.85.88.28.14.46.21.53.32.07.12.07.68-.17 1.36z"/></svg> Falar com Cliente</span>`:'';
-  el.innerHTML=`<div class="ap-c"><span class="status-dot" style="background:${STATUS[a.status].c}"></span>${a.cliente}</div><div class="ap-s">${a.servico} · ${BRL(a.valor||0)}</div><div class="ap-t num">${minToLabel(a.start)} – ${minToLabel(a.start+a.dur)}</div><div class="ap-status" style="color:${a.needsAttention?'var(--neg)':isPending?'var(--info)':STATUS[a.status].c}">${STATUS[a.status].t}${cbNote}${attentionNote}${appNote}${waNote}</div>${apptActionsHtml(a)}`;
+  const waBtn=hasPhone?`<button class="ap-wa-btn" title="Falar com cliente no WhatsApp" onclick="event.stopPropagation();openWhatsAppById('${a.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.05 2zm5.8 14.13c-.24.68-1.4 1.3-1.93 1.36-.5.06-1.11.09-1.79-.11-.41-.13-.94-.3-1.61-.6-2.85-1.23-4.7-4.1-4.84-4.29-.14-.19-1.16-1.54-1.16-2.94s.73-2.09.99-2.37c.26-.29.57-.36.76-.36.19 0 .38 0 .55.01.18.01.41-.07.64.49.24.58.81 2 .88 2.14.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.52 1.9 1.05.94 1.93 1.23 2.21 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.18-.28.37-.23.61-.14.25.09 1.58.75 1.85.88.28.14.46.21.53.32.07.12.07.68-.17 1.36z"/></svg> Falar com Cliente</button>`:'';
+  const expandBtn=isCompact?`<button class="ap-expand-btn" title="Expandir detalhes" onclick="event.stopPropagation();toggleApptExpand('${a.id}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>`:'';
+  el.innerHTML=`<div class="ap-c"><span class="status-dot" style="background:${STATUS[a.status].c}"></span>${a.cliente}${expandBtn}</div><div class="ap-s">${a.servico} · ${BRL(a.valor||0)}</div><div class="ap-t num">${minToLabel(a.start)} – ${minToLabel(a.start+a.dur)}</div><div class="ap-status" style="color:${a.needsAttention?'var(--neg)':isPending?'var(--info)':STATUS[a.status].c}">${STATUS[a.status].t}${cbNote}${attentionNote}${appNote}</div>${waBtn}${apptActionsHtml(a)}`;
   attachDrag(el,a);
-  el.addEventListener('click',()=>{ if(el._dragged)return; openWhatsApp(a)});
   col.appendChild(el);
+}
+function toggleApptExpand(id){
+  const el=document.querySelector(`.appt[data-id="${id}"]`);
+  if(!el)return;
+  const expanding=!el.classList.contains('expanded');
+  el.classList.toggle('expanded',expanding);
+  if(expanding){
+    el.style.height='auto';
+    el.style.minHeight=el.dataset.naturalHeight+'px';
+    el.style.zIndex=15;
+  }else{
+    el.style.height=el.dataset.naturalHeight+'px';
+    el.style.minHeight='';
+    el.style.zIndex='';
+  }
+  const chevron=el.querySelector('.ap-expand-btn svg');
+  if(chevron)chevron.style.transform=expanding?'rotate(180deg)':'rotate(0deg)';
 }
 function apptActionsHtml(a){
   let btns='';
@@ -2264,7 +2316,7 @@ function apptActionsHtml(a){
 
 function attachDrag(el,a){
   el.addEventListener('pointerdown',e=>{
-    if(e.target.closest('.ap-act'))return;
+    if(e.target.closest('.ap-act')||e.target.closest('.ap-expand-btn')||e.target.closest('.ap-wa-btn'))return;
     e.preventDefault();
     el.setPointerCapture(e.pointerId);
     el._dragged=false;
@@ -2418,7 +2470,7 @@ function renderClients(){
     <td class="num">${c.ult===0?'hoje':'há '+c.ult+' dias'}</td>
     <td class="num">${c.visitas}</td>
     <td class="num">${BRL(ticketMedio(c))}</td>
-    <td class="num" style="text-align:right;font-weight:700">${BRL(c.total)}</td></tr>`).join('')
+    <td class="num" style="text-align:right;font-weight:700">${BRL(c.total||0)}</td></tr>`).join('')
     ||'<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px">Nenhum cliente encontrado. Ajuste os filtros ou cadastre um novo cliente.</td></tr>';
 }
 
@@ -2460,7 +2512,7 @@ function openClient(id){
       ${extra?`<div class="d-contact">${extra}</div>`:''}
       <div style="margin-top:7px">${clientTags(c)}</div></div></div>
     <div class="d-stats">
-      <div class="d-stat"><div class="v num">${BRL(c.total)}</div><div class="l">Total gasto</div></div>
+      <div class="d-stat"><div class="v num">${BRL(c.total||0)}</div><div class="l">Total gasto</div></div>
       <div class="d-stat"><div class="v num">${c.visitas}</div><div class="l">Visitas</div></div>
       <div class="d-stat"><div class="v num">${BRL(ticketMedio(c))}</div><div class="l">Ticket médio</div></div>
       <div class="d-stat"><div class="v num">${BRL(c.total*0.04)}</div><div class="l">Cashback</div></div>
@@ -2919,21 +2971,24 @@ async function deleteTier(id){
   toast('Nível "'+(t?t.nome:'')+'" removido');
 }
 function renderFidRanking(){
-  const data=[
-    {n:'Juliana Castro',tier:'Diamond',pts:12480,resg:18,since:'Mar 2024'},
-    {n:'Camila Duarte',tier:'Black',pts:8230,resg:14,since:'Jun 2024'},
-    {n:'Ana Beatriz Souza',tier:'Black',pts:6910,resg:11,since:'Jan 2024'},
-    {n:'Beatriz Nunes',tier:'Ouro',pts:4120,resg:8,since:'Ago 2024'},
-    {n:'Carla Menezes',tier:'Ouro',pts:3560,resg:6,since:'Set 2024'},
-  ];
-  const tierTag=t=>({Diamond:'tag-brand',Black:'tag-vip',Ouro:'tag-warn',Prata:'tag-ok',Bronze:'tag-new'}[t]||'');
-  $('#fidRanking').innerHTML=data.map((d,i)=>`<tr>
+  const sortedTiers=[...TIERS_DATA].sort((a,b)=>a.min-b.min);
+  function tierForPoints(pts){
+    let result=sortedTiers[0];
+    sortedTiers.forEach(t=>{if(pts>=t.min)result=t;});
+    return result;
+  }
+  const tierTag=nome=>({Diamond:'tag-brand',Platinum:'tag-brand',Black:'tag-vip',Ouro:'tag-warn',Prata:'tag-ok',Bronze:'tag-new'}[nome]||'');
+  const ranked=[...CLIENTS].filter(c=>(c.pontos||0)>0).sort((a,b)=>(b.pontos||0)-(a.pontos||0)).slice(0,10);
+  $('#fidRanking').innerHTML=ranked.length?ranked.map((c,i)=>{
+    const t=tierForPoints(c.pontos||0);
+    return `<tr>
     <td><span class="rank-n num">${i+1}</span></td>
-    <td><div class="t-client"><div class="avatar" style="width:28px;height:28px;font-size:10.5px">${initials(d.n)}</div>${d.n}</div></td>
-    <td><span class="tag ${tierTag(d.tier)}">${d.tier}</span></td>
-    <td class="num"><b>${d.pts.toLocaleString('pt-BR')}</b> pts</td>
-    <td class="num">${d.resg}</td>
-    <td class="num" style="text-align:right">${d.since}</td></tr>`).join('');
+    <td><div class="t-client"><div class="avatar" style="width:28px;height:28px;font-size:10.5px">${initials(c.nome)}</div>${c.nome}</div></td>
+    <td><span class="tag ${tierTag(t?t.nome:'')}">${t?t.nome:'—'}</span></td>
+    <td class="num"><b>${(c.pontos||0).toLocaleString('pt-BR')}</b> pts</td>
+    <td class="num">${c.resgates||0}</td>
+    <td class="num" style="text-align:right">${c.desde||'—'}</td></tr>`;
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:28px">Nenhum cliente com pontos de fidelidade ainda. O ranking aparece assim que os primeiros pontos forem creditados.</td></tr>';
 }
 
 /* ================= LISTA DE ESPERA ================= */
@@ -3896,6 +3951,28 @@ function renderSalonDataForm(){
     const el=$('#'+id);
     if(el&&document.activeElement!==el)el.value=SALON_CONFIG[key]||'';
   });
+}
+const DEMO_CLIENT_NAMES=['Ana Beatriz Souza','Carla Menezes','Pedro Henrique Alves','Fernanda Oliveira','Juliana Castro','Marcos Vinícius','Beatriz Nunes','Luana Ferreira','Rodrigo Santana','Patrícia Gomes','Camila Duarte','Gabriel Martins'];
+async function clearDemoData(){
+  const demoClients=CLIENTS.filter(c=>DEMO_CLIENT_NAMES.includes(c.nome));
+  if(!demoClients.length){toast('Nenhum dado de demonstração encontrado — já está tudo limpo');return}
+  const demoApptsCount=appts.filter(a=>DEMO_CLIENT_NAMES.includes(a.cliente)).length;
+  if(!confirm(`Remover ${demoClients.length} cliente(s) de demonstração e ${demoApptsCount} agendamento(s) ligados a eles? Essa ação não pode ser desfeita.`))return;
+  try{
+    const idsToDelete=[
+      ...demoClients.map(c=>({col:'clients',id:c.id})),
+      ...appts.filter(a=>DEMO_CLIENT_NAMES.includes(a.cliente)).map(a=>({col:'appointments',id:a.id})),
+    ];
+    for(let i=0;i<idsToDelete.length;i+=400){
+      const batch=db.batch();
+      idsToDelete.slice(i,i+400).forEach(({col,id})=>batch.delete(db.collection(col).doc(id)));
+      await batch.commit();
+    }
+    toast('Dados de demonstração removidos · '+demoClients.length+' clientes e '+demoApptsCount+' agendamentos apagados');
+  }catch(err){
+    console.error('Erro ao limpar dados de demonstração:',err);
+    toast('Não foi possível remover tudo. Tente novamente.');
+  }
 }
 async function saveSalonData(){
   const salon={
