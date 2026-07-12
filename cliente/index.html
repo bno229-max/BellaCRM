@@ -997,6 +997,60 @@ function daysFromToday(n){const d=new Date();d.setDate(d.getDate()+n);return fmt
 let APPTS=[];
 let REWARDS=[];
 let PROMOS=[];
+let RAW_CAMPAIGNS=[];
+function clientLastServiceDate(){
+  const done=APPTS.filter(a=>a.status==='concluido').sort((a,b)=>b.date.localeCompare(a.date));
+  return done.length?parseDate(done[0].date):null;
+}
+function clientServicesInLastNDays(days){
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);cutoff.setHours(0,0,0,0);
+  return APPTS.filter(a=>a.status==='concluido'&&parseDate(a.date)>=cutoff).length;
+}
+function clientIsBirthdayThisMonth(){
+  if(!CLIENT.nasc)return false;
+  try{return parseDate(CLIENT.nasc).getMonth()===new Date().getMonth()}catch(e){return false}
+}
+function clientMatchesSegment(tipo,params){
+  params=params||{};
+  if(!tipo||tipo==='todos')return true;
+  const now=new Date();
+  if(tipo==='faixa_etaria'){
+    const age=computeAge(CLIENT.nasc);
+    if(age===null)return false;
+    if(params.idadeMin!=null&&age<params.idadeMin)return false;
+    if(params.idadeMax!=null&&age>params.idadeMax)return false;
+    if(params.sexo&&CLIENT.sexo!==params.sexo)return false;
+    return true;
+  }
+  if(tipo==='novo'){
+    if(!CLIENT.createdAtMs)return false;
+    return (Date.now()-CLIENT.createdAtMs)<=14*86400000;
+  }
+  if(tipo==='recorrente')return clientServicesInLastNDays(30)>=4;
+  if(tipo==='inativo'){
+    const last=clientLastServiceDate();
+    if(!last)return false;
+    const dias=(now-last)/86400000;
+    return dias>30&&dias<=60;
+  }
+  if(tipo==='aniversariante')return clientIsBirthdayThisMonth();
+  if(tipo==='risco'){
+    const last=clientLastServiceDate();
+    if(!last)return false;
+    return (now-last)/86400000>60;
+  }
+  return false;
+}
+function recomputePromos(){
+  const emojiFor=ico=>ico||'📣';
+  PROMOS=RAW_CAMPAIGNS.filter(c=>clientMatchesSegment(c.segmentoTipo,c.segmentoParams)).map(c=>({
+    id:c.id,emoji:emojiFor(c.ico),bg:c.bg||'var(--brand-soft)',title:c.name,
+    desc:(c.desc||'').replace(/^Push[^:]*:\s*/,'').replace(/["""]/g,''),
+    mensagem:c.mensagem||(c.desc||'').replace(/^Push[^:]*:\s*/,'').replace(/["""]/g,''),
+    cta:c.cta||'agendar',
+  }));
+  if(currentView==='inicio')renderScreen();
+}
 let ADS=[];
 
 function getTier(nome){return TIERS.find(t=>t.nome===nome)||TIERS[0]}
@@ -1072,20 +1126,11 @@ function initFirestoreListeners(){
     if(currentView==='fidelidade'||currentView==='inicio')renderScreen();
   },err=>console.error('loyaltyTiers listener:',err));
   db.collection('campaigns').where('status','==','Ativa').onSnapshot(snap=>{
-    const emojiFor=ico=>ico||'📣';
-    PROMOS=snap.docs.map(d=>{
-      const c=d.data();
-      return {
-        id:d.id,emoji:emojiFor(c.ico),bg:c.bg||'var(--brand-soft)',title:c.name,
-        desc:(c.desc||'').replace(/^Push[^:]*:\s*/,'').replace(/["""]/g,''),
-        mensagem:c.mensagem||(c.desc||'').replace(/^Push[^:]*:\s*/,'').replace(/["""]/g,''),
-        cta:c.cta||'agendar',
-      };
-    });
-    if(currentView==='inicio')renderScreen();
+    RAW_CAMPAIGNS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    recomputePromos();
   },err=>console.error('campaigns listener:',err));
   db.collection('ads').where('status','==','ativo').onSnapshot(snap=>{
-    ADS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    ADS=snap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>clientMatchesSegment(a.segmentoTipo,a.segmentoParams));
     if(currentView==='inicio')renderScreen();
   },err=>console.error('ads listener:',err));
   db.collection('config').doc('business').onSnapshot(doc=>{
@@ -1105,10 +1150,12 @@ function initFirestoreListeners(){
         nome:data.nome||CLIENT.nome,tel:data.tel||'',email:data.email||'',nasc:data.nasc||'',sexo:data.sexo||'',
         foto:data.foto||null,pontos:data.pontos||0,tier:data.tier||'Bronze',cashback:data.cashback||0,
         visitas:data.visitas||0,desde:data.desde||'',
+        createdAtMs:data.createdAt&&typeof data.createdAt.toMillis==='function'?data.createdAt.toMillis():(CLIENT.createdAtMs||null),
       });
       renderScreen();
       // assina (ou re-assina, se o nome mudou) os agendamentos vinculados a este cliente
       if(CLIENT.nome!==nomeAnterior)subscribeApptsForClientName(CLIENT.nome);
+      recomputePromos(); // reavalia elegibilidade de ofertas com dados atualizados do cliente
     });
     let notifsInitialized=false;
     let knownNotifIds=new Set();
@@ -1136,6 +1183,7 @@ function subscribeApptsForClientName(nome){
       return raw;
     });
     if(currentView==='inicio'||currentView==='horarios')renderScreen();
+    recomputePromos();
   },err=>console.error('appointments listener:',err));
 }
 function apptStartToHora(a){
@@ -1806,7 +1854,7 @@ async function submitReview(){
 
 /* ================= AGENDAR (WIZARD) ================= */
 let booking={step:1,services:[],pro:null,date:null,time:null,payment:'pix',desconto:'nenhum',obs:'',rescheduleId:null};
-const TIER_POINT_MULTIPLIERS={Bronze:0.5,Prata:0.75,Ouro:1.0,Platinum:1.5}; // pontos ganhos por R$1 gasto, conforme o nível atual
+
 function computeBookingDiscount(totalValor){
   if(booking.desconto==='cashback')return Math.min(CLIENT.cashback||0,totalValor);
   return 0;
@@ -1866,11 +1914,12 @@ function renderBooking(){
 
   if(booking.step===1){
     html+=`<div class="screen-pad fade-in"><p class="text-2" style="font-size:13.5px;margin-bottom:14px">Selecione um ou mais serviços</p></div>`;
-    const pontosMultiplicador=TIER_POINT_MULTIPLIERS[CLIENT.tier]??0.5;
+    const clientTier=CLIENT.tier||'Bronze';
     html+=`<div class="screen-pad">`+SERVICES.map(s=>{
       const sel=booking.services.includes(s.n);
-      const svcCashback=s.cbType==='percent'?s.v*((s.cbValue||0)/100):(s.cbType==='fixed'?(s.cbValue||0):0);
-      const svcPontos=Math.round(s.v*pontosMultiplicador);
+      const rule=s.tierRules&&s.tierRules[clientTier];
+      const svcCashback=rule&&rule.cbType==='percent'?s.v*((rule.cbValue||0)/100):(rule&&rule.cbType==='fixed'?(rule.cbValue||0):0);
+      const svcPontos=rule?rule.pontos||0:0;
       const rewardBits=[];
       if(svcPontos>0)rewardBits.push('⭐ +'+svcPontos+' pts');
       if(svcCashback>0)rewardBits.push('💰 +'+BRL(svcCashback));
@@ -1881,11 +1930,11 @@ function renderBooking(){
       </div>`;
     }).join('')+`</div>`;
     if(booking.services.length){
-      const totalPontos=Math.round(totalValor*pontosMultiplicador);
-      const totalCashback=booking.services.reduce((s,n)=>{const sv=svcByName(n);if(!sv)return s;const cb=sv.cbType==='percent'?sv.v*((sv.cbValue||0)/100):(sv.cbType==='fixed'?(sv.cbValue||0):0);return s+cb},0);
+      const totalPontos=booking.services.reduce((s,n)=>{const sv=svcByName(n);const rule=sv&&sv.tierRules&&sv.tierRules[clientTier];return s+(rule?rule.pontos||0:0)},0);
+      const totalCashback=booking.services.reduce((s,n)=>{const sv=svcByName(n);const rule=sv&&sv.tierRules&&sv.tierRules[clientTier];if(!rule)return s;const cb=rule.cbType==='percent'?sv.v*((rule.cbValue||0)/100):(rule.cbType==='fixed'?(rule.cbValue||0):0);return s+cb},0);
       if(totalPontos>0||totalCashback>0){
         html+=`<div class="screen-pad" style="padding-top:0"><div class="reward-preview">
-          <span>🎁 Você vai ganhar</span>
+          <span>🎁 Você vai ganhar (nível ${clientTier})</span>
           <b>${[totalPontos>0?totalPontos+' pontos':'',totalCashback>0?BRL(totalCashback)+' de cashback':''].filter(Boolean).join(' + ')}</b>
         </div></div>`;
       }

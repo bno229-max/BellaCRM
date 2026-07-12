@@ -109,6 +109,11 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .plan-features li:first-child{border-top:none}
 .plan-features li::before{content:'✓';color:var(--pos);font-weight:800;flex-shrink:0}
 .plan-current-badge{text-align:center;padding:10px;border-radius:10px;background:var(--pos-soft);color:var(--pos);font-weight:700;font-size:13px}
+
+.sv-tier-row{display:grid;grid-template-columns:64px 1fr 1fr 70px;gap:8px;align-items:center;margin-bottom:8px}
+.sv-tier-row .sv-tier-label{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:5px}
+.sv-tier-row select,.sv-tier-row input{padding:8px 9px;font-size:12.5px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);width:100%;box-sizing:border-box}
+.sv-tier-row-head{display:grid;grid-template-columns:64px 1fr 1fr 70px;gap:8px;font-size:10.5px;color:var(--text-3);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.02em}
 .theme-toggle{
   display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
   font-size:13px;font-weight:500;color:var(--text-2);border:1px solid var(--border);
@@ -1188,7 +1193,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <div class="card panel">
           <div class="panel-head"><div></div>
             <button class="btn btn-ghost" onclick="openServiceModal()" style="padding:6px 10px;font-size:12px">+ Novo tipo de serviço</button></div>
-          <table class="rule-table"><thead><tr><th>Serviço</th><th>Preço</th><th>Duração</th><th>Cashback</th><th>Pontos</th><th></th></tr></thead>
+          <table class="rule-table"><thead><tr><th>Serviço</th><th>Preço</th><th>Duração</th><th title="Varia por nível">Cashback (por nível)</th><th title="Varia por nível">Pontos (por nível)</th><th></th></tr></thead>
           <tbody id="serviceTypesBody"></tbody></table>
         </div>
       </div>
@@ -1476,6 +1481,17 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       <option value="nenhum">Sem botão (só imagem)</option>
     </select></div>
     <div class="field" id="adUrlField" style="display:none"><label>URL externa</label><input id="adCtaUrl" type="url" placeholder="https://..."></div>
+    <div class="field"><label>Segmento de clientes</label>
+      <select id="adSegmentoTipo" onchange="updateAdSegmentoExtraFields()"></select>
+    </div>
+    <div id="adSegmentoIdadeFields" style="display:none">
+      <div class="field-row">
+        <div class="field"><label>Idade mínima</label><input id="adIdadeMin" type="number" min="0" placeholder="25" oninput="updateAdSegmentoPreview()"></div>
+        <div class="field"><label>Idade máxima</label><input id="adIdadeMax" type="number" min="0" placeholder="45" oninput="updateAdSegmentoPreview()"></div>
+      </div>
+      <div class="field"><label>Sexo (opcional)</label><select id="adSexo" onchange="updateAdSegmentoPreview()"><option value="">Todos</option><option>Feminino</option><option>Masculino</option><option>Outro</option></select></div>
+    </div>
+    <p id="adSegmentoPreview" class="text-2" style="font-size:12px;margin-top:-6px;margin-bottom:12px"></p>
     <div class="field"><label>Status</label><select id="adStatus"><option value="ativo">Ativo</option><option value="pausado">Pausado</option></select></div>
     <p id="adError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:-6px;margin-bottom:12px">Escolha uma foto e preencha o título do anúncio.</p>
     <div class="modal-actions">
@@ -1495,13 +1511,10 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       <div class="field"><label>Preço (R$) *</label><input id="svPreco" type="number" min="0" step="0.01" placeholder="0,00"></div>
       <div class="field"><label>Duração (min)</label><input id="svDuracao" type="number" min="10" step="5" placeholder="60"></div>
     </div>
-    <div class="field-row">
-      <div class="field"><label>Tipo de cashback</label><select id="svCbTipo" onchange="updateCbValueLabel()"><option value="percent">Percentual (%)</option><option value="fixed">Valor fixo (R$)</option><option value="none">Sem cashback</option></select></div>
-      <div class="field"><label id="svCbValueLabel">Valor do cashback (%)</label><input id="svCbValor" type="number" min="0" step="0.01" placeholder="5"></div>
-    </div>
-    <div class="field"><label>Pontos de fidelidade por compra</label><input id="svPontos" type="number" min="0" step="1" placeholder="Ex: 10"></div>
-    <p style="font-size:11.5px;color:var(--text-3);margin-top:-8px;margin-bottom:12px">Creditados no cliente automaticamente sempre que esse serviço é encerrado na Agenda.</p>
-    <p id="svError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:-6px;margin-bottom:12px">Informe nome e preço do serviço.</p>
+    <label style="display:block;font-weight:700;font-size:13.5px;margin:16px 0 4px">Cashback e pontos por nível de fidelidade</label>
+    <p class="text-3" style="font-size:11.5px;margin-top:-2px;margin-bottom:10px">Cada nível pode ter uma regra diferente — ex: Prata ganha menos que Platinum no mesmo serviço.</p>
+    <div id="svTierRulesTable"></div>
+    <p id="svError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:10px;margin-bottom:12px">Informe nome e preço do serviço.</p>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeServiceModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="saveServiceType()">Salvar serviço</button>
@@ -1647,13 +1660,22 @@ const SEED_STAFF=[
   {sid:'julia',nome:'Júlia Rocha',esp:['Manicure','Pedicure'],cor:'#178A63',nasc:'2000-05-22',sexo:'Feminino',exp:'3 anos',rating:4.8,atend30:102,foto:null},
   {sid:'rafa',nome:'Rafa Mendes',esp:['Barbeiro'],cor:'#A96A0B',nasc:'1994-02-10',sexo:'Masculino',exp:'5 anos',rating:4.6,atend30:78,foto:null},
 ];
+function defaultTierRules(valor){
+  const mult={Bronze:0.5,Prata:0.75,Ouro:1.0,Platinum:1.5};
+  const cb={Bronze:2,Prata:3,Ouro:4,Platinum:5};
+  const rules={};
+  Object.keys(mult).forEach(tier=>{
+    rules[tier]={cbType:'percent',cbValue:cb[tier],pontos:Math.round(valor*mult[tier])};
+  });
+  return rules;
+}
 const SEED_SERVICES=[
- {n:'Corte feminino',v:90,d:60,cbType:'percent',cbValue:5,pontos:90},{n:'Corte masculino',v:55,d:30,cbType:'percent',cbValue:5,pontos:55},
- {n:'Coloração',v:180,d:120,cbType:'percent',cbValue:5,pontos:180},{n:'Mechas / Luzes',v:260,d:150,cbType:'percent',cbValue:5,pontos:260},
- {n:'Escova',v:70,d:45,cbType:'percent',cbValue:5,pontos:70},{n:'Hidratação',v:95,d:45,cbType:'percent',cbValue:5,pontos:95},
- {n:'Manicure',v:45,d:45,cbType:'percent',cbValue:5,pontos:45},{n:'Pedicure',v:50,d:45,cbType:'percent',cbValue:5,pontos:50},
- {n:'Barba',v:40,d:20,cbType:'percent',cbValue:5,pontos:40},{n:'Progressiva',v:320,d:180,cbType:'percent',cbValue:5,pontos:320},
- {n:'Sobrancelha',v:35,d:15,cbType:'percent',cbValue:5,pontos:35},
+ {n:'Corte feminino',v:90,d:60,tierRules:defaultTierRules(90)},{n:'Corte masculino',v:55,d:30,tierRules:defaultTierRules(55)},
+ {n:'Coloração',v:180,d:120,tierRules:defaultTierRules(180)},{n:'Mechas / Luzes',v:260,d:150,tierRules:defaultTierRules(260)},
+ {n:'Escova',v:70,d:45,tierRules:defaultTierRules(70)},{n:'Hidratação',v:95,d:45,tierRules:defaultTierRules(95)},
+ {n:'Manicure',v:45,d:45,tierRules:defaultTierRules(45)},{n:'Pedicure',v:50,d:45,tierRules:defaultTierRules(50)},
+ {n:'Barba',v:40,d:20,tierRules:defaultTierRules(40)},{n:'Progressiva',v:320,d:180,tierRules:defaultTierRules(320)},
+ {n:'Sobrancelha',v:35,d:15,tierRules:defaultTierRules(35)},
 ];
 const SEED_CLIENTS=[
  {nome:'Ana Beatriz Souza',tel:'(11) 98877-1023',ult:6,visitas:24,total:4820,vip:true,aniver:false,fav:'Coloração',pro:'Marina Costa',dia:'sexta-feira',intervalo:28,produtos:true,email:'ana.beatriz@email.com',pontos:6910,tier:'Black',cashback:187.40,desde:'Janeiro de 2024',avatarCor:'#C2366F'},
@@ -3008,19 +3030,25 @@ async function confirmCancelWithReason(){
   dashboardRefresh();
   toast('Agendamento cancelado · '+BRL(a.valor||0)+' somados ao Churn · cliente notificado');
 }
-function computeCashback(a){
+function computeCashback(a,tierName){
   const names=a.servico.split(' + ');
   const matched=SERVICES.filter(s=>names.includes(s.n));
-  if(matched.length){
-    return matched.reduce((sum,s)=>{
-      if(s.cbType==='fixed')return sum+(s.cbValue||0);
-      if(s.cbType==='percent')return sum+s.v*((s.cbValue||0)/100);
-      return sum;
-    },0);
-  }
-  return (a.valor||0)*0.05; // fallback: 5% for legacy/unmatched service labels
+  return matched.reduce((sum,s)=>{
+    const rule=s.tierRules&&s.tierRules[tierName];
+    if(!rule||rule.cbType==='none')return sum;
+    if(rule.cbType==='fixed')return sum+(rule.cbValue||0);
+    if(rule.cbType==='percent')return sum+s.v*((rule.cbValue||0)/100);
+    return sum;
+  },0);
 }
-const TIER_POINT_MULTIPLIERS={Bronze:0.5,Prata:0.75,Ouro:1.0,Platinum:1.5};
+function computePontosForTier(a,tierName){
+  const names=a.servico.split(' + ');
+  const matched=SERVICES.filter(s=>names.includes(s.n));
+  return matched.reduce((sum,s)=>{
+    const rule=s.tierRules&&s.tierRules[tierName];
+    return sum+(rule?rule.pontos||0:0);
+  },0);
+}
 function getClientTierName(pontos){
   const sorted=[...TIERS_DATA].sort((a,b)=>a.min-b.min);
   if(!sorted.length)return 'Bronze';
@@ -3030,7 +3058,6 @@ function getClientTierName(pontos){
 }
 async function finalizeAppt(id){
   const a=appts.find(x=>x.id===id);if(!a)return;
-  const cashback=computeCashback(a);
   // prioriza o vínculo direto por ID (sempre confiável); só cai pro nome se o agendamento for antigo/sem clientId
   let clientId=a.clientId;
   let cliente=clientId?CLIENTS.find(c=>c.id===clientId):null;
@@ -3038,11 +3065,11 @@ async function finalizeAppt(id){
     cliente=CLIENTS.find(c=>c.nome===a.cliente);
     clientId=cliente&&cliente.id;
   }
-  // pontos ganhos seguem o multiplicador do nível ATUAL do cliente (Bronze 0,5 · Prata 0,75 · Ouro 1 · Platinum 1,5 por R$1)
+  // cashback e pontos seguem a regra configurada em CADA SERVIÇO para o nível ATUAL do cliente
   const pontosAtuais=cliente?cliente.pontos||0:0;
   const tierAtual=getClientTierName(pontosAtuais);
-  const multiplicador=TIER_POINT_MULTIPLIERS[tierAtual]??0.5;
-  const pontos=Math.round((a.valor||0)*multiplicador);
+  const cashback=computeCashback(a,tierAtual);
+  const pontos=computePontosForTier(a,tierAtual);
   await db.collection('appointments').doc(id).update({status:'concluido',cashbackGerado:cashback,pontosGerados:pontos});
   sessionRevenueAdded+=(a.valor||0);
   if(clientId){
@@ -3785,7 +3812,8 @@ function renderAdsList(){
         <span style="font-weight:700;font-size:13.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ad.titulo}</span>
         <span class="tag ${ad.status==='ativo'?'tag-ok':'tag-risk'}">${ad.status==='ativo'?'Ativo':'Pausado'}</span>
       </div>
-      <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">${adCtaLabel(ad)}</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:4px">${adCtaLabel(ad)}</div>
+      <div style="font-size:11.5px;color:var(--brand);margin-bottom:10px">🎯 ${SEGMENT_TYPES[ad.segmentoTipo]?.label||'Todos os clientes'}</div>
       <div style="display:flex;gap:12px;font-size:11.5px;color:var(--text-2);margin-bottom:10px;padding-top:10px;border-top:1px solid var(--border)">
         <span>👁 ${adViews.toLocaleString('pt-BR')}</span>
         <span>👆 ${adClicks.toLocaleString('pt-BR')}</span>
@@ -3940,6 +3968,7 @@ function openAdModal(id){
   vpv.innerHTML='Toque para escolher um vídeo';
   $('#adVideoFile').value='';
   $('#adVideoUploadStatus').style.display='none';
+  $('#adSegmentoTipo').innerHTML=Object.entries(SEGMENT_TYPES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
   if(adEditId){
     const ad=ADS.find(x=>x.id===adEditId);
     $('#adModalTitle').textContent='Editar anúncio';
@@ -3949,6 +3978,10 @@ function openAdModal(id){
     $('#adCtaDestino').value=ad.ctaDestino||'agendar';
     $('#adCtaUrl').value=ad.ctaUrl||'';
     $('#adStatus').value=ad.status||'ativo';
+    $('#adSegmentoTipo').value=ad.segmentoTipo||'todos';
+    $('#adIdadeMin').value=ad.segmentoParams?.idadeMin??'';
+    $('#adIdadeMax').value=ad.segmentoParams?.idadeMax??'';
+    $('#adSexo').value=ad.segmentoParams?.sexo||'';
     setAdTipo(ad.tipo||'foto');
     if(ad.tipo==='video'&&ad.videoUrl){
       stagedAdVideoUrl=ad.videoUrl;
@@ -3964,11 +3997,28 @@ function openAdModal(id){
     $('#adCtaDestino').value='agendar';
     $('#adCtaUrl').value='';
     $('#adStatus').value='ativo';
+    $('#adSegmentoTipo').value='todos';
+    $('#adIdadeMin').value='';$('#adIdadeMax').value='';$('#adSexo').value='';
     setAdTipo('foto');
   }
   toggleAdUrlField();
+  updateAdSegmentoExtraFields();
   $('#adError').style.display='none';
   $('#modalAdScrim').classList.add('open');
+}
+function updateAdSegmentoExtraFields(){
+  $('#adSegmentoIdadeFields').style.display=$('#adSegmentoTipo').value==='faixa_etaria'?'':'none';
+  updateAdSegmentoPreview();
+}
+function updateAdSegmentoPreview(){
+  const tipo=$('#adSegmentoTipo').value;
+  const params={
+    idadeMin:parseInt($('#adIdadeMin').value),
+    idadeMax:parseInt($('#adIdadeMax').value),
+    sexo:$('#adSexo').value,
+  };
+  const matched=computeSegmentClients(tipo,params);
+  $('#adSegmentoPreview').textContent=matched.length+' cliente'+(matched.length===1?'':'s')+' vai'+(matched.length===1?'':'ão')+' ver esse anúncio';
 }
 function closeAdModal(){$('#modalAdScrim').classList.remove('open')}
 async function saveAd(){
@@ -4005,6 +4055,12 @@ async function saveAd(){
     return;
   }
   errEl.style.display='none';
+  const segmentoTipo=$('#adSegmentoTipo').value;
+  const segmentoParams={
+    idadeMin:$('#adIdadeMin').value?parseInt($('#adIdadeMin').value):null,
+    idadeMax:$('#adIdadeMax').value?parseInt($('#adIdadeMax').value):null,
+    sexo:$('#adSexo').value||null,
+  };
   const obj={
     titulo,tipo:adTipoAtual,
     imagem:adTipoAtual==='foto'?stagedAdPhoto:null,
@@ -4012,6 +4068,7 @@ async function saveAd(){
     ctaTexto:$('#adCtaTexto').value.trim(),
     ctaDestino,ctaUrl:ctaDestino==='externo'?ctaUrl:'',
     status:$('#adStatus').value,
+    segmentoTipo,segmentoParams,
   };
   const saveBtn=$('#adModalSaveBtn');
   saveBtn.disabled=true;
@@ -4020,7 +4077,10 @@ async function saveAd(){
       await db.collection('ads').doc(adEditId).update(obj);
     }else{
       await db.collection('ads').add({...obj,visualizacoes:0,cliques:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-      if(obj.status==='ativo')notifyAllClients('🖼 Novo anúncio: '+titulo);
+      if(obj.status==='ativo'){
+        const matched=computeSegmentClients(segmentoTipo,segmentoParams);
+        notifyClientList(matched,'🖼 Novo anúncio: '+titulo);
+      }
     }
     closeAdModal();
     toast('Anúncio "'+titulo+'" '+(adEditId?'atualizado':'publicado')+' com sucesso');
@@ -4507,18 +4567,50 @@ function initLogo(){} // logo agora chega via listener de config/business, nada 
 /* ================= TIPOS DE SERVIÇO ================= */
 function renderServiceTypes(){
   $('#serviceTypesBody').innerHTML=SERVICES.map(s=>{
-    const cb=s.cbType==='percent'?s.cbValue+'%':s.cbType==='fixed'?BRL(s.cbValue):'—';
+    const rules=Object.values(s.tierRules||{});
+    const cbVals=rules.filter(r=>r.cbType!=='none').map(r=>r.cbType==='percent'?r.cbValue:null).filter(v=>v!=null);
+    const pontosVals=rules.map(r=>r.pontos||0);
+    const cbSummary=cbVals.length?(Math.min(...cbVals)===Math.max(...cbVals)?cbVals[0]+'%':Math.min(...cbVals)+'–'+Math.max(...cbVals)+'%'):'—';
+    const pontosSummary=pontosVals.length?(Math.min(...pontosVals)===Math.max(...pontosVals)?pontosVals[0]+' pts':Math.min(...pontosVals)+'–'+Math.max(...pontosVals)+' pts'):'—';
     return `<tr>
-      <td><b>${s.n}</b></td><td class="num">${BRL(s.v)}</td><td class="num">${s.d} min</td><td class="num">${cb}</td><td class="num">${s.pontos||0} pts</td>
+      <td><b>${s.n}</b></td><td class="num">${BRL(s.v)}</td><td class="num">${s.d} min</td><td class="num" title="Varia por nível de fidelidade">${cbSummary}</td><td class="num" title="Varia por nível de fidelidade">${pontosSummary}</td>
       <td style="white-space:nowrap"><span class="rule-edit" onclick="openServiceModal('${s.id}')">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteServiceType('${s.id}')">Excluir</span></td></tr>`;
   }).join('');
 }
 let serviceEditId=null;
-function updateCbValueLabel(){
-  const t=$('#svCbTipo').value;
-  $('#svCbValueLabel').textContent=t==='percent'?'Valor do cashback (%)':t==='fixed'?'Valor do cashback (R$)':'Valor do cashback';
-  $('#svCbValor').disabled=(t==='none');
-  $('#svCbValor').style.opacity=(t==='none')?.4:1;
+function renderSvTierRulesInputs(existingRules){
+  existingRules=existingRules||{};
+  const sorted=[...TIERS_DATA].sort((a,b)=>a.min-b.min);
+  const rows=sorted.length?sorted:[{nome:'Bronze'},{nome:'Prata'},{nome:'Ouro'},{nome:'Platinum'}];
+  const head=`<div class="sv-tier-row-head"><span>Nível</span><span>Tipo cashback</span><span>Valor cashback</span><span>Pontos</span></div>`;
+  const body=rows.map(t=>{
+    const r=existingRules[t.nome]||{};
+    const cbType=r.cbType||'percent';
+    const cbValue=r.cbValue!=null?r.cbValue:'';
+    const pontos=r.pontos!=null?r.pontos:'';
+    return `<div class="sv-tier-row" data-tier="${t.nome}">
+      <div class="sv-tier-label">${t.ico||'⭐'} ${t.nome}</div>
+      <select class="sv-tier-cbtype">
+        <option value="percent" ${cbType==='percent'?'selected':''}>% </option>
+        <option value="fixed" ${cbType==='fixed'?'selected':''}>R$</option>
+        <option value="none" ${cbType==='none'?'selected':''}>Nenhum</option>
+      </select>
+      <input class="sv-tier-cbvalue" type="number" min="0" step="0.01" placeholder="0" value="${cbValue}">
+      <input class="sv-tier-pontos" type="number" min="0" step="1" placeholder="0" value="${pontos}">
+    </div>`;
+  }).join('');
+  $('#svTierRulesTable').innerHTML=head+body;
+}
+function readSvTierRulesInputs(){
+  const rules={};
+  document.querySelectorAll('#svTierRulesTable .sv-tier-row').forEach(row=>{
+    const tier=row.dataset.tier;
+    const cbType=row.querySelector('.sv-tier-cbtype').value;
+    const cbValue=cbType==='none'?0:(parseFloat(row.querySelector('.sv-tier-cbvalue').value)||0);
+    const pontos=parseInt(row.querySelector('.sv-tier-pontos').value)||0;
+    rules[tier]={cbType,cbValue,pontos};
+  });
+  return rules;
 }
 function openServiceModal(id){
   serviceEditId=id||null;
@@ -4526,15 +4618,12 @@ function openServiceModal(id){
     const s=SERVICES.find(x=>x.id===serviceEditId);
     $('#serviceModalTitle').textContent='Editar tipo de serviço';
     $('#svNome').value=s.n;$('#svPreco').value=s.v;$('#svDuracao').value=s.d;
-    $('#svCbTipo').value=s.cbType;$('#svCbValor').value=s.cbValue;
-    $('#svPontos').value=s.pontos||0;
+    renderSvTierRulesInputs(s.tierRules);
   }else{
     $('#serviceModalTitle').textContent='Novo tipo de serviço';
     $('#svNome').value='';$('#svPreco').value='';$('#svDuracao').value='';
-    $('#svCbTipo').value='percent';$('#svCbValor').value='5';
-    $('#svPontos').value='';
+    renderSvTierRulesInputs();
   }
-  updateCbValueLabel();
   $('#svError').style.display='none';
   $('#modalServiceScrim').classList.add('open');
 }
@@ -4543,10 +4632,8 @@ async function saveServiceType(){
   const n=$('#svNome').value.trim(),v=parseFloat($('#svPreco').value);
   if(!n||isNaN(v)){$('#svError').style.display='block';return}
   const d=parseInt($('#svDuracao').value)||60;
-  const cbType=$('#svCbTipo').value;
-  const cbValue=cbType==='none'?0:(parseFloat($('#svCbValor').value)||0);
-  const pontos=parseInt($('#svPontos').value)||0;
-  const obj={n,v,d,cbType,cbValue,pontos};
+  const tierRules=readSvTierRulesInputs();
+  const obj={n,v,d,tierRules};
   if(serviceEditId)await db.collection('services').doc(serviceEditId).update(obj);
   else await db.collection('services').add(obj);
   closeServiceModal();
