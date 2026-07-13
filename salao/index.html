@@ -4390,7 +4390,15 @@ async function runPushDiagnostic(){
     }else if(d.pushStatus==='no_token'){
       resultEl.innerHTML=`<div class="diag-result diag-warn">⚠️ A função rodou, mas esse cliente não tinha mais um token salvo (pode ter expirado). Peça pra ele reativar as notificações no app.</div>`;
     }else{
-      resultEl.innerHTML=`<div class="diag-result diag-error">❌ A função rodou mas retornou um erro: <code>${d.pushError||'erro desconhecido'}</code><br><br>Isso costuma indicar um problema de configuração no Firebase Console (chave VAPID não corresponde ao certificado Web Push cadastrado em Project Settings → Cloud Messaging).</div>`;
+      const errText=d.pushError||'';
+      if(errText.includes('registration-token-not-registered')){
+        resultEl.innerHTML=`<div class="diag-result diag-warn">⚠️ Boa notícia: a cadeia inteira está funcionando (função implantada, gatilho disparando, FCM respondendo). Esse erro específico só quer dizer que o token salvo desse cliente está velho/inválido — ele já foi removido automaticamente do cadastro.<br><br>
+          <b>Pra corrigir:</b> peça pra esse cliente simplesmente abrir o app de novo (ou dar um F5, se estiver testando no navegador) — como a permissão já foi concedida antes, um token novo é gerado e salvo sozinho, sem precisar clicar em nada. Depois disso, teste de novo.</div>`;
+      }else if(errText.includes('mismatched-credential')||errText.includes('invalid-argument')||errText.includes('third-party-auth-error')){
+        resultEl.innerHTML=`<div class="diag-result diag-error">❌ A função rodou mas retornou um erro: <code>${errText}</code><br><br>Esse aqui sim costuma ser configuração: a chave VAPID usada no app (Project Settings → Cloud Messaging → Web configuration → Web Push certificates) pode não ser a mesma cadastrada nesse projeto Firebase. Confira se o certificado ainda existe lá e se a chave bate com a que está no código.</div>`;
+      }else{
+        resultEl.innerHTML=`<div class="diag-result diag-error">❌ A função rodou mas retornou um erro: <code>${errText||'erro desconhecido'}</code><br><br>Me manda esse texto exato que eu identifico a causa.</div>`;
+      }
     }
   });
 }
