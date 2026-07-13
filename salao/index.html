@@ -109,6 +109,12 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .plan-features li:first-child{border-top:none}
 .plan-features li::before{content:'✓';color:var(--pos);font-weight:800;flex-shrink:0}
 .plan-current-badge{text-align:center;padding:10px;border-radius:10px;background:var(--pos-soft);color:var(--pos);font-weight:700;font-size:13px}
+.gb-client-row{
+  display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:10px;cursor:pointer;
+  transition:background .1s;border-bottom:1px solid var(--border);
+}
+.gb-client-row:last-child{border-bottom:none}
+.gb-client-row:hover{background:var(--surface-2)}
 
 .sv-tier-row{display:grid;grid-template-columns:64px 1fr 1fr 70px;gap:8px;align-items:center;margin-bottom:8px}
 .sv-tier-row .sv-tier-label{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:5px}
@@ -939,7 +945,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       </div>
       <div class="card clients-table-wrap fade-in">
         <table class="table" id="clientsTable">
-          <thead><tr><th>Cliente</th><th>Tags</th><th>Última visita</th><th>Visitas</th><th>Ticket médio</th><th style="text-align:right">Total gasto</th></tr></thead>
+          <thead><tr><th>Cliente</th><th>Tags</th><th>Última visita</th><th>Visitas</th><th>Ticket médio</th><th style="text-align:right">Total gasto</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -981,10 +987,10 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <button class="btn btn-primary" onclick="toast('Regras salvas com sucesso')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg> Salvar alterações</button>
       </div>
       <div class="mod-grid fade-in">
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Membros ativos</div><div class="sc-icon" style="background:var(--brand-soft);color:var(--brand)">★</div></div><div class="sc-val num">487</div><div class="sc-lbl"><span class="delta up">↑ 12,3%</span> vs mês anterior</div></div>
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Pontos emitidos (mês)</div><div class="sc-icon" style="background:var(--pos-soft);color:var(--pos)">◆</div></div><div class="sc-val num">14.820</div><div class="sc-lbl"><span class="delta up">↑ 8,7%</span> vs mês anterior</div></div>
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Resgates realizados</div><div class="sc-icon" style="background:var(--info-soft);color:var(--info)">↻</div></div><div class="sc-val num">63</div><div class="sc-lbl"><span class="delta up">↑ 22%</span> vs mês anterior</div></div>
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Taxa de engajamento</div><div class="sc-icon" style="background:var(--warn-soft);color:var(--warn)">♥</div></div><div class="sc-val num">74%</div><div class="sc-lbl"><span class="delta up">↑ 5,1%</span> vs mês anterior</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Membros ativos</div><div class="sc-icon" style="background:var(--brand-soft);color:var(--brand)">★</div></div><div class="sc-val num" id="fidKpiMembros">0</div><div class="sc-lbl" id="fidKpiMembrosSub">—</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Pontos emitidos (mês)</div><div class="sc-icon" style="background:var(--pos-soft);color:var(--pos)">◆</div></div><div class="sc-val num" id="fidKpiPontosMes">0</div><div class="sc-lbl" id="fidKpiPontosMesSub">—</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Resgates realizados</div><div class="sc-icon" style="background:var(--info-soft);color:var(--info)">↻</div></div><div class="sc-val num" id="fidKpiResgates">0</div><div class="sc-lbl" id="fidKpiResgatesSub">—</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Taxa de engajamento</div><div class="sc-icon" style="background:var(--warn-soft);color:var(--warn)">♥</div></div><div class="sc-val num" id="fidKpiEngajamento">0%</div><div class="sc-lbl" id="fidKpiEngajamentoSub">—</div></div>
       </div>
 
       <div class="config-section fade-in">
@@ -1018,24 +1024,18 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <div><h2>Cashback & Giftback</h2><p>Configure regras de cashback, giftback e acompanhe a carteira digital dos clientes.</p></div>
       </div>
       <div class="mod-grid fade-in">
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Cashback emitido (mês)</div><div class="sc-icon" style="background:var(--pos-soft);color:var(--pos)">$</div></div><div class="sc-val num">R$ 5.430</div><div class="sc-lbl"><span class="delta up">↑ 21,7%</span> vs mês anterior</div></div>
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Cashback resgatado</div><div class="sc-icon" style="background:var(--brand-soft);color:var(--brand)">↻</div></div><div class="sc-val num">R$ 3.180</div><div class="sc-lbl">58,6% de taxa de resgate</div></div>
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Giftbacks entregues</div><div class="sc-icon" style="background:var(--warn-soft);color:var(--warn)">🎁</div></div><div class="sc-val num">42</div><div class="sc-lbl"><span class="delta up">↑ 15%</span> vs mês anterior</div></div>
-        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Saldo total em carteiras</div><div class="sc-icon" style="background:var(--info-soft);color:var(--info)">💳</div></div><div class="sc-val num">R$ 8.740</div><div class="sc-lbl">487 clientes com saldo ativo</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Cashback gerado (mês)</div><div class="sc-icon" style="background:var(--pos-soft);color:var(--pos)">$</div></div><div class="sc-val num" id="cbKpiGerado">R$ 0</div><div class="sc-lbl" id="cbKpiGeradoSub">—</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">GiftBacks entregues (mês)</div><div class="sc-icon" style="background:var(--warn-soft);color:var(--warn)">🎁</div></div><div class="sc-val num" id="cbKpiGiftbacks">0</div><div class="sc-lbl" id="cbKpiGiftbacksSub">—</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Saldo total em carteiras</div><div class="sc-icon" style="background:var(--info-soft);color:var(--info)">💳</div></div><div class="sc-val num" id="cbKpiSaldo">R$ 0</div><div class="sc-lbl" id="cbKpiSaldoSub">—</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Pontos de fidelidade ativos</div><div class="sc-icon" style="background:var(--brand-soft);color:var(--brand)">⭐</div></div><div class="sc-val num" id="cbKpiPontos">0</div><div class="sc-lbl" id="cbKpiPontosSub">—</div></div>
       </div>
 
-      <div class="grid-2b fade-in">
-        <div class="card panel">
-          <div class="panel-head"><div><h3>Regras de Cashback</h3><div class="sub">Configurações ativas · o cliente vê o cashback no app</div></div>
-          <button class="btn btn-ghost" onclick="openCashRuleModal()" style="padding:6px 10px;font-size:12px">+ Nova regra</button></div>
-          <table class="rule-table" id="cashRulesTable"><thead><tr><th>Aplicação</th><th>Tipo</th><th>Valor</th><th>Validade</th><th>Status</th><th></th></tr></thead>
-          <tbody></tbody></table>
-        </div>
-        <div class="card panel">
-          <div class="panel-head"><div><h3>Regras de Giftback</h3><div class="sub">Recompensas-surpresa configuráveis</div></div>
-          <button class="btn btn-ghost" onclick="openGiftRuleModal()" style="padding:6px 10px;font-size:12px">+ Nova regra</button></div>
-          <table class="rule-table" id="giftRulesTable"><thead><tr><th>Gatilho</th><th>Recompensa</th><th>Condição</th><th>Status</th><th></th></tr></thead>
-          <tbody></tbody></table>
+      <div class="config-section fade-in">
+        <h3>GiftBack Salão</h3>
+        <div class="cs-sub">Dê pontos e/ou cashback de presente para um cliente — por indicação, aniversário, fidelidade, ou o motivo que quiser.</div>
+        <div class="card panel" style="padding:18px">
+          <input type="text" id="giftbackSearch" placeholder="🔍 Buscar cliente pelo nome…" oninput="renderGiftbackClientList()" style="width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13.5px;margin-bottom:14px;box-sizing:border-box">
+          <div id="giftbackClientList" style="max-height:420px;overflow-y:auto"></div>
         </div>
       </div>
     </section>
@@ -1203,6 +1203,9 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
       Enviar mensagem
     </button>
     <button class="btn btn-primary" onclick="scheduleFromDrawer()">Agendar horário</button>
+    <button class="icon-btn-sm" onclick="deleteClientFromDrawer()" title="Excluir cliente" aria-label="Excluir cliente" style="color:var(--neg);flex-shrink:0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z"/></svg>
+    </button>
   </div>
 </aside>
 
@@ -1319,6 +1322,53 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <div class="modal-scrim" id="modalPlanScrim" style="z-index:900" onclick="if(event.target===this&&planModalDismissable)closePlanModal()">
   <div class="modal" role="dialog" aria-label="Plano da assinatura" style="max-width:620px">
     <div id="planModalBody"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: GERAR GIFTBACK ============ -->
+<div class="modal-scrim" id="modalGiftbackScrim" onclick="if(event.target===this)closeGiftbackModal()">
+  <div class="modal" role="dialog" aria-label="Gerar GiftBack">
+    <h3>Gerar GiftBack</h3>
+    <p class="m-sub" id="giftbackClientLabel">Presente para o cliente</p>
+    <div class="field"><label>Motivo</label>
+      <select id="gbMotivo" onchange="updateGbMotivoOutro()">
+        <option>Indicação de Amigo(a)</option>
+        <option>Aniversariante do Mês</option>
+        <option>5 Visitas no Mês</option>
+        <option>7 Visitas no Mês</option>
+        <option>10 Visitas no Mês</option>
+        <option value="outro">Outro (personalizado)</option>
+      </select>
+    </div>
+    <div class="field" id="gbMotivoOutroField" style="display:none"><label>Descreva o motivo</label><input id="gbMotivoOutro" placeholder="Ex: Cliente VIP do mês"></div>
+
+    <label style="display:block;font-weight:700;font-size:13.5px;margin:16px 0 8px">Cashback (opcional)</label>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label><select id="gbCbTipo" onchange="updateGbCbFields()">
+        <option value="nenhum">Sem cashback</option>
+        <option value="fixo">Valor fixo (R$)</option>
+        <option value="percentual">% do ticket médio do cliente</option>
+      </select></div>
+      <div class="field" id="gbCbValorField" style="display:none"><label id="gbCbValorLabel">Valor</label><input id="gbCbValor" type="number" min="0" step="0.01" placeholder="0"></div>
+    </div>
+    <div class="field" id="gbValidadeField" style="display:none"><label>Validade do cashback</label>
+      <select id="gbValidade">
+        <option value="7">7 dias</option>
+        <option value="14">14 dias</option>
+        <option value="21">21 dias</option>
+        <option value="30" selected>30 dias</option>
+      </select>
+    </div>
+
+    <label style="display:block;font-weight:700;font-size:13.5px;margin:16px 0 8px">Pontos de fidelidade (opcional)</label>
+    <div class="field"><label>Quantidade de pontos</label><input id="gbPontos" type="number" min="0" step="1" placeholder="0"></div>
+    <p class="text-3" style="font-size:11.5px;margin-top:-8px">Pontos não expiram — contam pra evolução de nível do cliente.</p>
+
+    <p id="gbError" style="display:none;color:var(--neg);font-size:12.5px;margin-top:8px">Defina pelo menos um valor de cashback ou de pontos.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeGiftbackModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmGiftback()">Gerar GiftBack</button>
+    </div>
   </div>
 </div>
 
@@ -1784,17 +1834,6 @@ async function seedFirestoreIfEmpty(){
     {ico:'💎',nome:'Platinum',min:4000,bg:'#C2366F1A',beneficios:['Tudo do Ouro','Cashback 10% em serviços','Giftback mensal surpresa','Atendimento prioritário e concierge']},
   ];
   tiersSeed.forEach(t=>batch.set(db.collection('loyaltyTiers').doc(),t));
-  const cashRulesSeed=[
-    {aplicacao:'Todos os serviços',tipo:'percent',valor:5,validade:'90 dias',status:'ativo'},
-    {aplicacao:'Coloração e Mechas',tipo:'percent',valor:8,validade:'90 dias',status:'ativo'},
-  ];
-  cashRulesSeed.forEach(r=>batch.set(db.collection('cashbackRules').doc(),r));
-  const giftRulesSeed=[
-    {gatilho:'Aniversário do cliente',recompensa:'Hidratação grátis',condicao:'Válido no mês do aniversário',status:'ativo'},
-    {gatilho:'10ª visita concluída',recompensa:'R$ 20 de giftback na carteira',condicao:'1x por cliente a cada 10 visitas',status:'ativo'},
-  ];
-  giftRulesSeed.forEach(r=>batch.set(db.collection('giftbackRules').doc(),r));
-  batch.set(db.collection('config').doc('cashGiftMigrated'),{done:true,ts:firebase.firestore.FieldValue.serverTimestamp()});
   batch.set(db.collection('config').doc('seeded'),{done:true,ts:firebase.firestore.FieldValue.serverTimestamp()});
   await batch.commit();
 }
@@ -1821,6 +1860,9 @@ function initFirestoreListeners(){
     if(typeof renderClients==='function')renderClients();
     if(typeof renderRanking==='function')renderRanking();
     if(typeof renderFidRanking==='function')renderFidRanking();
+    if(typeof renderCashbackKpis==='function')renderCashbackKpis();
+    if(typeof renderFidKpis==='function')renderFidKpis();
+    if(typeof renderGiftbackClientList==='function'&&!$('#view-cashback').hidden)renderGiftbackClientList();
   });
   db.collection('appointments').onSnapshot(snap=>{
     appts=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1828,6 +1870,8 @@ function initFirestoreListeners(){
     if(typeof dashboardRefresh==='function')dashboardRefresh();
     if(typeof renderCampaignList==='function'&&!$('#view-marketing').hidden)renderCampaignList();
     if(typeof renderStaff==='function'&&!$('#view-equipe').hidden)renderStaff();
+    if(typeof renderCashbackKpis==='function')renderCashbackKpis();
+    if(typeof renderFidKpis==='function')renderFidKpis();
     if(typeof openStaff==='function'&&currentDrawerStaffId)openStaff(currentDrawerStaffId);
   },err=>console.error('appointments listener:',err));
   db.collection('waitlist').onSnapshot(snap=>{
@@ -1842,18 +1886,17 @@ function initFirestoreListeners(){
   db.collection('loyaltyRewards').onSnapshot(snap=>{
     FID_REWARDS=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(typeof renderFidRewards==='function')renderFidRewards();
+    if(typeof renderFidKpis==='function')renderFidKpis();
   });
-  db.collection('cashbackRules').onSnapshot(snap=>{
-    CASH_RULES=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(typeof renderCashRules==='function')renderCashRules();
-  },err=>console.error('cashbackRules listener:',err));
-  db.collection('giftbackRules').onSnapshot(snap=>{
-    GIFT_RULES=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(typeof renderGiftRules==='function')renderGiftRules();
-  },err=>console.error('giftbackRules listener:',err));
-  db.collection('config').doc('cashGiftMigrated').get().then(doc=>{
-    if(!doc.exists)migrateDefaultCashGiftRules();
-  }).catch(()=>{});
+  db.collection('giftbackLog').orderBy('criadoEm','desc').onSnapshot(snap=>{
+    GIFTBACK_LOG=snap.docs.map(d=>{
+      const data=d.data();
+      const criadoEmMs=data.criadoEm&&typeof data.criadoEm.toMillis==='function'?data.criadoEm.toMillis():null;
+      return {id:d.id,...data,criadoEmMs};
+    });
+    if(typeof renderCashbackKpis==='function')renderCashbackKpis();
+    if(typeof renderFidKpis==='function')renderFidKpis();
+  },err=>console.error('giftbackLog listener:',err));
   db.collection('products').onSnapshot(snap=>{
     PRODUCTS=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(typeof renderEstoque==='function')renderEstoque();
@@ -1917,6 +1960,11 @@ function setView(v){
     if(typeof rebuildCharts==='function')rebuildCharts();
     if(typeof renderRanking==='function')renderRanking();
   }
+  if(v==='cashback'){
+    if(typeof renderCashbackKpis==='function')renderCashbackKpis();
+    if(typeof renderGiftbackClientList==='function')renderGiftbackClientList();
+  }
+  if(v==='fidelidade'&&typeof renderFidKpis==='function')renderFidKpis();
 }
 
 /* ================= ASSINATURA (trial, planos, bloqueio) ================= */
@@ -2705,8 +2753,22 @@ function renderClients(){
     <td class="num">${c.ult===0?'hoje':'há '+c.ult+' dias'}</td>
     <td class="num">${c.visitas}</td>
     <td class="num">${BRL(ticketMedio(c))}</td>
-    <td class="num" style="text-align:right;font-weight:700">${BRL(c.total||0)}</td></tr>`).join('')
-    ||'<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px">Nenhum cliente encontrado. Ajuste os filtros ou cadastre um novo cliente.</td></tr>';
+    <td class="num" style="text-align:right;font-weight:700">${BRL(c.total||0)}</td>
+    <td style="text-align:right"><button class="icon-btn-sm" onclick="event.stopPropagation();deleteClient('${c.id}')" title="Excluir cliente" aria-label="Excluir cliente" style="color:var(--neg)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/></svg></button></td></tr>`).join('')
+    ||'<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px">Nenhum cliente encontrado. Ajuste os filtros ou cadastre um novo cliente.</td></tr>';
+}
+async function deleteClient(id){
+  const c=CLIENTS.find(x=>x.id===id);
+  if(!c)return;
+  if(!confirm(`Excluir o cadastro de "${c.nome}"? O histórico de agendamentos já realizados não será apagado, mas o cliente some da lista e do app dele. Essa ação não pode ser desfeita.`))return;
+  try{
+    await db.collection('clients').doc(id).delete();
+    if(currentDrawerClientId===id)closeDrawer();
+    toast('Cliente "'+c.nome+'" excluído');
+  }catch(err){
+    console.error('Erro ao excluir cliente:',err);
+    toast('Não foi possível excluir o cliente agora. Tente novamente.');
+  }
 }
 
 function clientInsights(c){
@@ -2761,6 +2823,10 @@ function openClient(id){
   $('#drawerScrim').classList.add('open');
 }
 function closeDrawer(){$('#drawer').classList.remove('open');$('#drawerScrim').classList.remove('open')}
+async function deleteClientFromDrawer(){
+  if(!currentDrawerClientId)return;
+  await deleteClient(currentDrawerClientId);
+}
 function messageClientFromDrawer(){
   const c=CLIENTS.find(x=>x.id===currentDrawerClientId);
   if(!c){toast('Cliente não encontrado');return}
@@ -2979,6 +3045,11 @@ async function notifyClient(a,text){
   try{await db.collection('clientNotifications').add({clientId,text,ts:Date.now(),read:false})}
   catch(e){console.error('notifyClient: falha ao gravar notificação:',e)}
 }
+async function notifyClientById(clientId,text){
+  if(!clientId)return;
+  try{await db.collection('clientNotifications').add({clientId,text,ts:Date.now(),read:false})}
+  catch(e){console.error('notifyClientById: falha ao gravar notificação:',e)}
+}
 async function confirmAppt(id){
   const a=appts.find(x=>x.id===id);
   await db.collection('appointments').doc(id).update({status:'confirmado'});
@@ -3158,6 +3229,38 @@ async function restoreDefaultTiers(){
   }finally{
     _restoringTiers=false;
   }
+}
+function isActiveClient(c){
+  // "ativo" = não se enquadra no critério de inatividade já usado no resto do painel (mais de
+  // 40 dias sem retornar). Clientes novos, que ainda não tiveram a primeira visita, contam como
+  // ativos — ainda não deram nenhum sinal de abandono.
+  return !(c.visitas>0&&c.ult>40);
+}
+function renderFidKpis(){
+  if($('#view-fidelidade').hidden)return;
+  const now=new Date();
+  const cutoffMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  const clientesAtivos=CLIENTS.filter(isActiveClient);
+
+  const comPontos=clientesAtivos.filter(c=>(c.pontos||0)>0);
+  const elMembros=$('#fidKpiMembros');if(elMembros)elMembros.textContent=comPontos.length.toLocaleString('pt-BR');
+  const elMembrosSub=$('#fidKpiMembrosSub');if(elMembrosSub)elMembrosSub.textContent=clientesAtivos.length+' cliente'+(clientesAtivos.length===1?'':'s')+' ativo'+(clientesAtivos.length===1?'':'s')+' no total';
+
+  const nomesAtivos=new Set(clientesAtivos.map(c=>c.nome));
+  const apptsComPontosMes=appts.filter(a=>a.status==='concluido'&&(a.pontosGerados||0)>0&&parseDate(a.date)>=cutoffMonth&&nomesAtivos.has(a.cliente));
+  const pontosAtendimentosMes=apptsComPontosMes.reduce((s,a)=>s+(a.pontosGerados||0),0);
+  const idsAtivos=new Set(clientesAtivos.map(c=>c.id));
+  const giftbacksPontosMes=GIFTBACK_LOG.filter(g=>g.criadoEmMs&&g.criadoEmMs>=cutoffMonth.getTime()&&idsAtivos.has(g.clientId)).reduce((s,g)=>s+(g.pontosValor||0),0);
+  const elPontosMes=$('#fidKpiPontosMes');if(elPontosMes)elPontosMes.textContent=(pontosAtendimentosMes+giftbacksPontosMes).toLocaleString('pt-BR');
+  const elPontosMesSub=$('#fidKpiPontosMesSub');if(elPontosMesSub)elPontosMesSub.textContent=apptsComPontosMes.length+' atendimento'+(apptsComPontosMes.length===1?'':'s')+' este mês';
+
+  const totalResgates=FID_REWARDS.reduce((s,r)=>s+(r.resg||0),0);
+  const elResg=$('#fidKpiResgates');if(elResg)elResg.textContent=totalResgates.toLocaleString('pt-BR');
+  const elResgSub=$('#fidKpiResgatesSub');if(elResgSub)elResgSub.textContent=FID_REWARDS.length+' recompensa'+(FID_REWARDS.length===1?'':'s')+' cadastrada'+(FID_REWARDS.length===1?'':'s');
+
+  const taxa=clientesAtivos.length?Math.round(comPontos.length/clientesAtivos.length*100):0;
+  const elEng=$('#fidKpiEngajamento');if(elEng)elEng.textContent=taxa+'%';
+  const elEngSub=$('#fidKpiEngajamentoSub');if(elEngSub)elEngSub.textContent='dos clientes ativos já ganharam pontos de fidelidade';
 }
 function renderTiers(){
   const sorted=[...TIERS_DATA].sort((a,b)=>a.min-b.min);
@@ -3561,125 +3664,121 @@ async function saveFidReward(){
 }
 async function deleteFidReward(id){await db.collection('loyaltyRewards').doc(id).delete();toast('Recompensa removida')}
 
-/* ================= REGRAS DE CASHBACK ================= */
-let CASH_RULES=[];
-async function migrateDefaultCashGiftRules(){
-  const flagRef=db.collection('config').doc('cashGiftMigrated');
-  const snap=await db.collection('cashbackRules').get();
-  if(snap.empty){
-    const batch=db.batch();
-    const cashRulesSeed=[
-      {aplicacao:'Todos os serviços',tipo:'percent',valor:5,validade:'90 dias',status:'ativo'},
-      {aplicacao:'Coloração e Mechas',tipo:'percent',valor:8,validade:'90 dias',status:'ativo'},
-    ];
-    cashRulesSeed.forEach(r=>batch.set(db.collection('cashbackRules').doc(),r));
-    const giftRulesSeed=[
-      {gatilho:'Aniversário do cliente',recompensa:'Hidratação grátis',condicao:'Válido no mês do aniversário',status:'ativo'},
-      {gatilho:'10ª visita concluída',recompensa:'R$ 20 de giftback na carteira',condicao:'1x por cliente a cada 10 visitas',status:'ativo'},
-    ];
-    giftRulesSeed.forEach(r=>batch.set(db.collection('giftbackRules').doc(),r));
-    await batch.commit();
-  }
-  await flagRef.set({done:true,ts:firebase.firestore.FieldValue.serverTimestamp()});
+/* ================= CASHBACK & GIFTBACK (KPIs reais + GiftBack manual do salão) ================= */
+let GIFTBACK_LOG=[];
+function renderCashbackKpis(){
+  if($('#view-cashback').hidden)return;
+  const now=new Date();
+  const cutoffMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  const clientesAtivos=CLIENTS.filter(isActiveClient);
+  const nomesAtivos=new Set(clientesAtivos.map(c=>c.nome));
+  const idsAtivos=new Set(clientesAtivos.map(c=>c.id));
+
+  const apptsComCashbackMes=appts.filter(a=>a.status==='concluido'&&(a.cashbackGerado||0)>0&&parseDate(a.date)>=cutoffMonth&&nomesAtivos.has(a.cliente));
+  const cashbackAtendimentosMes=apptsComCashbackMes.reduce((s,a)=>s+(a.cashbackGerado||0),0);
+  const giftbacksMes=GIFTBACK_LOG.filter(g=>g.criadoEmMs&&g.criadoEmMs>=cutoffMonth.getTime()&&idsAtivos.has(g.clientId));
+  const cashbackGiftbacksMes=giftbacksMes.reduce((s,g)=>s+(g.cashbackValor||0),0);
+  const totalGeradoMes=cashbackAtendimentosMes+cashbackGiftbacksMes;
+
+  const elGerado=$('#cbKpiGerado');if(elGerado)elGerado.textContent=BRL(totalGeradoMes);
+  const elGeradoSub=$('#cbKpiGeradoSub');if(elGeradoSub)elGeradoSub.textContent=apptsComCashbackMes.length+' atendimento'+(apptsComCashbackMes.length===1?'':'s')+' geraram cashback este mês';
+
+  const elGb=$('#cbKpiGiftbacks');if(elGb)elGb.textContent=giftbacksMes.length;
+  const elGbSub=$('#cbKpiGiftbacksSub');if(elGbSub)elGbSub.textContent=giftbacksMes.length?'Último: '+giftbacksMes[0].motivo:'Nenhum GiftBack dado este mês ainda';
+
+  const saldoTotal=clientesAtivos.reduce((s,c)=>s+(c.cashback||0),0);
+  const comSaldo=clientesAtivos.filter(c=>(c.cashback||0)>0).length;
+  const elSaldo=$('#cbKpiSaldo');if(elSaldo)elSaldo.textContent=BRL(saldoTotal);
+  const elSaldoSub=$('#cbKpiSaldoSub');if(elSaldoSub)elSaldoSub.textContent=comSaldo+' cliente'+(comSaldo===1?'':'s')+' ativo'+(comSaldo===1?'':'s')+' com saldo';
+
+  const pontosTotal=clientesAtivos.reduce((s,c)=>s+(c.pontos||0),0);
+  const comPontos=clientesAtivos.filter(c=>(c.pontos||0)>0).length;
+  const elPts=$('#cbKpiPontos');if(elPts)elPts.textContent=pontosTotal.toLocaleString('pt-BR');
+  const elPtsSub=$('#cbKpiPontosSub');if(elPtsSub)elPtsSub.textContent=comPontos+' cliente'+(comPontos===1?'':'s')+' ativo'+(comPontos===1?'':'s')+' com pontos acumulados';
 }
-function renderCashRules(){
-  const el=$('#cashRulesTable');
+function renderGiftbackClientList(){
+  const el=$('#giftbackClientList');
   if(!el)return;
-  const tbody=el.querySelector('tbody');
-  tbody.innerHTML=CASH_RULES.length?CASH_RULES.map(r=>{
-    const valorFmt=r.tipo==='percent'?r.valor+'%':BRL(r.valor);
-    return `<tr>
-      <td>${r.aplicacao}</td><td>${r.tipo==='percent'?'Percentual':'Valor fixo'}</td><td class="num">${valorFmt}</td><td>${r.validade||'—'}</td>
-      <td><span class="tag ${r.status==='ativo'?'tag-ok':'tag-risk'}">${r.status==='ativo'?'Ativo':'Pausado'}</span></td>
-      <td style="white-space:nowrap"><span class="rule-edit" onclick="openCashRuleModal('${r.id}')">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteCashRule('${r.id}')">Excluir</span></td>
-    </tr>`;
-  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px">Nenhuma regra de cashback ainda. Clique em "+ Nova regra" para criar a primeira.</td></tr>';
+  const query=($('#giftbackSearch')?.value||'').toLowerCase().trim();
+  const filtered=CLIENTS.filter(isActiveClient).filter(c=>c.nome.toLowerCase().includes(query)).sort((a,b)=>a.nome.localeCompare(b.nome));
+  el.innerHTML=filtered.length?filtered.map(c=>`<div class="gb-client-row" onclick="openGiftbackModal('${c.id}')">
+    <div class="avatar" style="width:34px;height:34px;font-size:12px;overflow:hidden;flex-shrink:0">${clientAvatarInner(c)}</div>
+    <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">${c.nome}</div><div style="font-size:11.5px;color:var(--text-3)">${(c.pontos||0).toLocaleString('pt-BR')} pts · ${BRL(c.cashback||0)} em cashback</div></div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);flex-shrink:0"><path d="m9 18 6-6-6-6"/></svg>
+  </div>`).join(''):'<div style="text-align:center;color:var(--text-3);padding:32px;font-size:13px">Nenhum cliente encontrado.</div>';
 }
-let cashRuleEditId=null;
-function updateCashRuleValorLabel(){
-  const t=$('#crTipo').value;
-  $('#crValorLabel').textContent=t==='percent'?'Valor (%)':'Valor (R$)';
+let giftbackTargetClientId=null;
+function openGiftbackModal(clientId){
+  giftbackTargetClientId=clientId;
+  const c=CLIENTS.find(x=>x.id===clientId);
+  if(!c)return;
+  $('#giftbackClientLabel').textContent='Presente para '+c.nome;
+  $('#gbMotivo').value='Indicação de Amigo(a)';
+  $('#gbMotivoOutro').value='';
+  $('#gbCbTipo').value='nenhum';
+  $('#gbCbValor').value='';
+  $('#gbValidade').value='30';
+  $('#gbPontos').value='';
+  updateGbMotivoOutro();
+  updateGbCbFields();
+  $('#gbError').style.display='none';
+  $('#modalGiftbackScrim').classList.add('open');
 }
-function openCashRuleModal(id){
-  cashRuleEditId=id||null;
-  if(cashRuleEditId){
-    const r=CASH_RULES.find(x=>x.id===cashRuleEditId);
-    $('#cashRuleTitle').textContent='Editar regra de cashback';
-    $('#cashRuleSaveBtn').textContent='Salvar alterações';
-    $('#crAplicacao').value=r.aplicacao;$('#crTipo').value=r.tipo;$('#crValor').value=r.valor;
-    $('#crValidade').value=r.validade||'';$('#crStatus').value=r.status||'ativo';
-  }else{
-    $('#cashRuleTitle').textContent='Nova regra de cashback';
-    $('#cashRuleSaveBtn').textContent='Salvar regra';
-    $('#crAplicacao').value='';$('#crTipo').value='percent';$('#crValor').value='';
-    $('#crValidade').value='';$('#crStatus').value='ativo';
+function closeGiftbackModal(){$('#modalGiftbackScrim').classList.remove('open')}
+function updateGbMotivoOutro(){
+  $('#gbMotivoOutroField').style.display=$('#gbMotivo').value==='outro'?'':'none';
+}
+function updateGbCbFields(){
+  const tipo=$('#gbCbTipo').value;
+  const show=tipo!=='nenhum';
+  $('#gbCbValorField').style.display=show?'':'none';
+  $('#gbValidadeField').style.display=show?'':'none';
+  if(show)$('#gbCbValorLabel').textContent=tipo==='percentual'?'Valor (%)':'Valor (R$)';
+}
+async function confirmGiftback(){
+  const c=CLIENTS.find(x=>x.id===giftbackTargetClientId);
+  if(!c)return;
+  const motivoSel=$('#gbMotivo').value;
+  const motivo=motivoSel==='outro'?($('#gbMotivoOutro').value.trim()||'Outro'):motivoSel;
+  const cbTipo=$('#gbCbTipo').value;
+  const cbValorInput=parseFloat($('#gbCbValor').value)||0;
+  const pontos=parseInt($('#gbPontos').value)||0;
+  let cashbackValor=0;
+  if(cbTipo==='fixo')cashbackValor=cbValorInput;
+  else if(cbTipo==='percentual')cashbackValor=ticketMedio(c)*(cbValorInput/100);
+  if(cashbackValor<=0&&pontos<=0){$('#gbError').style.display='block';return}
+  const validadeDias=parseInt($('#gbValidade').value)||30;
+  const expiraEmMs=cashbackValor>0?Date.now()+validadeDias*86400000:null;
+  try{
+    const patch={};
+    if(cashbackValor>0)patch.cashback=firebase.firestore.FieldValue.increment(cashbackValor);
+    if(pontos>0)patch.pontos=firebase.firestore.FieldValue.increment(pontos);
+    if(Object.keys(patch).length)await db.collection('clients').doc(c.id).update(patch);
+    if(pontos>0){
+      // reavalia o nível depois do crédito de pontos, igual fazemos ao concluir atendimentos
+      const novoTier=getClientTierName((c.pontos||0)+pontos);
+      await db.collection('clients').doc(c.id).update({tier:novoTier});
+    }
+    await db.collection('giftbackLog').add({
+      clientId:c.id,clientNome:c.nome,motivo,
+      cashbackValor,cashbackTipoOriginal:cbTipo,
+      pontosValor:pontos,
+      criadoEm:firebase.firestore.FieldValue.serverTimestamp(),
+      expiraEm:expiraEmMs,
+      consumido:false,
+    });
+    const partes=[];
+    if(pontos>0)partes.push(pontos.toLocaleString('pt-BR')+' pontos');
+    if(cashbackValor>0)partes.push(BRL(cashbackValor)+' de cashback'+(expiraEmMs?' (válido por '+validadeDias+' dias)':''));
+    if(partes.length)notifyClientById(c.id,`🎁 Você recebeu um presente do salão: ${partes.join(' e ')}! Motivo: ${motivo}`);
+    closeGiftbackModal();
+    toast('GiftBack gerado para '+c.nome);
+  }catch(err){
+    console.error('Erro ao gerar GiftBack:',err);
+    toast('Não foi possível gerar o GiftBack agora. Tente novamente.');
   }
-  updateCashRuleValorLabel();
-  $('#crError').style.display='none';
-  $('#modalCashRuleScrim').classList.add('open');
-}
-function closeCashRuleModal(){$('#modalCashRuleScrim').classList.remove('open')}
-async function saveCashRule(){
-  const aplicacao=$('#crAplicacao').value.trim();
-  const valor=parseFloat($('#crValor').value);
-  if(!aplicacao||isNaN(valor)){$('#crError').style.display='block';return}
-  const obj={aplicacao,tipo:$('#crTipo').value,valor,validade:$('#crValidade').value.trim(),status:$('#crStatus').value};
-  if(cashRuleEditId)await db.collection('cashbackRules').doc(cashRuleEditId).update(obj);
-  else await db.collection('cashbackRules').add(obj);
-  closeCashRuleModal();
-  toast('Regra de cashback salva com sucesso');
-}
-async function deleteCashRule(id){
-  await db.collection('cashbackRules').doc(id).delete();
-  toast('Regra de cashback removida');
 }
 
-/* ================= REGRAS DE GIFTBACK ================= */
-let GIFT_RULES=[];
-function renderGiftRules(){
-  const el=$('#giftRulesTable');
-  if(!el)return;
-  const tbody=el.querySelector('tbody');
-  tbody.innerHTML=GIFT_RULES.length?GIFT_RULES.map(r=>`<tr>
-    <td>${r.gatilho}</td><td>${r.recompensa}</td><td>${r.condicao||'—'}</td>
-    <td><span class="tag ${r.status==='ativo'?'tag-ok':'tag-risk'}">${r.status==='ativo'?'Ativo':'Pausado'}</span></td>
-    <td style="white-space:nowrap"><span class="rule-edit" onclick="openGiftRuleModal('${r.id}')">Editar</span> · <span class="rule-edit" style="color:var(--neg)" onclick="deleteGiftRule('${r.id}')">Excluir</span></td>
-  </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:24px">Nenhuma regra de giftback ainda. Clique em "+ Nova regra" para criar a primeira.</td></tr>';
-}
-let giftRuleEditId=null;
-function openGiftRuleModal(id){
-  giftRuleEditId=id||null;
-  if(giftRuleEditId){
-    const r=GIFT_RULES.find(x=>x.id===giftRuleEditId);
-    $('#giftRuleTitle').textContent='Editar regra de giftback';
-    $('#giftRuleSaveBtn').textContent='Salvar alterações';
-    $('#grGatilho').value=r.gatilho;$('#grRecompensa').value=r.recompensa;
-    $('#grCondicao').value=r.condicao||'';$('#grStatus').value=r.status||'ativo';
-  }else{
-    $('#giftRuleTitle').textContent='Nova regra de giftback';
-    $('#giftRuleSaveBtn').textContent='Salvar regra';
-    $('#grGatilho').value='';$('#grRecompensa').value='';$('#grCondicao').value='';$('#grStatus').value='ativo';
-  }
-  $('#grError').style.display='none';
-  $('#modalGiftRuleScrim').classList.add('open');
-}
-function closeGiftRuleModal(){$('#modalGiftRuleScrim').classList.remove('open')}
-async function saveGiftRule(){
-  const gatilho=$('#grGatilho').value.trim();
-  const recompensa=$('#grRecompensa').value.trim();
-  if(!gatilho||!recompensa){$('#grError').style.display='block';return}
-  const obj={gatilho,recompensa,condicao:$('#grCondicao').value.trim(),status:$('#grStatus').value};
-  if(giftRuleEditId)await db.collection('giftbackRules').doc(giftRuleEditId).update(obj);
-  else await db.collection('giftbackRules').add(obj);
-  closeGiftRuleModal();
-  toast('Regra de giftback salva com sucesso');
-}
-async function deleteGiftRule(id){
-  await db.collection('giftbackRules').doc(id).delete();
-  toast('Regra de giftback removida');
-}
-
-/* ================= CASHBACK ================= */
 /* ================= MARKETING ================= */
 let CAMPAIGNS=[];
 function renderCampaignList(){
@@ -4655,7 +4754,7 @@ function startAppAfterLogin(user){
   if(avEl)avEl.textContent=displayName.slice(0,2).toUpperCase();
 
   renderKpis();renderRanking();renderAgenda();renderClients();renderWaitlist();renderStaff();
-  renderTiers();renderFidRanking();renderCashRules();renderGiftRules();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();
+  renderTiers();renderFidRanking();renderFidKpis();renderCashbackKpis();renderGiftbackClientList();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();
   initBrandColor();initLogo();initReminderConfig();
   buildCharts();
   renderNotifList();

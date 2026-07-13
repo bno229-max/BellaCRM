@@ -1107,10 +1107,31 @@ function staffAvatarInner(p){
 }
 
 /* ================= FIRESTORE: LISTENERS EM TEMPO REAL ================= */
+let GIFTBACK_LOG=[];
+function subscribeGiftbackLogForClient(clientId){
+  db.collection('giftbackLog').where('clientId','==',clientId).onSnapshot(snap=>{
+    GIFTBACK_LOG=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(currentView==='fidelidade')renderScreen();
+  },err=>console.error('giftbackLog listener:',err));
+}
+function giftbackLogFormatted(){
+  return GIFTBACK_LOG.map(g=>{
+    const ms=g.criadoEm&&typeof g.criadoEm.toMillis==='function'?g.criadoEm.toMillis():Date.now();
+    const dt=new Date(ms);
+    const dataStr=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+    return {
+      t:'🎁 Presente do salão',
+      d:(g.motivo||'Giftback')+(g.expiraEm?' · cashback válido até '+new Date(g.expiraEm).toLocaleDateString('pt-BR'):''),
+      v:g.cashbackValor||0,
+      pontos:g.pontosValor||0,
+      data:dataStr,
+    };
+  });
+}
 function cashbackExtractFromAppts(){
-  return APPTS.filter(a=>a.status==='concluido'&&a.cashbackGerado)
-    .sort((a,b)=>b.date.localeCompare(a.date))
-    .map(a=>({t:'Cashback creditado',d:a.servico,v:a.cashbackGerado,data:a.date}));
+  const apptsEntries=APPTS.filter(a=>a.status==='concluido'&&a.cashbackGerado)
+    .map(a=>({t:'Cashback creditado',d:a.servico,v:a.cashbackGerado,pontos:0,data:a.date}));
+  return [...apptsEntries,...giftbackLogFormatted()].sort((a,b)=>b.data.localeCompare(a.data));
 }
 async function establishClientIdentity(user){
   let snap=await db.collection('clients').where('authUid','==',user.uid).limit(1).get();
@@ -1174,6 +1195,7 @@ function initFirestoreListeners(){
     if(currentView==='perfil'||currentView==='inicio')renderScreen();
   });
   if(CLIENT.id){
+    subscribeGiftbackLogForClient(CLIENT.id);
     db.collection('clients').doc(CLIENT.id).onSnapshot(doc=>{
       if(!doc.exists)return;
       const data=doc.data();
@@ -1694,10 +1716,12 @@ function renderFidelidade(){
   if(cashExtractOpen){
     html+=cashbackExtractFromAppts().map(e=>{
       const d=parseDate(e.data);
+      const positivo=e.v>0||e.pontos>0;
+      const valorLabel=[e.v>0?BRL(e.v):'',e.pontos>0?'+'+e.pontos.toLocaleString('pt-BR')+' pts':''].filter(Boolean).join(' · ')||BRL(e.v);
       return `<div class="reward-card fade-in">
-        <div class="rc-ico" style="background:${e.v>0?'var(--pos-soft)':'var(--neg-soft)'};color:${e.v>0?'var(--pos)':'var(--neg)'}">${e.v>0?'↑':'↓'}</div>
+        <div class="rc-ico" style="background:${positivo?'var(--pos-soft)':'var(--neg-soft)'};color:${positivo?'var(--pos)':'var(--neg)'}">${positivo?'↑':'↓'}</div>
         <div class="rc-info"><div class="rc-name">${e.t}</div><div class="rc-cost">${e.d} · ${d.toLocaleDateString('pt-BR')}</div></div>
-        <div style="font-weight:800;color:${e.v>0?'var(--pos)':'var(--neg)'}">${e.v>0?'+':''}${BRL(e.v)}</div>
+        <div style="font-weight:800;color:${positivo?'var(--pos)':'var(--neg)'};text-align:right;font-size:12.5px">${valorLabel}</div>
       </div>`;
     }).join('');
   }
