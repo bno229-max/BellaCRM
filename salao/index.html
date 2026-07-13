@@ -4368,10 +4368,10 @@ async function runPushDiagnostic(){
     if(pushDiagUnsub)pushDiagUnsub();
     btn.disabled=false;
     resultEl.innerHTML=`<div class="diag-result diag-error">❌ A Cloud Function não respondeu em 15 segundos.<br><br>
-      <b>Isso quase sempre significa uma de duas coisas:</b><br>
-      1) A função <code>sendClientPush</code> nunca foi publicada (rode <code>firebase deploy --only functions</code> na pasta do projeto), ou<br>
-      2) O projeto Firebase ainda está no plano gratuito (Spark) — Cloud Functions (2ª geração) exigem o plano Blaze (pago por uso, tem cota grátis generosa) pra funcionar. Isso se ajusta em Firebase Console → ⚙️ → Uso e faturamento.<br><br>
-      Confira também em Firebase Console → Functions → Logs se há algum erro registrado.
+      <b>Como o plano Blaze já está ativo, o mais provável agora é um destes três:</b><br>
+      1) O código publicado na função está <b>desatualizado</b> — verifique em Firebase Console → Functions → <code>sendClientPush</code> → aba "Código-fonte" se ele contém a palavra <code>pushStatus</code>. Se não tiver, o deploy mais recente não pegou; copie o <code>functions/index.js</code> mais atual e publique de novo.<br>
+      2) A função <b>nem está sendo chamada</b> — vá em Firebase Console → Functions → Logs, filtre por <code>sendClientPush</code> e veja se aparece ALGUM registro no exato momento desse teste (ID do documento de teste: <code>${ref.id}</code>). Se não aparecer nada, o gatilho (trigger) não está configurado certo — geralmente resolve rodando <code>firebase deploy --only functions</code> de novo (não só a pasta, o comando específico).<br>
+      3) Se aparecer um ERRO nos Logs no momento desse teste, me manda o texto exato dele que eu identifico a causa na hora.
     </div>`;
   },15000);
   pushDiagUnsub=db.collection('clientNotifications').doc(ref.id).onSnapshot(doc=>{
