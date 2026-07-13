@@ -9,9 +9,11 @@ admin.initializeApp();
 // isso não pode ser feito só pelo navegador, por segurança do Firebase.
 exports.sendClientPush = onDocumentCreated('clientNotifications/{notifId}', async (event) => {
   const data = event.data.data();
+  const notifRef = event.data.ref;
   console.log('sendClientPush disparada para notificação', event.params.notifId, JSON.stringify(data));
   if (!data || !data.clientId || !data.text) {
     console.warn('Notificação sem clientId ou text — ignorando.');
+    await notifRef.update({ pushStatus: 'error', pushError: 'Notificação sem clientId ou text' }).catch(() => {});
     return;
   }
 
@@ -19,12 +21,14 @@ exports.sendClientPush = onDocumentCreated('clientNotifications/{notifId}', asyn
   const clientDoc = await clientRef.get();
   if (!clientDoc.exists) {
     console.warn('Cliente', data.clientId, 'não encontrado — ignorando.');
+    await notifRef.update({ pushStatus: 'error', pushError: 'Cliente não encontrado' }).catch(() => {});
     return;
   }
 
   const fcmToken = clientDoc.data().fcmToken;
   if (!fcmToken) {
     console.log('Cliente', data.clientId, 'ainda não ativou notificações push (sem fcmToken) — pulando envio.');
+    await notifRef.update({ pushStatus: 'no_token' }).catch(() => {});
     return;
   }
 
@@ -51,8 +55,10 @@ exports.sendClientPush = onDocumentCreated('clientNotifications/{notifId}', asyn
   try {
     const response = await admin.messaging().send(message);
     console.log('Push enviado com sucesso para', data.clientId, '· messageId:', response);
+    await notifRef.update({ pushStatus: 'sent', pushMessageId: response }).catch(() => {});
   } catch (err) {
     console.error('Erro ao enviar push para', data.clientId, ':', err.code, err.message);
+    await notifRef.update({ pushStatus: 'error', pushError: (err.code || '') + ' ' + (err.message || '') }).catch(() => {});
     // token inválido/expirado (ex: cliente desinstalou o app) — remove pra não tentar de novo
     if (err.code === 'messaging/registration-token-not-registered') {
       await clientRef.update({ fcmToken: admin.firestore.FieldValue.delete() });
