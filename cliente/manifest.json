@@ -1,6 +1,6 @@
 {
-  "name": "Studio Jardins",
-  "short_name": "Studio Jardins",
+  "name": "Acesso Cliente",
+  "short_name": "App Cliente",
   "description": "Agende horários, acompanhe fidelidade e cashback do Studio Jardins direto do celular.",
   "id": "/cliente/",
   "start_url": "/cliente/",

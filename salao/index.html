@@ -109,12 +109,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .plan-features li:first-child{border-top:none}
 .plan-features li::before{content:'✓';color:var(--pos);font-weight:800;flex-shrink:0}
 .plan-current-badge{text-align:center;padding:10px;border-radius:10px;background:var(--pos-soft);color:var(--pos);font-weight:700;font-size:13px}
-.diag-result{padding:14px 16px;border-radius:12px;font-size:12.5px;line-height:1.6}
-.diag-result code{background:rgba(0,0,0,.08);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:11.5px}
-.diag-wait{background:var(--info-soft);color:var(--info)}
-.diag-ok{background:var(--pos-soft);color:var(--text)}
-.diag-warn{background:var(--warn-soft);color:var(--text)}
-.diag-error{background:var(--neg-soft);color:var(--text)}
 
 .sv-tier-row{display:grid;grid-template-columns:64px 1fr 1fr 70px;gap:8px;align-items:center;margin-bottom:8px}
 .sv-tier-row .sv-tier-label{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:5px}
@@ -1132,19 +1126,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <div class="card panel" id="myPlanCard"></div>
       </div>
 
-      <div class="config-section fade-in">
-        <h3>Diagnóstico de notificações push</h3>
-        <div class="cs-sub">Use isto pra descobrir exatamente onde a notificação está travando — se é no celular do cliente, no salvamento do token, ou na função que envia de fato.</div>
-        <div class="card panel" style="padding:18px">
-          <div id="pushDiagStats" style="font-size:13px;color:var(--text-2);margin-bottom:14px">Carregando…</div>
-          <div class="field"><label>Enviar um push de teste para</label>
-            <select id="pushDiagClient"></select>
-          </div>
-          <button class="btn btn-primary" onclick="runPushDiagnostic()" id="pushDiagBtn">Enviar push de teste e diagnosticar</button>
-          <div id="pushDiagResult" style="margin-top:14px"></div>
-        </div>
-      </div>
-
       <div class="config-row fade-in" style="margin-bottom:18px">
         <div class="card config-card">
           <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M6 21v-1a6 6 0 0 1 12 0v1"/></svg> Dados do salão</h4>
@@ -1840,7 +1821,6 @@ function initFirestoreListeners(){
     if(typeof renderClients==='function')renderClients();
     if(typeof renderRanking==='function')renderRanking();
     if(typeof renderFidRanking==='function')renderFidRanking();
-    if(typeof renderPushDiagStats==='function'&&!$('#view-config').hidden)renderPushDiagStats();
   });
   db.collection('appointments').onSnapshot(snap=>{
     appts=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1937,7 +1917,6 @@ function setView(v){
     if(typeof rebuildCharts==='function')rebuildCharts();
     if(typeof renderRanking==='function')renderRanking();
   }
-  if(v==='config'&&typeof renderPushDiagStats==='function')renderPushDiagStats();
 }
 
 /* ================= ASSINATURA (trial, planos, bloqueio) ================= */
@@ -4336,72 +4315,6 @@ async function deleteProduct(id){
 }
 
 /* ================= CONFIGURAÇÕES (tudo salvo em config/business no Firestore) ================= */
-function renderPushDiagStats(){
-  const el=$('#pushDiagStats');
-  if(!el)return;
-  const comToken=CLIENTS.filter(c=>c.fcmToken).length;
-  const total=CLIENTS.length;
-  el.innerHTML=`<b class="num">${comToken}</b> de <b class="num">${total}</b> cliente${total===1?'':'s'} já ${total===1?'tem':'têm'} notificações ativadas neste celular.`;
-  const sel=$('#pushDiagClient');
-  if(sel){
-    const comTokenList=CLIENTS.filter(c=>c.fcmToken);
-    sel.innerHTML=comTokenList.length
-      ? comTokenList.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')
-      : `<option value="">Nenhum cliente com notificações ativadas ainda</option>`;
-  }
-}
-let pushDiagUnsub=null;
-async function runPushDiagnostic(){
-  const clientId=$('#pushDiagClient').value;
-  const resultEl=$('#pushDiagResult');
-  const btn=$('#pushDiagBtn');
-  if(!clientId){
-    resultEl.innerHTML=`<div class="diag-result diag-warn">⚠️ Nenhum cliente com token disponível pra testar. Peça pra alguém ativar as notificações no app do cliente primeiro (tela Início ou Perfil).</div>`;
-    return;
-  }
-  const cliente=CLIENTS.find(c=>c.id===clientId);
-  btn.disabled=true;
-  resultEl.innerHTML=`<div class="diag-result diag-wait">⏳ Enviando push de teste para ${cliente?cliente.nome:'cliente'}… aguardando a Cloud Function responder (até 15s)</div>`;
-  if(pushDiagUnsub)pushDiagUnsub();
-  const ref=await db.collection('clientNotifications').add({clientId,text:'🔔 Este é um push de teste do painel — se você recebeu, está tudo funcionando!',ts:Date.now(),read:false});
-  const timeout=setTimeout(()=>{
-    if(pushDiagUnsub)pushDiagUnsub();
-    btn.disabled=false;
-    resultEl.innerHTML=`<div class="diag-result diag-error">❌ A Cloud Function não respondeu em 15 segundos.<br><br>
-      <b>Como o plano Blaze já está ativo, o mais provável agora é um destes três:</b><br>
-      1) O código publicado na função está <b>desatualizado</b> — verifique em Firebase Console → Functions → <code>sendClientPush</code> → aba "Código-fonte" se ele contém a palavra <code>pushStatus</code>. Se não tiver, o deploy mais recente não pegou; copie o <code>functions/index.js</code> mais atual e publique de novo.<br>
-      2) A função <b>nem está sendo chamada</b> — vá em Firebase Console → Functions → Logs, filtre por <code>sendClientPush</code> e veja se aparece ALGUM registro no exato momento desse teste (ID do documento de teste: <code>${ref.id}</code>). Se não aparecer nada, o gatilho (trigger) não está configurado certo — geralmente resolve rodando <code>firebase deploy --only functions</code> de novo (não só a pasta, o comando específico).<br>
-      3) Se aparecer um ERRO nos Logs no momento desse teste, me manda o texto exato dele que eu identifico a causa na hora.
-    </div>`;
-  },15000);
-  pushDiagUnsub=db.collection('clientNotifications').doc(ref.id).onSnapshot(doc=>{
-    const d=doc.data();
-    if(!d||!d.pushStatus)return; // ainda não processado
-    clearTimeout(timeout);
-    if(pushDiagUnsub)pushDiagUnsub();
-    btn.disabled=false;
-    if(d.pushStatus==='sent'){
-      resultEl.innerHTML=`<div class="diag-result diag-ok">✅ A Cloud Function enviou o push com sucesso (ID: ${d.pushMessageId||'—'}).<br><br>
-        Se mesmo assim não chegou no celular, o problema está no aparelho, não no sistema:<br>
-        • <b>iPhone:</b> o app precisa estar instalado via "Adicionar à Tela de Início" — Safari normal nunca recebe push, é uma regra da Apple.<br>
-        • Verifique se as notificações do app/navegador estão permitidas nas Configurações do celular (não só dentro do app).<br>
-        • Tente fechar o app completamente (não só minimizar) e aguarde alguns segundos.
-      </div>`;
-    }else if(d.pushStatus==='no_token'){
-      resultEl.innerHTML=`<div class="diag-result diag-warn">⚠️ A função rodou, mas esse cliente não tinha mais um token salvo (pode ter expirado). Peça pra ele reativar as notificações no app.</div>`;
-    }else{
-      const errText=d.pushError||'';
-      if(errText.includes('registration-token-not-registered')){
-        resultEl.innerHTML=`<div class="diag-result diag-warn">⚠️ Boa notícia: a cadeia inteira está funcionando (função implantada, gatilho disparando, FCM respondendo). Esse erro específico só quer dizer que o token salvo desse cliente está velho/inválido — ele já foi removido automaticamente do cadastro.<br><br>
-          <b>Pra corrigir:</b> peça pra esse cliente simplesmente abrir o app de novo (ou dar um F5, se estiver testando no navegador) — como a permissão já foi concedida antes, um token novo é gerado e salvo sozinho, sem precisar clicar em nada. Depois disso, teste de novo.</div>`;
-      }else if(errText.includes('mismatched-credential')||errText.includes('invalid-argument')||errText.includes('third-party-auth-error')){
-        resultEl.innerHTML=`<div class="diag-result diag-error">❌ A função rodou mas retornou um erro: <code>${errText}</code><br><br>Esse aqui sim costuma ser configuração: a chave VAPID usada no app (Project Settings → Cloud Messaging → Web configuration → Web Push certificates) pode não ser a mesma cadastrada nesse projeto Firebase. Confira se o certificado ainda existe lá e se a chave bate com a que está no código.</div>`;
-      }else{
-        resultEl.innerHTML=`<div class="diag-result diag-error">❌ A função rodou mas retornou um erro: <code>${errText||'erro desconhecido'}</code><br><br>Me manda esse texto exato que eu identifico a causa.</div>`;
-      }
-    }
-  });
-}
 function renderConfig(){
   $('#hoursGrid').innerHTML=WEEKDAY_LABELS.map((d,i)=>{
     const cfg=BUSINESS_HOURS[i];
