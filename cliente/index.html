@@ -248,6 +248,19 @@ a{color:inherit;text-decoration:none}
 <style>
 /* ============ HOME ============ */
 .hero-greet{display:flex;align-items:center;justify-content:space-between;padding:calc(16px + var(--safe-t)) 20px 4px;position:relative;z-index:60}
+.push-invite-card{
+  margin:12px 20px 0;padding:13px 14px;border-radius:14px;background:var(--info-soft);
+  display:flex;align-items:center;gap:11px;position:relative;
+}
+.push-invite-card .pi-ico{font-size:22px;flex-shrink:0}
+.push-invite-card .pi-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.push-invite-card .pi-text b{font-size:13px}
+.push-invite-card .pi-text span{font-size:11.5px;color:var(--text-2);line-height:1.35}
+.push-invite-card .pi-close{
+  position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;
+  background:var(--surface);color:var(--text-3);box-shadow:var(--shadow-sm);font-size:11px;
+  display:grid;place-items:center;cursor:pointer;
+}
 .hero-greet .greet-text h2{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.02em}
 .hero-greet .greet-text p{font-size:13.5px;color:var(--text-3);margin-top:2px}
 .next-appt-card{
@@ -1464,6 +1477,15 @@ function renderInicio(){
     </div>
   </div>`;
 
+  if(shouldShowPushInvite()){
+    html+=`<div class="push-invite-card fade-in" id="pushInviteCard">
+      <div class="pi-ico">🔔</div>
+      <div class="pi-text"><b>Ative as notificações</b><span>Saiba na hora quando seu agendamento for confirmado e seu cashback creditado</span></div>
+      <button class="btn btn-primary btn-sm" onclick="handlePushInviteAccept()">Ativar</button>
+      <button class="pi-close" onclick="dismissPushInvite()" aria-label="Agora não">✕</button>
+    </div>`;
+  }
+
   html+=renderAdsCarousel(upcoming);
   html+=renderOfertas();
 
@@ -2365,9 +2387,45 @@ async function doRegisterCliente(){
 }
 function logoutCliente(){auth.signOut()}
 
+function shouldShowPushInvite(){
+  if(typeof Notification==='undefined')return false;
+  if(Notification.permission!=='default')return false; // já decidiu antes (aceitou ou negou) — não insiste
+  try{
+    return localStorage.getItem('pushInviteDismissed')!=='1';
+  }catch(e){return true}
+}
+function maybePromptPushPermission(){
+  // convite fica visível na Início; aqui só garante que a tela reflete o estado atual assim que a pessoa loga
+  if(currentView==='inicio')renderScreen();
+}
+function dismissPushInvite(){
+  try{localStorage.setItem('pushInviteDismissed','1')}catch(e){}
+  const el=$('#pushInviteCard');
+  if(el)el.remove();
+}
+async function handlePushInviteAccept(){
+  await requestPushPermission(false); // mostra o toast de sucesso/erro, já que a pessoa acabou de tocar em "Ativar"
+  dismissPushInvite();
+  if(currentView==='inicio')renderScreen();
+}
 /* ================= NOTIFICAÇÕES PUSH (funcionam com o app fechado) ================= */
 const VAPID_KEY='BOIZZXHVuawQcKW-G1kTj2AAlbIaWdTBI3yM2yOujr-xL4jbb97ABK9TrI4-uU7-EdFnORGBuTTsVRhse1M98wU';
-async function setupPushNotifications(silent){
+async function getFcmTokenAndSave(){
+  const swTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout esperando o service worker')),8000));
+  const registration=await Promise.race([navigator.serviceWorker.ready,swTimeout]);
+  const token=await messaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:registration});
+  if(token&&CLIENT.id){
+    await db.collection('clients').doc(CLIENT.id).update({fcmToken:token});
+    console.log('[push] token registrado:',token.slice(0,20)+'…');
+    return true;
+  }
+  console.warn('[push] getToken não retornou um token válido');
+  return false;
+}
+// Pede a permissão de verdade — só pode ser chamada como reação DIRETA a um toque do usuário
+// (botão, toggle). Navegadores (principalmente Safari/iOS) ignoram ou bloqueiam esse pedido
+// se ele não vier de um gesto direto, então isso NUNCA deve ser disparado automaticamente.
+async function requestPushPermission(silent){
   if(!messaging){
     if(!silent)toast('Este navegador não suporta notificações push');
     return false;
@@ -2378,21 +2436,25 @@ async function setupPushNotifications(silent){
       if(!silent)toast('Permissão de notificação negada — ative nas configurações do navegador/celular');
       return false;
     }
-    const swTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout esperando o service worker')),8000));
-    const registration=await Promise.race([navigator.serviceWorker.ready,swTimeout]);
-    const token=await messaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:registration});
-    if(token&&CLIENT.id){
-      await db.collection('clients').doc(CLIENT.id).update({fcmToken:token});
-      console.log('[push] token registrado:',token.slice(0,20)+'…');
-      if(!silent)toast('Notificações push ativadas com sucesso 🔔');
-      return true;
-    }
-    console.warn('[push] getToken não retornou um token válido');
+    const ok=await getFcmTokenAndSave();
+    if(ok&&!silent)toast('Notificações push ativadas com sucesso 🔔');
+    return ok;
   }catch(err){
     console.error('[push] erro ao configurar notificações:',err);
     if(!silent)toast('Não foi possível ativar as notificações push agora. Tente novamente em alguns instantes.');
   }
   return false;
+}
+// Roda sozinho a cada login, mas NUNCA pede permissão — só re-salva o token se a pessoa já
+// tinha permitido antes (o token pode expirar/rotacionar, então isso mantém ele em dia).
+async function refreshPushTokenIfAlreadyGranted(){
+  if(!messaging)return;
+  if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
+  try{
+    await getFcmTokenAndSave();
+  }catch(err){
+    console.error('[push] erro ao renovar o token existente:',err);
+  }
 }
 function initPushForegroundHandler(){
   if(!messaging)return;
@@ -2407,7 +2469,7 @@ async function handlePushToggleClick(){
     toast('Notificações já estão ativadas neste navegador. Para desativar, use as configurações do navegador/celular.');
     return;
   }
-  const ok=await setupPushNotifications(false);
+  const ok=await requestPushPermission(false);
   const el=$('#pushToggle');
   if(el)el.classList.toggle('on',ok);
 }
@@ -2433,7 +2495,8 @@ auth.onAuthStateChanged(async user=>{
         await establishClientIdentity(user);
         initFirestoreListeners();
         initPushForegroundHandler();
-        setupPushNotifications(true); // silencioso — não incomoda se o usuário ainda não permitiu
+        refreshPushTokenIfAlreadyGranted(); // nunca pede permissão aqui — só mantém o token em dia se já foi concedida
+        maybePromptPushPermission(); // convite claro, no momento certo, respeitando o gesto do usuário
       }catch(err){
         console.error('Erro ao estabelecer identidade do cliente:',err);
       }
