@@ -722,6 +722,7 @@ const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const BRL=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 let toastCallId=0;
+let toastShownAt=0;
 function toast(msg){
   const t=$('#toast');
   if(!t)return;
@@ -731,10 +732,21 @@ function toast(msg){
   t.classList.remove('show');
   void t.offsetWidth; // força reflow para reiniciar a animação mesmo se já estava visível
   t.classList.add('show');
+  toastShownAt=Date.now();
   t._h=setTimeout(()=>{
     if(myId===toastCallId)t.classList.remove('show'); // só esconde se nenhuma chamada mais nova tiver assumido
   },2400);
 }
+// rede de segurança: navegadores mobile costumam pausar setTimeout com a aba em segundo plano
+// (ex: durante o prompt nativo de permissão de notificação). Se o app voltar ao primeiro plano
+// e o toast já devia ter sumido há tempo, força o fechamento em vez de deixá-lo preso na tela.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible')return;
+  const t=$('#toast');
+  if(t&&t.classList.contains('show')&&Date.now()-toastShownAt>2400){
+    t.classList.remove('show');
+  }
+});
 function initials(n){return n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase()}
 function fmtDate(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
 function parseDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
@@ -1156,7 +1168,7 @@ function initFirestoreListeners(){
       Object.assign(CLIENT,{
         nome:data.nome||CLIENT.nome,tel:data.tel||'',email:data.email||'',nasc:data.nasc||'',sexo:data.sexo||'',
         foto:data.foto||null,pontos:data.pontos||0,tier:data.tier||'Bronze',cashback:data.cashback||0,
-        visitas:data.visitas||0,desde:data.desde||'',
+        visitas:data.visitas||0,desde:data.desde||'',resgatados:data.resgatados||[],
         createdAtMs:data.createdAt&&typeof data.createdAt.toMillis==='function'?data.createdAt.toMillis():(CLIENT.createdAtMs||null),
       });
       renderScreen();
@@ -1643,11 +1655,12 @@ function renderFidelidade(){
 
   if(rewardsListOpen){
     html+=REWARDS.map(r=>{
-      const can=CLIENT.pontos>=r.custo;
-      return `<div class="reward-card fade-in" style="${can?'':'opacity:.55'}">
+      const alreadyRedeemed=(CLIENT.resgatados||[]).includes(r.id);
+      const can=!alreadyRedeemed&&CLIENT.pontos>=r.custo;
+      return `<div class="reward-card fade-in" style="${can||alreadyRedeemed?'':'opacity:.55'}">
         <div class="rc-ico">${r.icon}</div>
-        <div class="rc-info"><div class="rc-name">${r.nome}</div><div class="rc-cost">${r.custo.toLocaleString('pt-BR')} pontos</div></div>
-        <button class="btn ${can?'btn-primary':'btn-ghost'} btn-sm" ${can?`onclick="openRedeemSheet('${r.nome.replace(/'/g,"\\'")}')"`:'disabled'}>Resgatar</button>
+        <div class="rc-info"><div class="rc-name">${r.nome}</div><div class="rc-cost">${alreadyRedeemed?'✓ Já resgatado':r.custo.toLocaleString('pt-BR')+' pontos'}</div></div>
+        <button class="btn ${can?'btn-primary':'btn-ghost'} btn-sm" ${can?`onclick="openRedeemSheet('${r.nome.replace(/'/g,"\\'")}')"`:'disabled'}>${alreadyRedeemed?'Resgatado':'Resgatar'}</button>
       </div>`;
     }).join('');
   }
@@ -1691,6 +1704,7 @@ function openRedeemSheet(nome){
   closeAllSheets();
   const r=REWARDS.find(x=>x.nome===nome);
   if(!r)return;
+  if((CLIENT.resgatados||[]).includes(r.id)){toast('Você já resgatou essa recompensa antes — cada uma só pode ser resgatada uma vez.');return}
   $('#redeemTitle').textContent=r.nome;
   $('#redeemBody').innerHTML=`<div style="text-align:center;padding:8px 0 4px">
     <div style="font-size:44px;margin-bottom:10px">${r.icon}</div>
@@ -1708,14 +1722,15 @@ async function confirmRedeem(){
   const nome=$('#redeemConfirmBtn').dataset.reward;
   const r=REWARDS.find(x=>x.nome===nome);
   if(!r||!CLIENT.id)return;
+  if((CLIENT.resgatados||[]).includes(r.id)){toast('Você já resgatou essa recompensa antes.');closeRedeemSheet();return}
   // os pontos NUNCA são descontados no resgate — eles só servem pra evolução de nível (Bronze/Prata/Ouro/Platinum).
-  // a única coisa "gasta" de fato é a recompensa em si, que ao ser resgatada:
-  const patch={};
+  // a única coisa "gasta" de fato é a recompensa em si, que só pode ser resgatada UMA VEZ por cliente:
+  const patch={resgatados:firebase.firestore.FieldValue.arrayUnion(r.id)};
   if(r.tipo==='dinheiro'&&r.valor>0){
     // vira saldo de cashback disponível pro cliente usar num próximo agendamento
     patch.cashback=firebase.firestore.FieldValue.increment(r.valor);
   }
-  if(Object.keys(patch).length)await db.collection('clients').doc(CLIENT.id).update(patch);
+  await db.collection('clients').doc(CLIENT.id).update(patch);
   await db.collection('loyaltyRewards').doc(r.id).update({resg:firebase.firestore.FieldValue.increment(1)});
   pushNotification(`🎁 ${CLIENT.nome.split(' ')[0]} resgatou a recompensa "${r.nome}"${r.tipo==='dinheiro'?' ('+BRL(r.valor)+' de cashback creditado)':' — combine com o cliente no próximo atendimento'}`);
   closeRedeemSheet();
@@ -2375,7 +2390,7 @@ async function setupPushNotifications(silent){
     console.warn('[push] getToken não retornou um token válido');
   }catch(err){
     console.error('[push] erro ao configurar notificações:',err);
-    if(!silent)toast('Não foi possível ativar as notificações push agora ('+(err.message||err.code||'erro desconhecido')+')');
+    if(!silent)toast('Não foi possível ativar as notificações push agora. Tente novamente em alguns instantes.');
   }
   return false;
 }
