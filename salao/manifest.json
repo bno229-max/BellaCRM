@@ -1,0 +1,21 @@
+{
+  "name": "Beauty Agenda — Painel do Salão",
+  "short_name": "Beauty Agenda",
+  "description": "Gerencie agenda, clientes, fidelidade e cashback do seu salão direto do celular.",
+  "id": "/salao/",
+  "start_url": "/salao/",
+  "scope": "/salao/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAFAF7",
+  "theme_color": "#C2366F",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/salao/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/salao/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/salao/icons/icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any" },
+    { "src": "/salao/icons/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/salao/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/salao/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

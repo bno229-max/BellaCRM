@@ -2,12 +2,25 @@
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Beauty Agenda — Gestão inteligente para salões</title>
+
+<!-- ============ PWA ============ -->
+<link rel="manifest" href="/salao/manifest.json">
+<meta name="theme-color" content="#C2366F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Beauty Agenda">
+<link rel="apple-touch-icon" href="/salao/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/salao/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/salao/icons/favicon-16.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
 <style>
 /* ============ TOKENS ============ */
 :root{
@@ -646,6 +659,67 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .auth-links{display:flex;justify-content:space-between;margin-top:16px;font-size:12.5px}
 .auth-links .auth-link{color:var(--brand);font-weight:600;cursor:pointer}
 .auth-links .auth-link:hover{text-decoration:underline}
+
+/* ======================================================================
+   MOBILE / PWA — refinamentos para o acesso do salão funcionar bem
+   como app instalável no celular, sem cortar conteúdo e com fluidez
+   equivalente à versão desktop.
+   ====================================================================== */
+
+/* safe-area (notch / home indicator) quando instalado como PWA standalone */
+.sidebar{padding-top:max(20px, env(safe-area-inset-top));padding-left:max(14px, env(safe-area-inset-left))}
+.topbar{padding-left:max(18px, env(safe-area-inset-left));padding-right:max(18px, env(safe-area-inset-right))}
+.content{padding-bottom:max(48px, calc(24px + env(safe-area-inset-bottom)))}
+
+/* backdrop do menu lateral no mobile */
+.sidebar-scrim{position:fixed;inset:0;background:rgba(10,9,12,.4);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:55}
+.sidebar-scrim.open{opacity:1;pointer-events:auto}
+
+/* rolagem horizontal mais suave em touch (agenda e tabelas) */
+.agenda-wrap,.clients-table-wrap{-webkit-overflow-scrolling:touch}
+
+/* coluna de horário fixa na Agenda ao rolar para o lado — sem perder a referência de hora */
+.ag-col-head:first-child,.ag-body-time{position:sticky;left:0;z-index:7;background:var(--surface)}
+
+@media(max-width:900px){
+  /* nenhum grid de 3 ou 2 colunas deve espremer conteúdo em telas de celular */
+  .grid-3{grid-template-columns:1fr}
+  .field-row{grid-template-columns:1fr}
+  .d-stats{grid-template-columns:repeat(2,1fr)}
+
+  /* toque confortável: 44px é o mínimo recomendado de área de toque */
+  .nav-item{min-height:46px}
+  .btn{min-height:42px}
+  .icon-btn,.icon-btn-sm,.hamburger{min-width:40px;min-height:40px}
+
+  /* inputs a 16px evitam o zoom automático do iOS ao focar em campos */
+  .field input,.field select,.field textarea{font-size:16px;padding:11px 12px}
+
+  /* drawer lateral ocupa a tela toda no celular, sem faixa de fundo visível */
+  .drawer{width:100vw;max-width:100vw}
+  .drawer-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+  .d-stats{gap:10px}
+}
+
+@media(max-width:640px){
+  /* modal vira uma folha inferior (bottom sheet) — mais natural no celular
+     do que uma caixa flutuante centralizada, e nunca corta conteúdo */
+  .modal-scrim{align-items:flex-end}
+  .modal{
+    width:100%;max-width:100%;max-height:92vh;border-radius:18px 18px 0 0;
+    padding:22px 18px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(100%) scale(1);
+  }
+  .modal-scrim.open .modal{transform:translateY(0) scale(1)}
+}
+
+@media(max-width:480px){
+  /* topbar: título trunca em vez de estourar, botão principal vira só ícone */
+  .topbar{padding-top:10px;padding-bottom:10px;gap:8px}
+  .topbar h1{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+  .btn-primary .btn-label{display:none}
+  .btn-primary{padding:10px;border-radius:12px}
+}
 </style>
 </head>
 <body>
@@ -725,6 +799,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <div class="app" id="mainApp" style="display:none">
 
 <!-- ============ SIDEBAR ============ -->
+<div class="sidebar-scrim" id="sidebarScrim" onclick="closeSidebar()"></div>
 <aside class="sidebar" id="sidebar">
   <div class="logo">
     <div class="logo-mark">
@@ -794,6 +869,10 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
       </button>
     </div>
+    <button class="theme-toggle" id="installAppBtn" onclick="installApp()" style="display:none">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13m0 0 4-4m-4 4-4-4"/><path d="M5 20h14"/></svg>
+      <span>Instalar app</span>
+    </button>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
       <svg id="themeIconLight" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       <svg id="themeIconDark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -805,7 +884,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 <!-- ============ MAIN ============ -->
 <div class="main">
   <header class="topbar">
-    <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
     <h1 id="topTitle">Dashboard</h1>
@@ -825,7 +904,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     </div>
     <button class="btn btn-primary" onclick="openModal()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      Novo agendamento
+      <span class="btn-label">Novo agendamento</span>
     </button>
   </header>
 
@@ -1945,6 +2024,14 @@ function initFirestoreListeners(){
 /* ================= VIEW SWITCHING ================= */
 const TITLES={dashboard:'Dashboard',agenda:'Agenda',clientes:'Clientes',espera:'Lista de Espera',equipe:'Equipe',fidelidade:'Programa de Fidelidade',cashback:'Cashback & Giftback',marketing:'Marketing',estoque:'Estoque',config:'Configurações'};
 const ALL_VIEWS=['dashboard','agenda','clientes','espera','equipe','fidelidade','cashback','marketing','estoque','config'];
+function toggleSidebar(){
+  $('#sidebar').classList.toggle('open');
+  $('#sidebarScrim').classList.toggle('open');
+}
+function closeSidebar(){
+  $('#sidebar').classList.remove('open');
+  $('#sidebarScrim').classList.remove('open');
+}
 function setView(v){
   if(v==='marketing'&&typeof hasMarketingAccess==='function'&&!hasMarketingAccess()){
     renderPlanModal('marketing-locked');
@@ -1954,6 +2041,7 @@ function setView(v){
   document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
   $('#topTitle').textContent=TITLES[v];
   $('#sidebar').classList.remove('open');
+  $('#sidebarScrim').classList.remove('open');
   if(v==='agenda'&&typeof renderAgenda==='function')renderAgenda();
   if(v==='dashboard'&&typeof renderKpis==='function'){
     renderKpis();
@@ -2494,7 +2582,8 @@ function renderDayView(){
   DAY_START=parseInt(cfg.open.split(':')[0]);
   DAY_HOURS=parseInt(cfg.close.split(':')[0])-DAY_START;
   const dayAppts=appts.filter(a=>a.date===dateStr&&a.status!=='cancelado');
-  g.style.gridTemplateColumns='56px repeat('+PROS.length+', minmax(190px,1fr))';
+  const colMin=window.innerWidth<700?'148px':'190px';
+  g.style.gridTemplateColumns='56px repeat('+PROS.length+', minmax('+colMin+',1fr))';
   let html=`<div class="ag-col-head" style="border-left:none"></div>`;
   PROS.forEach(p=>{
     const proAppts=dayAppts.filter(a=>a.pro===p.id);
@@ -4767,6 +4856,35 @@ function startAppAfterLogin(user){
       checkReminders();
     });
 }
+</script>
+
+<!-- ============ PWA: registro do service worker + instalação ============ -->
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/salao/sw.js',{scope:'/salao/'}).catch(()=>{});
+  });
+}
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const btn=document.getElementById('installAppBtn');
+  if(btn)btn.style.display='flex';
+});
+function installApp(){
+  if(!deferredInstallPrompt)return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.finally(()=>{
+    deferredInstallPrompt=null;
+    const btn=document.getElementById('installAppBtn');
+    if(btn)btn.style.display='none';
+  });
+}
+window.addEventListener('appinstalled',()=>{
+  const btn=document.getElementById('installAppBtn');
+  if(btn)btn.style.display='none';
+});
 </script>
 </body>
 </html>
