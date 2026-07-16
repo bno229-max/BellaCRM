@@ -1,0 +1,16 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Igual fizemos no Firestore: exige estar logado (salão ou cliente) pra
+    // ler ou enviar arquivos. Sem isso, o Storage vem com a regra padrão
+    // "allow read, write: if false" — ninguém consegue enviar nada, nem o
+    // próprio painel do salão. É por isso que o upload de vídeo dos Ads
+    // fica "travado": as regras nunca foram publicadas.
+
+    match /{allPaths=**} {
+      allow read: if true;               // vídeos/fotos dos anúncios precisam ser públicos pro app do cliente exibir
+      allow write: if request.auth != null;  // só quem está logado pode enviar
+    }
+  }
+}

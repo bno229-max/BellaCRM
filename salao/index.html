@@ -1107,6 +1107,7 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">GiftBacks entregues (mês)</div><div class="sc-icon" style="background:var(--warn-soft);color:var(--warn)">🎁</div></div><div class="sc-val num" id="cbKpiGiftbacks">0</div><div class="sc-lbl" id="cbKpiGiftbacksSub">—</div></div>
         <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Saldo total em carteiras</div><div class="sc-icon" style="background:var(--info-soft);color:var(--info)">💳</div></div><div class="sc-val num" id="cbKpiSaldo">R$ 0</div><div class="sc-lbl" id="cbKpiSaldoSub">—</div></div>
         <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Pontos de fidelidade ativos</div><div class="sc-icon" style="background:var(--brand-soft);color:var(--brand)">⭐</div></div><div class="sc-val num" id="cbKpiPontos">0</div><div class="sc-lbl" id="cbKpiPontosSub">—</div></div>
+        <div class="card stat-card"><div class="sc-row"><div class="sc-lbl" style="margin:0">Indicações (mês)</div><div class="sc-icon" style="background:var(--pos-soft);color:var(--pos)">🎁</div></div><div class="sc-val num" id="cbKpiIndicacoes">0</div><div class="sc-lbl" id="cbKpiIndicacoesSub">—</div></div>
       </div>
 
       <div class="config-section fade-in">
@@ -1115,6 +1116,24 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
         <div class="card panel" style="padding:18px">
           <input type="text" id="giftbackSearch" placeholder="🔍 Buscar cliente pelo nome…" oninput="renderGiftbackClientList()" style="width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13.5px;margin-bottom:14px;box-sizing:border-box">
           <div id="giftbackClientList" style="max-height:420px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <div class="config-section fade-in">
+        <h3>Recompensa por indicação</h3>
+        <div class="cs-sub">Definida aqui é a recompensa que o cliente recebe automaticamente quando indica alguém pelo link do app e essa pessoa se cadastra.</div>
+        <div class="card panel" style="padding:18px">
+          <div class="field-row">
+            <div class="field">
+              <label>Tipo de recompensa</label>
+              <select id="referralRewardTipo">
+                <option value="cashback">Cashback (R$)</option>
+                <option value="pontos">Pontos de fidelidade</option>
+              </select>
+            </div>
+            <div class="field"><label>Valor</label><input type="number" id="referralRewardValor" min="0" step="0.01" placeholder="20,00"></div>
+          </div>
+          <button class="btn btn-primary" onclick="saveReferralConfig()">Salvar recompensa de indicação</button>
         </div>
       </div>
     </section>
@@ -1976,6 +1995,14 @@ function initFirestoreListeners(){
     if(typeof renderCashbackKpis==='function')renderCashbackKpis();
     if(typeof renderFidKpis==='function')renderFidKpis();
   },err=>console.error('giftbackLog listener:',err));
+  db.collection('referralsLog').orderBy('criadoEm','desc').onSnapshot(snap=>{
+    REFERRALS_LOG=snap.docs.map(d=>{
+      const data=d.data();
+      const criadoEmMs=data.criadoEm&&typeof data.criadoEm.toMillis==='function'?data.criadoEm.toMillis():null;
+      return {id:d.id,...data,criadoEmMs};
+    });
+    if(typeof renderCashbackKpis==='function')renderCashbackKpis();
+  },err=>console.error('referralsLog listener:',err));
   db.collection('products').onSnapshot(snap=>{
     PRODUCTS=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(typeof renderEstoque==='function')renderEstoque();
@@ -1995,6 +2022,7 @@ function initFirestoreListeners(){
     if(cfg.brandColor&&typeof applyBrandColor==='function')applyBrandColor(cfg.brandColor,false);
     if(cfg.logo&&typeof applyLogo==='function')applyLogo(cfg.logo,false);
     if(cfg.reminder){REMINDER_CONFIG={...REMINDER_CONFIG,...cfg.reminder};if(typeof initReminderConfig==='function')initReminderConfig();}
+    if(cfg.referralReward){REFERRAL_REWARD_CONFIG={...REFERRAL_REWARD_CONFIG,...cfg.referralReward};if(typeof renderReferralConfig==='function')renderReferralConfig();}
     if(cfg.salon){
       Object.assign(SALON_CONFIG,cfg.salon);
       const nameEl=$('#sidebarSalonName');
@@ -3242,6 +3270,7 @@ function rescheduleAppt(id){
 
 /* ================= LEMBRETE AUTOMÁTICO (PUSH) ================= */
 let REMINDER_CONFIG={minutos:15,mensagem:'Oi {cliente}! 👋 Seu horário de {servico} é às {horario}. Você vai comparecer? Toque para confirmar ✅'};
+let REFERRAL_REWARD_CONFIG={tipo:'cashback',valor:20};
 function apptClockMinutes(a){
   const cfg=businessHoursForDate(parseDate(a.date));
   const openHour=cfg&&cfg.open?parseInt(cfg.open.split(':')[0]):8;
@@ -3755,6 +3784,7 @@ async function deleteFidReward(id){await db.collection('loyaltyRewards').doc(id)
 
 /* ================= CASHBACK & GIFTBACK (KPIs reais + GiftBack manual do salão) ================= */
 let GIFTBACK_LOG=[];
+let REFERRALS_LOG=[];
 function renderCashbackKpis(){
   if($('#view-cashback').hidden)return;
   const now=new Date();
@@ -3784,6 +3814,24 @@ function renderCashbackKpis(){
   const comPontos=clientesAtivos.filter(c=>(c.pontos||0)>0).length;
   const elPts=$('#cbKpiPontos');if(elPts)elPts.textContent=pontosTotal.toLocaleString('pt-BR');
   const elPtsSub=$('#cbKpiPontosSub');if(elPtsSub)elPtsSub.textContent=comPontos+' cliente'+(comPontos===1?'':'s')+' ativo'+(comPontos===1?'':'s')+' com pontos acumulados';
+
+  const indicacoesMes=REFERRALS_LOG.filter(r=>r.criadoEmMs&&r.criadoEmMs>=cutoffMonth.getTime());
+  const elInd=$('#cbKpiIndicacoes');if(elInd)elInd.textContent=indicacoesMes.length;
+  const elIndSub=$('#cbKpiIndicacoesSub');if(elIndSub)elIndSub.textContent=indicacoesMes.length?'Último: '+(indicacoesMes[0].newClientName||'cliente novo'):'Nenhuma indicação convertida este mês ainda';
+}
+function renderReferralConfig(){
+  const tipoEl=$('#referralRewardTipo'),valorEl=$('#referralRewardValor');
+  if(!tipoEl||!valorEl)return;
+  tipoEl.value=REFERRAL_REWARD_CONFIG.tipo||'cashback';
+  valorEl.value=REFERRAL_REWARD_CONFIG.valor||0;
+}
+async function saveReferralConfig(){
+  const tipo=$('#referralRewardTipo').value;
+  const valor=Number($('#referralRewardValor').value)||0;
+  if(valor<=0){toast('Defina um valor maior que zero para a recompensa de indicação.');return}
+  REFERRAL_REWARD_CONFIG={tipo,valor};
+  await db.collection('config').doc('business').set({referralReward:REFERRAL_REWARD_CONFIG},{merge:true});
+  toast('Recompensa por indicação atualizada ✅');
 }
 function renderGiftbackClientList(){
   const el=$('#giftbackClientList');
@@ -4844,7 +4892,7 @@ function startAppAfterLogin(user){
 
   renderKpis();renderRanking();renderAgenda();renderClients();renderWaitlist();renderStaff();
   renderTiers();renderFidRanking();renderFidKpis();renderCashbackKpis();renderGiftbackClientList();renderMarketing();renderEstoque();renderConfig();renderServiceTypes();
-  initBrandColor();initLogo();initReminderConfig();
+  initBrandColor();initLogo();initReminderConfig();renderReferralConfig();
   buildCharts();
   renderNotifList();
 

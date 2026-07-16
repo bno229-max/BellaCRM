@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A partir de agora, só quem tem uma CONTA (login criado pelo admin ou pelo próprio
+    // cliente via "1º Acesso") consegue ler ou escrever qualquer coisa no banco.
+    // Isso já fecha a porta pra qualquer pessoa aleatória na internet mexer nos dados,
+    // mesmo sabendo a apiKey do projeto (que nunca foi o problema — a apiKey é pública
+    // por natureza, quem protege de verdade são estas regras).
+    //
+    // OBS: aqui ainda não diferenciamos "sou o admin do salão" de "sou um cliente" —
+    // qualquer conta logada (salão ou cliente) pode ler/escrever em qualquer coleção.
+    // Isso é seguro contra estranhos, mas não impede um cliente logado de, tecnicamente,
+    // editar dados de outro cliente direto pelo console do navegador. Pra fechar esse
+    // último buraco de vez, o próximo passo é usar Cloud Functions pra marcar cada
+    // conta com uma "role" (admin/cliente) e travar as regras por role — fica pra uma
+    // próxima etapa, junto com a migração pra produção completa.
+
+    // Dados públicos do salão (nome, logo, endereço, cor) — precisam ser legíveis
+    // mesmo ANTES do login, pra tela de entrada do app do cliente já mostrar o nome
+    // e a cor certos, em vez de um valor fixo genérico. Escrita continua exigindo login.
+    match /config/business {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
